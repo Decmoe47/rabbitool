@@ -34,6 +34,18 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     {
         return Uid.ToString();
     }
+
+    public bool ContainsQQChannel(string channelId)
+    {
+        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
+    }
+
+    public void RemoveQQChannel(string channelId)
+    {
+        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
+        if (channel != null)
+            QQChannels.Remove(channel);
+    }
 }
 
 [Table("BilibiliSubscribeConfig")]

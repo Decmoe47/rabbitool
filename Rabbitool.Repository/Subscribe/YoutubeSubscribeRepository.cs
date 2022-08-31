@@ -17,8 +17,13 @@ public class YoutubeSubscribeRepository
     {
         return tracking switch
         {
-            false => await _dbCtx.YoutubeSubscribeEntity.AsNoTracking().ToListAsync(cancellationToken),
-            true => await _dbCtx.YoutubeSubscribeEntity.ToListAsync(cancellationToken)
+            false => await _dbCtx.YoutubeSubscribeEntity
+                .AsNoTracking()
+                .Include(e => e.QQChannels)
+                .ToListAsync(cancellationToken),
+            true => await _dbCtx.YoutubeSubscribeEntity
+                .Include(e => e.QQChannels)
+                .ToListAsync(cancellationToken)
         };
     }
 
@@ -30,8 +35,11 @@ public class YoutubeSubscribeRepository
             false => await _dbCtx
                 .YoutubeSubscribeEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannels)
                 .FirstAsync(y => y.ChannelId == channelId, cancellationToken),
-            true => await _dbCtx.YoutubeSubscribeEntity.FirstAsync(y => y.ChannelId == channelId, cancellationToken)
+            true => await _dbCtx.YoutubeSubscribeEntity
+                .Include(e => e.QQChannels)
+                .FirstAsync(y => y.ChannelId == channelId, cancellationToken)
         };
     }
 
@@ -43,9 +51,11 @@ public class YoutubeSubscribeRepository
             false => await _dbCtx
                 .YoutubeSubscribeEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(y => y.ChannelId == channelId, cancellationToken),
             true => await _dbCtx
                 .YoutubeSubscribeEntity
+                .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(y => y.ChannelId == channelId, cancellationToken)
         };
     }
@@ -80,10 +90,14 @@ public class YoutubeSubscribeConfigRepository
             false => await _dbCtx
                 .YoutubeSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .Where(y => y.Subscribe.ChannelId == channelId)
                 .ToListAsync(cancellationToken),
             true => await _dbCtx
                 .YoutubeSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .Where(y => y.Subscribe.ChannelId == channelId)
                 .ToListAsync(cancellationToken)
         };
@@ -100,10 +114,14 @@ public class YoutubeSubscribeConfigRepository
             false => await _dbCtx
                 .YoutubeSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstAsync(
                     y => y.QQChannel.ChannelId == qqChannelId && y.Subscribe.ChannelId == channelId, cancellationToken),
             true => await _dbCtx
                 .YoutubeSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstAsync(
                     y => y.QQChannel.ChannelId == qqChannelId && y.Subscribe.ChannelId == channelId, cancellationToken)
         };
@@ -120,10 +138,14 @@ public class YoutubeSubscribeConfigRepository
             false => await _dbCtx
                 .YoutubeSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(
                     y => y.QQChannel.ChannelId == qqChannelId && y.Subscribe.ChannelId == channelId, cancellationToken),
             true => await _dbCtx
                 .YoutubeSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(
                     y => y.QQChannel.ChannelId == qqChannelId && y.Subscribe.ChannelId == channelId, cancellationToken)
         };

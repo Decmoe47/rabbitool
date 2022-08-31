@@ -7,6 +7,10 @@ public class QQBotApiException : Exception
     public QQBotApiException(string message) : base(message)
     {
     }
+
+    public QQBotApiException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
 }
 
 public class CosFileUploadException : Exception

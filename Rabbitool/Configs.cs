@@ -5,6 +5,10 @@ namespace Rabbitool;
 
 public class Configs
 {
+    public bool InTestEnvironment { get; set; } = false;
+    public string? HttpProxy { get; set; }
+    public string? HttpsProxy { get; set; }
+
     [Required]
     public string RedirectUrl { get; set; } = null!;
 
@@ -69,13 +73,13 @@ public class ErrorNotifier
     public int SenderPort { get; set; }
 
     [Required]
+    public bool UsingSsl { get; set; }
+
+    [Required]
     public string SenderUsername { get; set; } = null!;
 
     [Required]
     public string SenderPassword { get; set; } = null!;
-
-    [Required]
-    public bool UsingSsl { get; set; }
 
     [Required]
     public string SenderAddress { get; set; } = null!;
@@ -91,6 +95,23 @@ public class ErrorNotifier
 
     [Required]
     public int AllowedAmount { get; set; }
+
+    public Rabbitool.Common.Tool.ErrorNotifierOptions ToOptions()
+    {
+        return new Common.Tool.ErrorNotifierOptions()
+        {
+            Host = SenderHost,
+            Port = SenderPort,
+            Ssl = UsingSsl,
+            Username = SenderUsername,
+            Password = SenderPassword,
+            From = SenderAddress,
+            To = ReceiverAddresses,
+            RefreshMinutes = RefreshMinutes,
+            MaxAmount = MaxAmount,
+            AllowedAmount = AllowedAmount
+        };
+    }
 }
 
 public class QQBot

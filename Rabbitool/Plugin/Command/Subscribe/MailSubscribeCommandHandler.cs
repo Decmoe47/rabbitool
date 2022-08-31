@@ -37,18 +37,22 @@ public class MailSubscribeCommandHandler
     {
         if (command.SubscribeId is null)
             return $"请输入 {command.Platform} 对应的id！";
-        (string address, string? errCommandMsg) = await CheckId(command.SubscribeId, cancellationToken);
+        (string username, string? errCommandMsg) = await CheckId(command.SubscribeId, cancellationToken);
         if (errCommandMsg is not null)
             return errCommandMsg;
 
-        if (command.Configs?["password"] is null)
+        if (command.Configs is null)
+            return "错误：需指定邮箱地址！";
+        if (!command.Configs.TryGetValue("address", out string? address) || address is null)
+            return "错误：需指定邮箱地址！";
+        if (!command.Configs.TryGetValue("password", out string? password) || password is null)
             return "错误：需指定邮箱密码！";
-        if (command.Configs?["host"] is null)
+        if (!command.Configs.TryGetValue("host", out string? host) || host is null)
             return "错误：需指定host！";
-        if (command.Configs?["port"] is null)
+        if (!command.Configs.TryGetValue("port", out int? port) || port is null)
             return "错误：需指定port！";
 
-        bool existEntity = true;
+        bool flag = true;
         bool added;
         MailSubscribeEntity record;
         QQChannelSubscribeEntity channel;
@@ -66,6 +70,7 @@ public class MailSubscribeCommandHandler
             command.Configs.TryGetValue("mailbox", out dynamic? mailbox);
             command.Configs.TryGetValue("ssl", out dynamic? ssl);
             entity = new MailSubscribeEntity(
+                username: username,
                 address: address,
                 password: command.Configs["password"],
                 host: command.Configs["host"],
@@ -75,22 +80,30 @@ public class MailSubscribeCommandHandler
             );
             await _repo.AddAsync(entity, cancellationToken);
 
-            existEntity = false;
+            flag = false;
+        }
+        else if (entity.ContainsQQChannel(command.QQChannel.Id))
+        {
+            flag = false;
         }
         record = entity;
 
         (channel, added) = await _qsRepo.AddSubscribeAsync(
-            command.QQChannel.Id, command.QQChannel.Name, record, cancellationToken);
+            command.QQChannel.GuildId, command.QQChannel.Id, command.QQChannel.Name, record, cancellationToken);
         await _configRepo.CreateOrUpdateAsync(channel, record, command.Configs, cancellationToken);
 
         await _dbCtx.SaveChangesAsync(cancellationToken);
 
-        MailSubscribeEvent.OnMailSubscribeAdded(
-            record.Host, record.Port, record.Ssl, address, record.Password, record.Mailbox);
-
-        return added && existEntity
-            ? $"成功：已添加订阅到 {command.QQChannel.Name} 子频道！"
-            : $"成功：已更新在 {command.QQChannel.Name} 子频道中的此订阅的配置！";
+        if (added && !flag)
+        {
+            MailSubscribeEvent.OnMailSubscribeAdded(
+                record.Host, record.Port, record.Ssl, address, record.Password, record.Mailbox);
+            return $"成功：已添加订阅到 {command.QQChannel.Name} 子频道！";
+        }
+        else
+        {
+            return $"成功：已更新在 {command.QQChannel.Name} 子频道中的此订阅的配置！";
+        }
     }
 
     public override async Task<string> Delete(SubscribeCommandDTO command, CancellationToken cancellationToken = default)
@@ -104,7 +117,7 @@ public class MailSubscribeCommandHandler
 
         Dictionary<string, string> logInfo = new()
         {
-            { "type", nameof(YoutubeSubscribeEntity) },
+            { "type", nameof(MailSubscribeEntity) },
             { "subscribeId", command.SubscribeId },
             { "channelId", command.QQChannel.Id },
             { "channelName", command.QQChannel.Name }
@@ -112,8 +125,11 @@ public class MailSubscribeCommandHandler
 
         try
         {
-            await _qsRepo.RemoveSubscribeAsync(
-                command.QQChannel.Id, command.SubscribeId, nameof(YoutubeSubscribeEntity), cancellationToken);
+            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(
+                command.QQChannel.Id, command.SubscribeId, e => e.MailSubscribes, cancellationToken);
+            if (record.SubscribesAreAllEmpty())
+                _qsRepo.Delete(record);
+
             await _repo.DeleteAsync(command.SubscribeId, cancellationToken);
             await _configRepo.DeleteAsync(command.QQChannel.Id, command.SubscribeId, cancellationToken);
 

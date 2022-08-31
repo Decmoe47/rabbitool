@@ -27,7 +27,8 @@ public class QQBotServiceTest
     [Fact()]
     public async Task PushCommonMsgAsyncTestAsync()
     {
-        Channel channel = await _svc.GetChannelByNameAsync("默认");
+        Guild guild = (await _svc.GetGuildsAsync())[0];
+        Channel channel = await _svc.GetChannelByNameAsync("默认", guild.Id);
         await _svc.PushCommonMsgAsync(channel.Id, "test123\ntest456");
         Assert.True(true);
     }
@@ -35,7 +36,8 @@ public class QQBotServiceTest
     [Fact()]
     public async Task PostThreadAsyncTestAsync()
     {
-        Channel channel = await _svc.GetChannelByNameAsync("帖子");
+        Guild guild = (await _svc.GetGuildsAsync())[0];
+        Channel channel = await _svc.GetChannelByNameAsync("帖子", guild.Id);
 
         string title = "Test";
         List<Paragraph> paragraphs = new();

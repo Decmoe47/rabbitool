@@ -12,6 +12,8 @@ public class YoutubePlugin : BasePlugin
     private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
 
+    private Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
+
     public YoutubePlugin(
         QQBotService qbSvc,
         CosService cosSvc,
@@ -21,7 +23,7 @@ public class YoutubePlugin : BasePlugin
     {
         _svc = new YoutubeService();
 
-        SubscribeDbContext dbCtx = new SubscribeDbContext(_dbPath);
+        SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }
@@ -31,7 +33,7 @@ public class YoutubePlugin : BasePlugin
         List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
         if (records.Count == 0)
         {
-            Log.Warning("There isn't any youtube subscribe yet!");
+            Log.Debug("There isn't any youtube subscribe yet!");
             return;
         }
 
@@ -47,11 +49,36 @@ public class YoutubePlugin : BasePlugin
         {
             YoutubeBase item = await _svc.GetLatestVideoOrLiveAsync(record.ChannelId, cancellationToken);
 
+            async Task FnAsync(YoutubeVideo video)
+            {
+                bool pushed = await PushMsgAsync(video, record, cancellationToken);
+                if (pushed)
+                {
+                    Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
+                        video.Author, video.ChannelId);
+                }
+
+                record.LastVideoOrLiveId = video.Id;
+                record.LastVideoOrLiveTime = video.PubTime;
+                await _repo.SaveAsync(cancellationToken);
+                Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+                    video.Author, video.ChannelId);
+            }
+
+            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+
             switch (item)
             {
                 case YoutubeLive lItem:
                     if (lItem.Id != record.LastVideoOrLiveId)
                     {
+                        if (now.Hour >= 0 && now.Hour <= 6)
+                        {
+                            Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                                lItem.Author, lItem.ChannelId);
+                            return;
+                        }
+
                         await PushMsgAsync(lItem, record, cancellationToken);
                         Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
                             lItem.Author, lItem.ChannelId);
@@ -62,24 +89,42 @@ public class YoutubePlugin : BasePlugin
                             ? new List<string>() { lItem.Id }
                             : (List<string>)record.AllArchiveVideoIds.Append(lItem.Id);
                         await _repo.SaveAsync(cancellationToken);
-                        Log.Information("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+                        Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
                             lItem.Author, lItem.ChannelId);
                     }
                     break;
 
                 case YoutubeVideo vItem:
-                    if (vItem.PubTime > record.LastVideoOrLiveTime)
+                    if (vItem.PubTime <= record.LastVideoOrLiveTime)
                     {
-                        await PushMsgAsync(vItem, record, cancellationToken);
-                        Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
+                        Log.Debug("No new youtube video from the youtube user {name}(channelId: {channelId})",
                             vItem.Author, vItem.ChannelId);
-
-                        record.LastVideoOrLiveId = vItem.Id;
-                        record.LastVideoOrLiveTime = vItem.PubTime;
-                        await _repo.SaveAsync(cancellationToken);
-                        Log.Information("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
-                            vItem.Author, vItem.ChannelId);
+                        return;
                     }
+
+                    if (now.Hour >= 0 && now.Hour <= 6)
+                    {
+                        if (!_storedVideos.ContainsKey(vItem.ChannelId) || !_storedVideos[vItem.ChannelId].ContainsKey(vItem.PubTime))
+                            _storedVideos[vItem.ChannelId][vItem.PubTime] = vItem;
+                        Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                            vItem.Author, vItem.ChannelId);
+                        return;
+                    }
+
+                    if (_storedVideos.TryGetValue(vItem.ChannelId, out Dictionary<DateTime, YoutubeVideo>? storedVideos) && storedVideos != null && storedVideos.Count != 0)
+                    {
+                        List<DateTime> pubTimes = storedVideos.Keys.ToList();
+                        pubTimes.Sort();
+                        foreach (DateTime pubTime in pubTimes)
+                        {
+                            await FnAsync(storedVideos[pubTime]);
+                            _storedVideos[vItem.ChannelId].Remove(pubTime);
+                        }
+                        return;
+                    }
+
+                    await FnAsync(vItem);
+
                     break;
 
                 default:
@@ -93,7 +138,7 @@ public class YoutubePlugin : BasePlugin
         }
     }
 
-    private async Task PushMsgAsync<T>(T item, YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task<bool> PushMsgAsync<T>(T item, YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
         where T : YoutubeBase
     {
         (string title, string text, string imgUrl) = ItemToStr(item);
@@ -102,6 +147,7 @@ public class YoutubePlugin : BasePlugin
         List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
             item.ChannelId, cancellationToken: cancellationToken);
 
+        bool pushed = false;
         List<Task> tasks = new();
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
@@ -112,17 +158,16 @@ public class YoutubePlugin : BasePlugin
                 continue;
             }
 
-            YoutubeSubscribeConfigEntity? config = configs.FirstOrDefault(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config is not null)
-            {
-                if (config.ArchivePush && record.AllArchiveVideoIds?.Contains(item.ChannelId) == false)
-                    continue;
-            }
+            YoutubeSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            if (config.ArchivePush && record.AllArchiveVideoIds?.Contains(item.ChannelId) == false)
+                continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}"));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl));
+            pushed = true;
         }
 
         await Task.WhenAll(tasks);
+        return pushed;
     }
 
     private (string title, string text, string imgUrl) ItemToStr<T>(T item)
@@ -144,7 +189,7 @@ public class YoutubePlugin : BasePlugin
 
         return $@"直播标题：{item.Title}
 开播时间：{liveStartTimeStr}
-直播间链接：{PluginHelper.AddRedirectToUrls(item.Url, _redirectUrl)}
+直播间链接：{item.Url.AddRedirectToUrls(_redirectUrl)}
 直播间封面：";
     }
 
@@ -156,7 +201,7 @@ public class YoutubePlugin : BasePlugin
 
         return $@"视频标题：{item.Title}
 视频发布时间：{pubTimeStr}
-视频链接：{PluginHelper.AddRedirectToUrls(item.Url, _redirectUrl)}
+视频链接：{item.Url.AddRedirectToUrls(_redirectUrl)}
 视频封面：";
     }
 }

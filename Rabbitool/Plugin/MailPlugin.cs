@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Mail;
 using Rabbitool.Model.Entity.Subscribe;
@@ -14,9 +15,12 @@ public class MailPlugin : BasePlugin
     private readonly MailSubscribeRepository _repo;
     private readonly MailSubscribeConfigRepository _configRepo;
 
+    private Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
+
     /// <summary>
     /// 会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent"/>
-    /// 和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent"/>事件。
+    /// 和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent"/>
+    /// 和<see cref="AppDomain.CurrentDomain.ProcessExit"/>事件。
     /// </summary>
     public MailPlugin(
         QQBotService qbSvc,
@@ -25,7 +29,7 @@ public class MailPlugin : BasePlugin
         string redirectUrl,
         string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
-        SubscribeDbContext dbCtx = new SubscribeDbContext(_dbPath);
+        SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new MailSubscribeRepository(dbCtx);
         _configRepo = new MailSubscribeConfigRepository(dbCtx);
 
@@ -39,16 +43,21 @@ public class MailPlugin : BasePlugin
         List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
         if (records.Count == 0)
         {
-            Log.Warning("There isn't any mail subscribe yet!");
+            Log.Debug("There isn't any mail subscribe yet!");
             return;
         }
 
         List<Task> tasks = new();
         foreach (MailSubscribeEntity record in records)
         {
-            MailService? svc = _services.FirstOrDefault(s => s.Address == record.Address);
-            if (svc is not null)
-                tasks.Add(CheckAsync(svc, record, cancellationToken));
+            MailService? svc = _services.FirstOrDefault(s => s.Username == record.Address);
+            if (svc is null)
+            {
+                svc = new MailService(record.Host, record.Port, record.Ssl, record.Username, record.Password, record.Mailbox);
+                _services.Add(svc);
+            }
+
+            tasks.Add(CheckAsync(svc, record, cancellationToken));
         }
         await Task.WhenAll(tasks);
     }
@@ -59,29 +68,61 @@ public class MailPlugin : BasePlugin
         try
         {
             Mail mail = await svc.GetLatestMailAsync(cancellationToken);
-            if (mail.Time > record.LastMailTime)
+            if (mail.Time <= record.LastMailTime)
             {
-                await PushMsgAsync(mail, record, cancellationToken);
-                Log.Information("Succeeded to push the mail message from the user {address}).", record.Address);
-
-                record.LastMailTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(mail.Time, "China Standard Time");
-                await _repo.SaveAsync(cancellationToken);
-                Log.Information("Succeeded to updated the mail user {address}'s record.", record.Address);
+                Log.Debug("No new mail from the mail user {username}", record.Username);
+                return;
             }
+
+            async Task FnAsync(Mail mail)
+            {
+                bool pushed = await PushMsgAsync(mail, record, cancellationToken);
+                if (pushed)
+                    Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+
+                record.LastMailTime = mail.Time;
+                await _repo.SaveAsync(cancellationToken);
+                Log.Debug("Succeeded to updated the mail user {username}'s record.", record.Username);
+            };
+
+            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            if (now.Hour >= 0 && now.Hour <= 6)
+            {
+                if (!_storedMails.ContainsKey(record.Username) || !_storedMails[record.Username].ContainsKey(mail.Time))
+                    _storedMails[record.Username][mail.Time] = mail;
+                Log.Debug("Mail message of the user {userrname} is skipped because it's curfew time now.",
+                    record.Username);
+                return;
+            }
+
+            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, Mail>? storedMails) && storedMails != null && storedMails.Count != 0)
+            {
+                List<DateTime> times = storedMails.Keys.ToList();
+                times.Sort();
+                foreach (DateTime time in times)
+                {
+                    await FnAsync(storedMails[time]);
+                    _storedMails[record.Username].Remove(time);
+                }
+                return;
+            }
+
+            await FnAsync(mail);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push mail message!\nAddress: {address}", record.Address);
+            Log.Error(ex, "Failed to push mail message!\nAddress: {username}", record.Username);
         }
     }
 
-    private async Task PushMsgAsync(Mail mail, MailSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task<bool> PushMsgAsync(Mail mail, MailSubscribeEntity record, CancellationToken cancellationToken = default)
     {
-        (string title, string text) = MailToStr(mail);
+        (string title, string text, string detailText) = MailToStr(mail);
 
         List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
             record.Address, cancellationToken: cancellationToken);
 
+        bool pushed = false;
         List<Task> tasks = new();
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
@@ -92,24 +133,30 @@ public class MailPlugin : BasePlugin
                 continue;
             }
 
-            MailSubscribeConfigEntity? config = configs.FirstOrDefault(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config is not null)
+            MailSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            if (config.PushToThread)
             {
-                if (config.PushToThread)
-                {
-                    List<Model.DTO.QQBot.Paragraph> richText = QQBotService.TextToParagraphs(text);
-                    tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
-                    continue;
-                }
+                List<Model.DTO.QQBot.Paragraph> richText = config.Detail
+                    ? QQBotService.TextToParagraphs(detailText)
+                    : QQBotService.TextToParagraphs(text);
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
+                pushed = true;
+                continue;
             }
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}"));
+            if (config.Detail)
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}"));
+            else
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}"));
+
+            pushed = true;
         }
 
         await Task.WhenAll(tasks);
+        return pushed;
     }
 
-    private (string title, string text) MailToStr(Mail mail)
+    private (string title, string text, string detailText) MailToStr(Mail mail)
     {
         string from = "";
         string to = "";
@@ -119,26 +166,39 @@ public class MailPlugin : BasePlugin
             to += $"{item.Address} ";
 
         string title = "【新邮件】";
-        string text = $@"From: {from}
+
+        string text = mail.Text.AddRedirectToUrls(_redirectUrl);
+
+        text = Regex.Replace(
+                text,
+                @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+                new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+
+        string detailText = $@"From: {from}
 To: {to}
 Time: {TimeZoneInfo.ConvertTimeBySystemTimeZoneId(mail.Time, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
 Subject: {mail.Subject}
 ——————————
-{PluginHelper.AddRedirectToUrls(mail.Text, _redirectUrl)}";
+{mail.Text.AddRedirectToUrls(_redirectUrl)}";
 
-        return (title, text);
+        detailText = Regex.Replace(
+                detailText,
+                @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+                new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+
+        return (title, text, detailText);
     }
 
     private void HandleMailSubscribeAddedEvent(
         string host, int port, bool usingSsl, string address, string password, string mailbox)
     {
-        if (_services.FindIndex(s => s.Address == address) == -1)
+        if (_services.FindIndex(s => s.Username == address) == -1)
             _services.Add(new MailService(host, port, usingSsl, address, password, mailbox));
     }
 
     private async Task HandleMailSubscribeDeletedEventAsync(string address, CancellationToken cancellationToken)
     {
-        MailService? svc = _services.FirstOrDefault(s => s.Address == address);
+        MailService? svc = _services.FirstOrDefault(s => s.Username == address);
         if (svc is not null)
         {
             try
@@ -147,7 +207,7 @@ Subject: {mail.Subject}
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to disconnect the mail client!\nAddress: {address}", svc.Address);
+                Log.Error(ex, "Failed to disconnect the mail client!\nUsername: {username}", svc.Username);
             }
             finally
             {

@@ -1,4 +1,6 @@
-﻿using Rabbitool.Common.Util;
+﻿using System.Text.RegularExpressions;
+using QQChannelFramework.Models.WsModels;
+using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -14,7 +16,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
     where TSubscribeRepo : ISubscribeRepository<TSubscribe>
     where TConfigRepo : ISubscribeConfigRepository<TSubscribe, TConfig>
 {
-    protected readonly LimiterUtil _limiter;
+    protected readonly LimiterUtil _limiter = default!;
     protected readonly string _userAgent;
     protected readonly QQBotService _qbSvc;
     protected readonly SubscribeDbContext _dbCtx;
@@ -30,13 +32,34 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         TSubscribeRepo repo,
         TConfigRepo configRepo)
     {
-        _limiter = LimiterCollection.GetLimterBySubscribeEntity<TSubscribe>();
+        if (!(typeof(TSubscribe).Name == nameof(MailSubscribeEntity)))
+            _limiter = LimiterCollection.GetLimterBySubscribeEntity<TSubscribe>();
         _qbSvc = qbSvc;
         _dbCtx = dbCtx;
         _qsRepo = qsRepo;
         _userAgent = userAgent;
         _repo = repo;
         _configRepo = configRepo;
+    }
+
+    public async Task BotDeletedHandlerAsync(WsGuild guild, CancellationToken cancellationToken)
+    {
+        List<QQChannelSubscribeEntity> channels = await _qsRepo.GetAllAsync(guild.Id, true, cancellationToken);
+        foreach (QQChannelSubscribeEntity channel in channels)
+        {
+            List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
+            if (subscribes != null)
+            {
+                foreach (TSubscribe subscribe in subscribes)
+                {
+                    subscribe.RemoveQQChannel(channel.ChannelId);
+                    await _configRepo.DeleteAsync(channel.ChannelId, subscribe.GetId(), cancellationToken);
+                }
+            }
+            _qsRepo.Delete(channel);
+        }
+
+        await _dbCtx.SaveChangesAsync(cancellationToken);
     }
 
     public abstract Task<(string name, string? errCommandMsg)> CheckId(
@@ -51,7 +74,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         if (errCommandMsg is not null)
             return errCommandMsg;
 
-        bool existEntity = true;
+        bool flag = true;
         bool added;
         TSubscribe record;
         QQChannelSubscribeEntity channel;
@@ -62,17 +85,21 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             entity = SubscribeEntityHelper.NewSubscribeEntity<TSubscribe>(command.SubscribeId, name);
             await _repo.AddAsync(entity, cancellationToken);
 
-            existEntity = false;
+            flag = false;
+        }
+        else if (entity.ContainsQQChannel(command.QQChannel.Id))
+        {
+            flag = false;
         }
         record = entity;
 
         (channel, added) = await _qsRepo.AddSubscribeAsync(
-            command.QQChannel.Id, command.QQChannel.Name, record, cancellationToken);
+            command.QQChannel.GuildId, command.QQChannel.Id, command.QQChannel.Name, record, cancellationToken);
         await _configRepo.CreateOrUpdateAsync(channel, record, command.Configs, cancellationToken);
 
         await _dbCtx.SaveChangesAsync(cancellationToken);
 
-        return added && existEntity
+        return added && !flag
             ? $"成功：已添加订阅到 {command.QQChannel.Name} 子频道！"
             : $"成功：已更新在 {command.QQChannel.Name} 子频道中的此订阅的配置！";
     }
@@ -96,8 +123,11 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
         try
         {
-            await _qsRepo.RemoveSubscribeAsync(
+            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(
                 command.QQChannel.Id, command.SubscribeId, typeof(TSubscribe).Name.Replace("Entity", "s"), cancellationToken);
+            if (record.SubscribesAreAllEmpty())
+                _qsRepo.Delete(record);
+
             await _repo.DeleteAsync(command.SubscribeId, cancellationToken);
             await _configRepo.DeleteAsync(command.QQChannel.Id, command.SubscribeId, cancellationToken);
 
@@ -126,12 +156,15 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             { "channelName", command.QQChannel.Name }
         };
 
+        if (command.Configs is not null && command.Configs.TryGetValue("allChannels", out bool? allChannels) && allChannels is true)
+            return await ListForAllSubscribesInGuildAsync(command, subscribeType, logInfo, cancellationToken);
+
         QQChannelSubscribeEntity? record = await _qsRepo.GetOrDefaultAsync(
-                command.QQChannel.Id, subscribeType, cancellationToken: cancellationToken);
+            command.QQChannel.Id, subscribeType, cancellationToken: cancellationToken);
         if (record is null)
         {
             Log.Warning("The channel subscribe hasn't any {subscribeType}.\nInfo: {info}", subscribeType, logInfo);
-            return $"错误：{subscribeName} 还未有任何订阅！";
+            return $"错误：{command.QQChannel.Name} 子频道未有 {subscribeName} 的任何订阅！";
         }
         else
         {
@@ -139,45 +172,107 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         }
 
         List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
-        if (subscribes is null)
+        if (subscribes is null || subscribes.Count == 0)
         {
             Log.Warning("The channel subscribe hasn't any {subscirbeType}.\nInfo: {info}", subscribeType, logInfo);
-            return $"错误：{subscribeName} 还未有任何订阅！";
+            return $"错误：{command.QQChannel.Name} 子频道未有 {subscribeName} 的任何订阅！";
         }
 
-        if (command.SubscribeId is null)
+        return command.SubscribeId is null
+            ? await ListForAllSubscribesInSpecificChannelAsync(
+                command.QQChannel.Id, command.QQChannel.Name, subscribes, subscribeType, logInfo, cancellationToken)
+            : await ListForspecificSubscribeInspecificChannelAsync(command, subscribes, logInfo, cancellationToken);
+    }
+
+    private async Task<string> ListForAllSubscribesInGuildAsync(
+        SubscribeCommandDTO command,
+        string subscribeType,
+        Dictionary<string, string> logInfo,
+        CancellationToken cancellationToken = default)
+    {
+        List<QQChannelSubscribeEntity> allChannels = await _qsRepo.GetAllAsync(command.QQChannel.GuildId, cancellationToken: cancellationToken);
+        if (allChannels.Count == 0)
+            return "错误：当前频道的任何子频道都没有订阅！";
+
+        List<Task<string>> tasks = new();
+        foreach (QQChannelSubscribeEntity channel in allChannels)
         {
-            string result = "";
-            foreach (TSubscribe subscribe in subscribes)
-            {
-                result += subscribe.GetInfo("，");
-                TConfig? config = await _configRepo.GetOrDefaultAsync(
-                    command.QQChannel.Id, subscribe.GetId(), cancellationToken: cancellationToken);
-                if (config is not null)
-                    result += "；配置：" + config.GetConfigs("，");
-                result += "\n";
-            }
-            return result;
+            List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
+            if (subscribes is null || subscribes.Count == 0)
+                continue;
+
+            tasks.Add(ListForAllSubscribesInSpecificChannelAsync(
+                channel.ChannelId, channel.ChannelName, subscribes, subscribeType, logInfo, cancellationToken));
         }
-        else
+
+        if (tasks.Count == 0)
+            return "错误：当前频道的任何子频道都没有订阅！";
+
+        string[] result = await Task.WhenAll(tasks);
+        return string.Join("\n\n", result);
+    }
+
+    private async Task<string> ListForAllSubscribesInSpecificChannelAsync(
+        string channelId,
+        string channelName,
+        List<TSubscribe> subscribes,
+        string subscribeType,
+        Dictionary<string, string> logInfo,
+        CancellationToken cancellationToken = default)
+    {
+        string result = "";
+        foreach (TSubscribe subscribe in subscribes)
         {
-            (_, string? errCommandMsg) = await CheckId(command.SubscribeId, cancellationToken);
-            if (errCommandMsg is not null)
-                return errCommandMsg;
-
-            TSubscribe? subscribe = subscribes.Find(s => s.GetId() == command.SubscribeId); ;
-            if (subscribe is null)
-            {
-                Log.Warning("The subscribe which id is {subscribeId} doesn't exist in the channel subscribe!\nInfo: {info}",
-                    command.SubscribeId, command.QQChannel.Id, logInfo);
-                return $"错误：id为 {command.SubscribeId} 的用户未订阅过！";
-            }
-
+            result += "- " + subscribe.GetInfo("，");
             TConfig? config = await _configRepo.GetOrDefaultAsync(
-                    command.QQChannel.Id, command.SubscribeId, cancellationToken: cancellationToken);
-            return config is null
-                ? subscribe.GetInfo("，")
-                : subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n";
+                channelId, subscribe.GetId(), cancellationToken: cancellationToken);
+            if (config is not null)
+                result += "；配置：" + config.GetConfigs("，");
+            result += "\n";
         }
+
+        result = Regex.Replace(
+            result,
+            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+            new MatchEvaluator((match) => match.ToString().Replace(".", "*")));     // 邮箱地址会被识别为链接导致无法过审
+
+        if (result == "")
+        {
+            Log.Error("Unknown error!\nSubscribeType: {subscirbeType}.\nInfo: {info}", subscribeType, logInfo);
+            return "错误：内部错误！";
+        }
+        return $"【子频道：{channelName}】\n" + result;
+    }
+
+    private async Task<string> ListForspecificSubscribeInspecificChannelAsync(
+        SubscribeCommandDTO command,
+        List<TSubscribe> subscribes,
+        Dictionary<string, string> logInfo,
+        CancellationToken cancellationToken = default)
+    {
+        (_, string? errCommandMsg) = await CheckId(command.SubscribeId!, cancellationToken);
+        if (errCommandMsg is not null)
+            return errCommandMsg;
+
+        TSubscribe? subscribe = subscribes.Find(s => s.GetId() == command.SubscribeId); ;
+        if (subscribe is null)
+        {
+            Log.Warning("The subscribe which id is {subscribeId} doesn't exist in the channel subscribe!\nInfo: {info}",
+                command.SubscribeId, command.QQChannel.Id, logInfo);
+            return $"错误：id为 {command.SubscribeId} 的用户未在 {command.QQChannel.Name} 子频道订阅过！";
+        }
+
+        TConfig? config = await _configRepo.GetOrDefaultAsync(
+                command.QQChannel.Id, command.SubscribeId!, cancellationToken: cancellationToken);
+        string result = config is null
+            ? subscribe.GetInfo("，")
+            : subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n";
+
+        result = Regex.Replace(
+            result,
+            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+            new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+
+        return result;
     }
 }

@@ -29,13 +29,25 @@ public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     {
         return ScreenName;
     }
+
+    public bool ContainsQQChannel(string channelId)
+    {
+        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
+    }
+
+    public void RemoveQQChannel(string channelId)
+    {
+        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
+        if (channel != null)
+            QQChannels.Remove(channel);
+    }
 }
 
 [Table("TwitterSubscribeConfig")]
 public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSubscribeEntity>, ISubscribeConfigEntity
 {
-    public bool RtPush { get; set; } = true;
-    public bool PureRtPush { get; set; } = true;
+    public bool QuotePush { get; set; } = true;
+    public bool RtPush { get; set; } = false;
     public bool PushToThread { get; set; } = false;
 
     private TwitterSubscribeConfigEntity()
@@ -50,8 +62,8 @@ public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSub
 
     public string GetConfigs(string separator)
     {
-        string result = "rtPush=" + RtPush.ToString().ToLower();
-        result += "pureRtPush=" + PureRtPush.ToString().ToLower();
+        string result = "quotePush=" + QuotePush.ToString().ToLower() + separator;
+        result += "rtPush=" + RtPush.ToString().ToLower() + separator;
         result += "pushToThread=" + PushToThread.ToString().ToLower();
         return result;
     }

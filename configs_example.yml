@@ -1,0 +1,40 @@
+# 以下除非有说明“可选”，否则均为必填
+
+redirectUrl: # string，重定向用
+userAgent: # string
+
+consoleLevel: "debug" # log输出到控制台的最低级别，可填"verbose", "debug", "info", "warn", "error", "fatal"
+fileLevel: "info" # log输出到文件的最低级别
+
+dbPath: "rabbitool.db" # string，目前只支持sqlite3
+
+interval: # 均为int，单位为秒
+  bilibiliPlugin: 10
+  youtubePlugin: 10
+  twitterPlugin: 10
+  mailPlugin: 10
+
+errorNotifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
+  senderHost: # string
+  senderPort: # int
+  usingSsl: false # bool
+  senderUsername: # string
+  senderPassword: # string
+  senderAddress: # string
+  receiverAddresses: # string[]
+  refreshMinutes: 5 # int，重置积攒的重复通知
+  maxAmount: 30 # int，积攒的重复通知量达到上限后就发送
+  allowedAmount: 25 # int，积攒的重复通知量到达重置时间了但未达到上限，那么如果超过了这个值也会发送
+qqbot:
+  appID: # string
+  token: # string
+  isSandbox: # bool
+cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
+  secretId: # string
+  secretKey: # string
+  bucketName: # string
+  region: # string
+twitter: # （可选）
+  x_csrf_token: # string，和cookie一起填
+  cookie: # string，和x_csrf_token一起填
+  apiV2Token: # string，填了这个会优先选择v2 api

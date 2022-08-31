@@ -9,6 +9,10 @@ public interface ISubscribeEntity : IEntity
     string GetId();
 
     string GetInfo(string separator);
+
+    public bool ContainsQQChannel(string channelId);
+
+    public void RemoveQQChannel(string channelId);
 }
 
 public interface ISubscribeConfigEntity : IEntity

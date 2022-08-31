@@ -1,6 +1,7 @@
 ﻿using Flurl;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Common.Extension;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -37,7 +38,7 @@ public class BilibiliSubscribeCommandHandler
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
 
-        JObject body = JObject.Parse(resp);
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         string? name = (string?)body["data"]?["name"];
         if (name is null)

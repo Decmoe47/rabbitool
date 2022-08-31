@@ -1,21 +1,60 @@
 ﻿using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Compact;
 
 namespace Rabbitool.Common.Tool;
 
-public class LogConfig
+public static class LogConfig
 {
-    public static void Register()
+    public static void Register(string consoleMinLevel = "verbose", string fileMinLevel = "verbose")
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .WriteTo.Console()
+            .WriteTo.Console(
+                restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
+                outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 new CompactJsonFormatter(),
                 "log/rabbitool.log",
+                restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 512)
+                fileSizeLimitBytes: 1024 * 1024)
             .CreateLogger();
         AppDomain.CurrentDomain.ProcessExit += (sender, e) => Log.CloseAndFlush();
+    }
+
+    public static void Register(
+        ErrorNotifierOptions errorNotifierOptions,
+        string consoleMinLevel = "verbose",
+        string fileMinLevel = "verbose")
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Console(
+                restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
+                outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.File(
+                new CompactJsonFormatter(),
+                "log/rabbitool.log",
+                restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
+                rollOnFileSizeLimit: true,
+                fileSizeLimitBytes: 1024 * 1024)
+            .WriteTo.Mail(errorNotifierOptions)
+            .CreateLogger();
+        AppDomain.CurrentDomain.ProcessExit += (sender, e) => Log.CloseAndFlush();
+    }
+
+    private static LogEventLevel ConvertLevelFromString(string level)
+    {
+        return level switch
+        {
+            "verbose" => LogEventLevel.Verbose,
+            "debug" => LogEventLevel.Debug,
+            "info" => LogEventLevel.Information,
+            "warn" => LogEventLevel.Warning,
+            "error" => LogEventLevel.Error,
+            "fatal" => LogEventLevel.Fatal,
+            _ => throw new ArgumentException($"Invaild level name {level}")
+        };
     }
 }

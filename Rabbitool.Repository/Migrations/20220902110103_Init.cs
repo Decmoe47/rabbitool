@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Rabbitool.Repository.Migrations
 {
-    public partial class InitialCreate : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -30,6 +30,7 @@ namespace Rabbitool.Repository.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Username = table.Column<string>(type: "TEXT", nullable: false),
                     Address = table.Column<string>(type: "TEXT", nullable: false),
                     Password = table.Column<string>(type: "TEXT", nullable: false),
                     Mailbox = table.Column<string>(type: "TEXT", nullable: false),
@@ -48,6 +49,7 @@ namespace Rabbitool.Repository.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    GuildId = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelId = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelName = table.Column<string>(type: "TEXT", nullable: false)
                 },
@@ -219,8 +221,8 @@ namespace Rabbitool.Repository.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    QuotePush = table.Column<bool>(type: "INTEGER", nullable: false),
                     RtPush = table.Column<bool>(type: "INTEGER", nullable: false),
-                    PureRtPush = table.Column<bool>(type: "INTEGER", nullable: false),
                     PushToThread = table.Column<bool>(type: "INTEGER", nullable: false),
                     QQChannelId = table.Column<Guid>(type: "TEXT", nullable: false),
                     SubscribeId = table.Column<Guid>(type: "TEXT", nullable: false)

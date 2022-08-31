@@ -12,6 +12,8 @@ public class BilibiliPlugin : BasePlugin
     private readonly BilibiliSubscribeRepository _repo;
     private readonly BilibiliSubscribeConfigRepository _configRepo;
 
+    private Dictionary<uint, Dictionary<DateTime, BaseDynamicDTO>> _storedDynamics = new();
+
     public BilibiliPlugin(
         QQBotService qbSvc,
         CosService cosSvc,
@@ -30,7 +32,7 @@ public class BilibiliPlugin : BasePlugin
         List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
         if (records.Count == 0)
         {
-            Log.Warning("There isn't any bilibili subscribe yet!");
+            Log.Debug("There isn't any bilibili subscribe yet!");
             return;
         }
 
@@ -51,19 +53,53 @@ public class BilibiliPlugin : BasePlugin
             if (dy is null)
                 return;
 
-            if (dy.DynamicUploadTime > record.LastDynamicTime)
+            if (dy.DynamicUploadTime <= record.LastDynamicTime)
             {
-                await PushDynamicMsgAsync(dy, record, cancellationToken);
-                Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
-                    dy.Uname, dy.Uid);
+                Log.Debug("No new dynamic from the bilibili user {uname}(uid: {uid}).", dy.Uname, dy.Uid);
+                return;
+            }
 
-                record.LastDynamicTime = TimeZoneInfo
-                    .ConvertTimeBySystemTimeZoneId(dy.DynamicUploadTime, "China Standard Time");
+            async Task FnAsync(BaseDynamicDTO dy)
+            {
+                bool pushed = await PushDynamicMsgAsync(dy, record, cancellationToken);
+                if (pushed)
+                {
+                    Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
+                        dy.Uname, dy.Uid);
+                }
+
+                record.LastDynamicTime = dy.DynamicUploadTime;
                 record.LastDynamicType = dy.DynamicType;
                 await _repo.SaveAsync(cancellationToken);
-                Log.Information("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
                     dy.Uname, dy.Uid);
             }
+
+            // 宵禁时间发不出去，攒着
+            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            if (now.Hour >= 0 && now.Hour <= 6)
+            {
+                if (!_storedDynamics.ContainsKey(dy.Uid) || !_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
+                    _storedDynamics[dy.Uid][dy.DynamicUploadTime] = dy;
+                Log.Debug("Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
+                    dy.Uname, dy.Uid);
+                return;
+            }
+
+            // 过了宵禁把攒的先发了
+            if (_storedDynamics.TryGetValue(dy.Uid, out Dictionary<DateTime, BaseDynamicDTO>? storedDys) && storedDys != null && storedDys.Count != 0)
+            {
+                List<DateTime> uploadTimes = storedDys.Keys.ToList();
+                uploadTimes.Sort();
+                foreach (DateTime uploadTime in uploadTimes)
+                {
+                    await FnAsync(storedDys[uploadTime]);
+                    _storedDynamics[dy.Uid].Remove(uploadTime);
+                }
+                return;
+            }
+
+            await FnAsync(dy);
         }
         catch (Exception ex)
         {
@@ -72,18 +108,18 @@ public class BilibiliPlugin : BasePlugin
         }
     }
 
-    private async Task PushDynamicMsgAsync(
+    private async Task<bool> PushDynamicMsgAsync(
         BaseDynamicDTO dy, BilibiliSubscribeEntity record, CancellationToken cancellationToken = default)
     {
         (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
-        List<string>? redirectImgUrls = null;
+        List<string> redirectImgUrls = new();
         if (imgUrls is not null)
         {
-            redirectImgUrls = new List<string>();
             foreach (string imgUrl in imgUrls)
                 redirectImgUrls.Add(await _cosSvc.UploadImageAsync(imgUrl));
         }
 
+        bool pushed = false;
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
             record.Uid, cancellationToken: cancellationToken);
@@ -96,30 +132,17 @@ public class BilibiliPlugin : BasePlugin
                 continue;
             }
 
-            BilibiliSubscribeConfigEntity? config = configs.FirstOrDefault(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config is not null)
-            {
-                if (config.DynamicPush is false) continue;
-                if (dy.DynamicType == DynamicTypeEnum.PureForward
-                    && config.PureForwardDynamicPush)
-                {
-                    continue;
-                }
+            BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            if (config.DynamicPush is false) continue;
+            if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush)
+                continue;
 
-                if (redirectImgUrls is null)
-                {
-                    tasks.Add(_qbSvc.PushCommonMsgAsync(
-                        channel.ChannelId, title + "\n\n" + text));
-                }
-                else
-                {
-                    tasks.Add(_qbSvc.PushCommonMsgAsync(
-                        channel.ChannelId, title + "\n\n" + text, redirectImgUrls));
-                }
-            }
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls));
+            pushed = true;
         }
 
         await Task.WhenAll(tasks);
+        return pushed;
     }
 
     private (string title, string text, List<string>? imgUrls) DynamicToStr(BaseDynamicDTO dy)
@@ -156,20 +179,20 @@ public class BilibiliPlugin : BasePlugin
 
         if (dy.Reserve is null)
         {
-            text = @$"{PluginHelper.AddRedirectToUrls(dy.Text, _redirectUrl)}
+            text = @$"{dy.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}";
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
         }
         else
         {
-            text = $@"{PluginHelper.AddRedirectToUrls(dy.Text, _redirectUrl)}
+            text = $@"{dy.Text.AddRedirectToUrls(_redirectUrl)}
 
 {dy.Reserve.Title}
 预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}";
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
         }
 
         if (dy.ImageUrls?.Count is int and not 0)
@@ -190,7 +213,7 @@ public class BilibiliPlugin : BasePlugin
 {dynamicText}
 ——————————
 视频发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dy.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
-视频链接：{PluginHelper.AddRedirectToUrls(dy.VideoUrl, _redirectUrl)}
+视频链接：{dy.VideoUrl.AddRedirectToUrls(_redirectUrl)}
 视频封面：";
 
         return (title, text);
@@ -203,7 +226,7 @@ public class BilibiliPlugin : BasePlugin
 {dy.ArticleTitle}
 ——————————
 专栏发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dy.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
-专栏链接：{PluginHelper.AddRedirectToUrls(dy.ArticleUrl, _redirectUrl)}
+专栏链接：{dy.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
 专栏封面：";
 
         return (title, text);
@@ -220,10 +243,10 @@ public class BilibiliPlugin : BasePlugin
         switch (dy.Origin)
         {
             case string:
-                text = $@"{PluginHelper.AddRedirectToUrls(dy.DynamicText, _redirectUrl)}
+                text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 （原动态已被删除）";
@@ -235,36 +258,36 @@ public class BilibiliPlugin : BasePlugin
                     .ToString("yyyy-MM-dd HH:mm:ss zzz");
                 if (cOrigin.Reserve is null)
                 {
-                    text = $@"{PluginHelper.AddRedirectToUrls(dy.DynamicText, _redirectUrl)}
+                    text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【原动态】来自 {cOrigin.Uname}
 
-{PluginHelper.AddRedirectToUrls(cOrigin.Text, _redirectUrl)}
+{cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 原动态发布时间：{originUploadTimeStr}
-原动态链接：{PluginHelper.AddRedirectToUrls(cOrigin.DynamicUrl, _redirectUrl)}";
+原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
                 }
                 else
                 {
-                    text = $@"{PluginHelper.AddRedirectToUrls(dy.DynamicText, _redirectUrl)}
+                    text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【原动态】来自 {cOrigin.Uname}
 
-{PluginHelper.AddRedirectToUrls(cOrigin.Text, _redirectUrl)}
+{cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
 
 {cOrigin.Reserve.Title}
 预约时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(cOrigin.Reserve.StartTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
 ——————————
 原动态发布时间：{originUploadTimeStr}
-原动态链接：{PluginHelper.AddRedirectToUrls(cOrigin.DynamicUrl, _redirectUrl)}";
+原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
                 }
                 if (cOrigin.ImageUrls?.Count is int and not 0)
                 {
@@ -274,11 +297,11 @@ public class BilibiliPlugin : BasePlugin
                 break;
 
             case VideoDynamicDTO vOrigin:
-                text = $@"{PluginHelper.AddRedirectToUrls(dy.DynamicText, _redirectUrl)}
+                text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
 
 ——————————
 动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【视频】来自 P{vOrigin.Uname}
@@ -287,17 +310,17 @@ public class BilibiliPlugin : BasePlugin
 {vOrigin.VideoTitle}
 
 【原动态内容】
-{PluginHelper.AddRedirectToUrls(vOrigin.DynamicText, _redirectUrl)}
+{vOrigin.DynamicText.AddRedirectToUrls(_redirectUrl)}
 ——————————
 视频发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(vOrigin.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
-视频链接：{PluginHelper.AddRedirectToUrls(vOrigin.VideoUrl, _redirectUrl)}
+视频链接：{vOrigin.VideoUrl.AddRedirectToUrls(_redirectUrl)}
 封面：";
                 imgUrls = new List<string>() { vOrigin.VideoThumbnailUrl };
                 break;
 
             case ArticleDynamicDTO aOrigin:
                 text = $@"动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【专栏】来自 {aOrigin.Uname}
@@ -306,21 +329,21 @@ public class BilibiliPlugin : BasePlugin
 {aOrigin.ArticleTitle}
 ——————————
 专栏发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(aOrigin.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
-专栏链接：{PluginHelper.AddRedirectToUrls(aOrigin.ArticleUrl, _redirectUrl)}
+专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
 封面：";
                 imgUrls = new List<string>() { aOrigin.ArticleThumbnailUrl };
                 break;
 
             case LiveCardDynamicDTO lOrigin:
                 text = $@"动态发布时间：{uploadTimeStr}
-动态链接：{PluginHelper.AddRedirectToUrls(dy.DynamicUrl, _redirectUrl)}
+动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【直播】来自 {lOrigin.Uname}
 
 直播标题：{lOrigin.Title}
 直播开始时间：{lOrigin.LiveStartTime}
-直播间链接：{PluginHelper.AddRedirectToUrls($"https://live.bilibili.com/{lOrigin.RoomId}", _redirectUrl)}
+直播间链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls(_redirectUrl)}
 直播间封面：";
                 break;
 
@@ -337,37 +360,51 @@ public class BilibiliPlugin : BasePlugin
     {
         try
         {
+            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            if (now.Hour >= 0 && now.Hour <= 6)
+            {
+                // 由于开播下播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
+                Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
+                   record.Uname, record.Uid);
+                return;
+            }
+
             Live? live = await _svc.GetLiveAsync(record.Uid, cancellationToken: cancellationToken);
             if (live is null)
                 return;
 
-            if (record.LastLiveStatus != LiveStatusEnum.Streaming)
+            async Task FnAsync(Live live, LiveStatusEnum liveStatus)
             {
-                if (live.LiveStatus == LiveStatusEnum.Streaming)
+                bool pushed = await PushLiveMsgAsync(live, record, liveStatus, cancellationToken);
+                if (pushed)
                 {
-                    await PushLiveMsgAsync(live, record, LiveStatusEnum.Streaming, cancellationToken);
                     Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
                         live.Uname, live.Uid);
-
-                    record.LastLiveStatus = live.LiveStatus;
-                    await _repo.SaveAsync(cancellationToken);
-                    Log.Information("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
-                        live.Uname, live.Uid);
                 }
+
+                record.LastLiveStatus = live.LiveStatus;
+                await _repo.SaveAsync(cancellationToken);
+                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                    live.Uname, live.Uid);
+            }
+
+            if (record.LastLiveStatus != LiveStatusEnum.Streaming)
+            {
+                if (live.LiveStatus != LiveStatusEnum.Streaming)
+                    // 未开播
+                    Log.Debug("No live now from the bilibili user {uname}(uid: {uid}).", live.Uname, live.Uid);
+                else
+                    // 开播
+                    await FnAsync(live, LiveStatusEnum.Streaming);
             }
             else
             {
-                if (live.LiveStatus != LiveStatusEnum.Streaming)
-                {
-                    await PushLiveMsgAsync(live, record, LiveStatusEnum.NoLiveStream, cancellationToken);
-                    Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
-                        live.Uname, live.Uid);
-
-                    record.LastLiveStatus = live.LiveStatus;
-                    await _repo.SaveAsync(cancellationToken);
-                    Log.Information("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
-                        live.Uname, live.Uid);
-                }
+                if (live.LiveStatus == LiveStatusEnum.Streaming)
+                    // 直播中
+                    Log.Debug("The bilibili user {uname}(uid: {uid}) is living.", live.Uname, live.Uid);
+                else
+                    // 下播
+                    await FnAsync(live, LiveStatusEnum.NoLiveStream);
             }
         }
         catch (Exception ex)
@@ -377,13 +414,14 @@ public class BilibiliPlugin : BasePlugin
         }
     }
 
-    private async Task PushLiveMsgAsync(
+    private async Task<bool> PushLiveMsgAsync(
         Live live, BilibiliSubscribeEntity record, LiveStatusEnum liveStatus, CancellationToken cancellationToken = default)
     {
         (string title, string text) = LiveToStr(live);
         List<string>? redirectCoverUrl = live.CoverUrl is string and not ""
             ? new List<string>() { live.CoverUrl } : null;
 
+        bool pushed = false;
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
             record.Uid, cancellationToken: cancellationToken);
@@ -396,20 +434,20 @@ public class BilibiliPlugin : BasePlugin
                 continue;
             }
 
-            BilibiliSubscribeConfigEntity? config = configs.FirstOrDefault(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config is not null)
-            {
-                if (config.LivePush is false) continue;
-                if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
-            }
+            BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            if (config.LivePush is false) continue;
+            if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
             if (redirectCoverUrl is null)
                 tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text));
             else
                 tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl));
+
+            pushed = true;
         }
 
         await Task.WhenAll(tasks);
+        return pushed;
     }
 
     private (string title, string text) LiveToStr(Live live)

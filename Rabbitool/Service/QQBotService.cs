@@ -7,9 +7,11 @@ using QQChannelFramework.Expansions.Bot;
 using QQChannelFramework.Models;
 using QQChannelFramework.Models.Forum.Contents;
 using QQChannelFramework.Models.MessageModels;
+using QQChannelFramework.Models.WsModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.QQBot;
 using Serilog;
+using Channel = QQChannelFramework.Models.Channel;
 
 namespace Rabbitool.Service;
 
@@ -38,6 +40,7 @@ public class QQBotService
 
     public async Task RunAsync()
     {
+        RegisterBasicEvents();
         RegisterMessageAuditEvent();
         await _qqBot.OnlineAsync();
     }
@@ -49,12 +52,28 @@ public class QQBotService
         _qqBot.RegisterAtMessageEvent();
         _qqBot.ReceivedAtMessage += async (message) =>
         {
+            Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
+                message.Id, message.GuildId, message.ChannelId, message.Content);
+
             string text = await generateReplyMsgFunc(message, cancellationToken);
-            await PostMsgAsync(
-                channelId: message.ChannelId,
-                text: text,
-                referenceMessageId: message.Id);
+            try
+            {
+                await PostMsgAsync(
+                    channelId: message.ChannelId,
+                    text: text,
+                    referenceMessageId: message.Id);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+            }
         };
+    }
+
+    public void RegisterBotDeletedEvent(Func<WsGuild, CancellationToken, Task> handler, CancellationToken cancellationToken)
+    {
+        _qqBot.RegisterGuildsEvent();
+        _qqBot.BotBeRemoved += async (guild) => await handler(guild, cancellationToken); // TODO: bot被删除
     }
 
     private void RegisterMessageAuditEvent()
@@ -66,12 +85,23 @@ public class QQBotService
             => Log.Error("Message audit rejected!\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
     }
 
-    public async Task<List<Channel>> GetAllChannelsAsync()
+    private void RegisterBasicEvents()
+    {
+        _qqBot.OnConnected += () => Log.Information("QQBot connected!");
+        _qqBot.OnError += (ex) => Log.Error(ex, "QQBot error: {message}", ex.Message);
+        _qqBot.OnClose += () => Log.Warning("QQBot connect closed!");
+    }
+
+    public async Task<List<Guild>> GetGuildsAsync()
     {
         _limiter.Wait();
-        List<Guild> guilds = await _qqApi.GetUserApi().GetAllJoinedChannelsAsync();
-        List<Channel> channels = await _qqApi.GetChannelApi().GetChannelsAsync(guilds[0].Id);
-        return channels;
+        return await _qqApi.GetUserApi().GetAllJoinedChannelsAsync();
+    }
+
+    public async Task<List<Channel>> GetAllChannelsAsync(string guildId)
+    {
+        _limiter.Wait();
+        return await _qqApi.GetChannelApi().GetChannelsAsync(guildId);
     }
 
     public async Task<Channel> GetChannelAsync(string channelId)
@@ -80,15 +110,15 @@ public class QQBotService
         return await _qqApi.GetChannelApi().GetInfoAsync(channelId);
     }
 
-    public async Task<Channel> GetChannelByNameAsync(string name)
+    public async Task<Channel> GetChannelByNameAsync(string name, string guildId)
     {
-        List<Channel> channels = await GetAllChannelsAsync();
+        List<Channel> channels = await GetAllChannelsAsync(guildId);
         return channels.First(c => c.Name == name);
     }
 
-    public async Task<Channel?> GetChannelByNameOrDefaultAsync(string name)
+    public async Task<Channel?> GetChannelByNameOrDefaultAsync(string name, string guildId)
     {
-        List<Channel> channels = await GetAllChannelsAsync();
+        List<Channel> channels = await GetAllChannelsAsync(guildId);
         return channels.FirstOrDefault(c => c.Name == name);
     }
 
@@ -118,6 +148,8 @@ public class QQBotService
 
         try
         {
+            Log.Information("Posting QQ channel message...\nChannelId: {channelId}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}",
+                channelId, imgUrl ?? "", referenceMessageId ?? "", passiveReference, text ?? "");
             return await _qqApi
                 .GetMessageApi()
                 .SendMessageAsync(
@@ -138,7 +170,8 @@ public class QQBotService
             }
             else
             {
-                throw ex;
+                throw new QQBotApiException(
+                    $"Post message failed!\nChannelId: {channelId}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}", ex);
             }
         }
     }
@@ -153,8 +186,11 @@ public class QQBotService
         return await PostMsgAsync(channelId, text, imgUrl);
     }
 
-    public async Task<Message?> PushCommonMsgAsync(string channelId, string text, List<string> imgUrls)
+    public async Task<Message?> PushCommonMsgAsync(string channelId, string text, List<string>? imgUrls)
     {
+        if (imgUrls is null)
+            return await PostMsgAsync(channelId, text);
+
         switch (imgUrls.Count)
         {
             case 0:
@@ -165,21 +201,23 @@ public class QQBotService
 
             default:
                 Message? msg = await PostMsgAsync(channelId, text, imgUrls[0]);
-                var tasks = new List<Task<Message?>>();
-                foreach (string imgUrl in imgUrls)
-                    tasks.Add(PostMsgAsync(channelId, text, imgUrl));
+                List<Task<Message?>> tasks = new();
+                foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
+                    tasks.Add(PostMsgAsync(channelId, imgUrl: imgUrl));
                 await Task.WhenAll(tasks);
                 return msg;
         }
     }
 
-    public async Task<(string, DateTime)?> PostThreadAsync(string channelID, string title, string text)
+    public async Task<(string, DateTime)?> PostThreadAsync(string channelId, string title, string text)
     {
         try
         {
+            Log.Information("Posting QQ channel thread...\nChannelId: {channelId}\nTitle: {title}\nText: {text}",
+                channelId, title, text);
             return await _qqApi
                 .GetForumApi()
-                .Publish(title, channelID, new ThreadRichTextContent() { Content = text });
+                .Publish(title, channelId, new ThreadRichTextContent() { Content = text });
         }
         catch (ErrorResultException ex)
         {
@@ -190,7 +228,7 @@ public class QQBotService
             }
             else
             {
-                throw ex;
+                throw new QQBotApiException($"Post Thread Failed!\nChannelId: {channelId}\nTitle: {title}\nText: {text}", ex);
             }
         }
     }
@@ -398,8 +436,8 @@ public class QQBotService
         int i = matched.Index;
         int length = matched.Length;
 
-        return i == -1
-            ? (text, "", "")
-            : (text[0..i], text[length..^0], text[i..length]);
+        return matched.Success
+            ? (text[0..i], text[(i + length)..^0], text[i..(i + length)])
+            : (text, "", "");
     }
 }

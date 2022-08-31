@@ -1,4 +1,5 @@
 ﻿using QQChannelFramework.Models;
+using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Service;
 using Serilog;
 using Xunit.Abstractions;
@@ -36,17 +37,18 @@ public class SubscribeCommandResponderTest
     [InlineData("油管", "UCkIimWZ9gBJRamKF0rmPU8w")]
     public async Task RespondToSubscribeCommandAsyncTestAsync(string platform, string id)
     {
-        Channel channel = await _qSvc.GetChannelByNameAsync("默认");
+        Guild guild = (await _qSvc.GetGuildsAsync())[0];
+        Channel channel = await _qSvc.GetChannelByNameAsync("默认", guild.Id);
         string result1 = await SubscribeCommandResponder.RespondToAddOrUpdateSubscribeCommandAsync(
-            new List<string> { "/订阅", platform, id }, channel.Id);
+            new List<string> { "/订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("成功", result1);
 
         string result2 = await SubscribeCommandResponder.RespondToListSubscribeCommandAsync(
-            new List<string> { "/列出订阅", platform, id }, channel.Id);
+            new List<string> { "/列出订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("=", result2);
 
         string result3 = await SubscribeCommandResponder.RespondToDeleteSubscribeCommandAsync(
-            new List<string> { "/取消订阅", platform, id }, channel.Id);
+            new List<string> { "/取消订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("成功", result3);
     }
 }

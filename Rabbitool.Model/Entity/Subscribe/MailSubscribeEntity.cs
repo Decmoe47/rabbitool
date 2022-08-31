@@ -5,6 +5,7 @@ namespace Rabbitool.Model.Entity.Subscribe;
 [Table("MailSubscribe")]
 public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 {
+    public string Username { get; set; }
     public string Address { get; set; }
     public string Password { get; set; }
     public string Mailbox { get; set; }
@@ -17,8 +18,9 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
 
     public MailSubscribeEntity(
-        string address, string password, string host, int port, string mailbox = "INBOX", bool ssl = false)
+        string username, string address, string password, string host, int port, string mailbox = "INBOX", bool ssl = false)
     {
+        Username = username;
         Address = address;
         Password = password;
         Mailbox = mailbox;
@@ -29,19 +31,38 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public string GetInfo(string separator)
     {
-        string result = "address=" + Address;
+        string result = "username=" + Username + separator;
+        result += "address=" + Address + separator;
+        result += "host=" + Host.Replace(".", "*") + separator;
+        result += "port=" + Port.ToString() + separator;
+        result += "mailbox=" + Mailbox + separator;
+        result += "ssl=" + Ssl.ToString().ToLower();
+
         return result;
     }
 
     public string GetId()
     {
-        return Address;
+        return Username;
+    }
+
+    public bool ContainsQQChannel(string channelId)
+    {
+        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
+    }
+
+    public void RemoveQQChannel(string channelId)
+    {
+        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
+        if (channel != null)
+            QQChannels.Remove(channel);
     }
 }
 
 [Table("MailSubscribeConfig")]
 public class MailSubscribeConfigEntity : BaseSubscribeConfigEntity<MailSubscribeEntity>, ISubscribeConfigEntity
 {
+    public bool Detail { get; set; } = false;
     public bool PushToThread { get; set; } = false;
 
     private MailSubscribeConfigEntity()

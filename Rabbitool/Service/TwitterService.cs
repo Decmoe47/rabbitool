@@ -2,6 +2,7 @@
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
+using Rabbitool.Common.Extension;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Twitter;
 using Serilog;
@@ -127,6 +128,8 @@ public class TwitterService
             Author = (string)origin["user"]!["name"]!,
             AuthorScreenName = (string)origin["user"]!["screen_name"]!,
             Text = text,
+            ImageUrls = imgUrls,
+            HasVideo = hasVideo,
             PubTime = DateTime
                 .ParseExact((string)origin["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", CultureInfo.InvariantCulture)
                 .ToUniversalTime(),
@@ -134,7 +137,7 @@ public class TwitterService
         };
     }
 
-    private static (string text, List<string> imgUrls, bool hasVideo) GetMediaByApi1_1(JArray media, string text)
+    private static (string text, List<string>? imgUrls, bool hasVideo) GetMediaByApi1_1(JArray media, string text)
     {
         var imgUrls = new List<string>();
         bool hasVideo = false;
@@ -167,7 +170,7 @@ public class TwitterService
             }
         }
 
-        return (text, imgUrls, hasVideo);
+        return (text, imgUrls.Count != 0 ? imgUrls : null, hasVideo);
     }
 
     private async Task<Tweet> GetLatestTweetByApiV2Async(string screenName, CancellationToken cancellationToken = default)
@@ -186,7 +189,7 @@ public class TwitterService
                 { "media.fields", "preview_image_url,type,url" },
             })
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         JObject tweet = (JObject)body["data"]![0]!;
         string text = (string)tweet["text"]!;
@@ -226,35 +229,35 @@ public class TwitterService
         };
     }
 
-    private static (string text, List<string> imgUrls, bool hasVideo) GetMediaByApiV2(
+    private static (string text, List<string>? imgUrls, bool hasVideo) GetMediaByApiV2(
         JObject body, JArray media, string text)
     {
         bool hasVideo = false;
-        bool hasMediaKey = false;
         List<string> imgUrls = new();
+
+        bool hasMediaKey = false;
         List<string> tmpImgUrls = new();
 
         foreach (JToken medium in media)
         {
             string? mediaKey = (string?)medium["media_key"];
-            if (mediaKey is null) continue;
 
             try
             {
-                if (mediaKey.StartsWith("3_"))
+                if (mediaKey?.StartsWith("3_") is true)
                 {
                     imgUrls.Add(GetImageOrVideoUrl(body, mediaKey));
                     text = text.Replace((string)medium["url"]!, "");
                     hasMediaKey = true;
                 }
-                else if (mediaKey.StartsWith("7_"))
+                else if (mediaKey?.StartsWith("7_") is true)
                 {
                     hasVideo = true;
                     imgUrls.Add(GetImageOrVideoUrl(body, mediaKey));
                     text = text.Replace((string)medium["url"]!, "");
                     hasMediaKey = true;
                 }
-                else if (mediaKey.StartsWith("13_"))    // 13应该是广告性质的视频
+                else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
                 {
                     hasVideo = true;
                     text = text.Replace((string)medium["url"]!, "");
@@ -262,26 +265,23 @@ public class TwitterService
                 }
                 else
                 {
-                    string imgUrl = (string)medium["images"]![0]!["url"]!;
-                    if (imgUrl.Contains("format="))
-                    {
-                        int i = imgUrl.IndexOf("?");
-                        imgUrl = imgUrl[..i] + ".jpg";
-                    }
+                    string? imgUrl = (string?)medium["images"]?[0]?["url"];
+                    if (imgUrl is null)
+                        continue;
                     tmpImgUrls.Add(imgUrl);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to get the media!\nMediaKey: {mediaKey}", mediaKey);
+                Log.Error(ex, "Failed to get the media!\nMediaKey: {mediaKey}", mediaKey ?? "null");
                 continue;
             }
         }
 
         if (!hasMediaKey)
-            imgUrls.AddRange(tmpImgUrls);
+            imgUrls = tmpImgUrls;
 
-        return (text, imgUrls, hasVideo);
+        return (text, imgUrls.Count != 0 ? imgUrls : null, hasVideo);
     }
 
     private static string GetImageOrVideoUrl(JObject body, string mediaKey)
@@ -344,7 +344,7 @@ public class TwitterService
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         return ((string)body["data"]!["id"]!, (string)body["data"]!["name"]!);
     }
@@ -356,7 +356,7 @@ public class TwitterService
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         return ((string)body["data"]!["name"]!, (string)body["data"]!["username"]!);
     }

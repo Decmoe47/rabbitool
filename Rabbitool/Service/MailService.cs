@@ -13,17 +13,17 @@ public class MailService : IDisposable
     private readonly string _password;
     private readonly bool _usingSsl;
 
-    public readonly string Address;
+    public readonly string Username;
     public readonly string Host;
     public readonly string MailBox;
 
-    public MailService(string host, int port, bool usingSsl, string address, string password, string mailbox = "INBOX")
+    public MailService(string host, int port, bool usingSsl, string username, string password, string mailbox = "INBOX")
     {
         _client = new ImapClient();
         Host = host;
         _port = port;
         _usingSsl = usingSsl;
-        Address = address;
+        this.Username = username;
         _password = password;
         MailBox = mailbox;
     }
@@ -42,7 +42,7 @@ public class MailService : IDisposable
 
         if (!_client.IsAuthenticated)
         {
-            await _client.AuthenticateAsync(Address, _password, cancellationToken);
+            await _client.AuthenticateAsync(Username, _password, cancellationToken);
             ImapImplementation clientImpl = new()
             {
                 Name = "rabbitool",

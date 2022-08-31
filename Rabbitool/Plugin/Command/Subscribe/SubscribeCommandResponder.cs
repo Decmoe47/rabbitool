@@ -1,4 +1,5 @@
 ﻿using QQChannelFramework.Models;
+using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -6,7 +7,7 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe;
 
-public class SubscribeCommandResponder
+public static class SubscribeCommandResponder
 {
     public static readonly string[] SupportedPlatforms = new string[4] { "b站", "推特", "油管", "邮箱" };
     private static QQBotService _qbSvc = null!;
@@ -46,39 +47,56 @@ public class SubscribeCommandResponder
     }
 
     public static async Task<string> RespondToAddOrUpdateSubscribeCommandAsync(
-        List<string> command, string channelId, CancellationToken cancellation = default)
+        List<string> command, Message message, CancellationToken cancellation = default)
     {
-        return await RespondToSubscribeCommandAsync(command, channelId, SubscribeCommandType.AddOrUpdate, cancellation);
+        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.AddOrUpdate, cancellation);
     }
 
     public static async Task<string> RespondToDeleteSubscribeCommandAsync(
-        List<string> command, string channelId, CancellationToken cancellation = default)
+        List<string> command, Message message, CancellationToken cancellation = default)
     {
-        return await RespondToSubscribeCommandAsync(command, channelId, SubscribeCommandType.Delete, cancellation);
+        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.Delete, cancellation);
     }
 
     public static async Task<string> RespondToListSubscribeCommandAsync(
-        List<string> command, string channelId, CancellationToken cancellation = default)
+        List<string> command, Message message, CancellationToken cancellation = default)
     {
-        return await RespondToSubscribeCommandAsync(command, channelId, SubscribeCommandType.List, cancellation);
+        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.List, cancellation);
     }
 
     private static async Task<string> RespondToSubscribeCommandAsync(
-        List<string> command, string channelId, SubscribeCommandType commandType, CancellationToken cancellation = default)
+        List<string> command, Message message, SubscribeCommandType commandType, CancellationToken cancellation = default)
     {
-        if (commandType == SubscribeCommandType.List && command.Count < 2)
-            return "错误：参数不足！";
+        if (commandType == SubscribeCommandType.List)
+        {
+            if (command.Count < 2)
+                return "错误：参数不足！";
+        }
         else if (command.Count < 3)
+        {
             return "错误：参数不足！";
+        }
 
         if (!SupportedPlatforms.Contains(command[1]))
             return $"错误：不支持的订阅平台！\n当前支持的订阅平台：{string.Join(" ", SupportedPlatforms)}";
 
-        List<string> configs = command[2].Contains('=')
-            ? command.GetRange(2, command.Count - 2)
-            : command.GetRange(3, command.Count - 3);
+        List<string> configs = new();
         SubscribeConfigType configDict = new();
         string channelName;
+        string channelId = message.ChannelId;
+        string? subscribeId = null;
+
+        if (commandType == SubscribeCommandType.List)
+        {
+            if (command.Count == 3 && command[2].Contains('='))
+                configs = command.GetRange(2, command.Count - 2);
+        }
+        else
+        {
+            subscribeId = command[2];
+            if (command.Count >= 4 && command[3].Contains('='))
+                configs = command.GetRange(3, command.Count - 3);
+        }
 
         foreach (string config in configs)
         {
@@ -88,7 +106,7 @@ public class SubscribeCommandResponder
 
         if (configDict.TryGetValue("channel", out dynamic? v) && v is string)
         {
-            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v);
+            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, message.GuildId);
             if (channel is null)
                 return $"错误：不存在名为 {v} 的子频道！";
             channelId = channel.Id;
@@ -104,16 +122,17 @@ public class SubscribeCommandResponder
         {
             Command = command[0],
             Platform = command[1],
-            SubscribeId = command.Count == 2 ? "" : command[2],
+            SubscribeId = subscribeId,
             QQChannel = new SubscribeCommandQQChannelDTO()
             {
+                GuildId = message.GuildId,
                 Id = channelId,
                 Name = channelName
             },
-            Configs = configDict
+            Configs = configDict.Count != 0 ? configDict : null
         };
 
-        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform);
+        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform, cancellation);
 
         switch (commandType)
         {
@@ -156,7 +175,7 @@ public class SubscribeCommandResponder
     /// <returns></returns>
     /// <exception cref="UninitializedException"></exception>
     /// <exception cref="NotSupportedException"></exception>
-    private static ISubscribeCommandHandler GetSubscribeCommandHandler(string platform)
+    private static ISubscribeCommandHandler GetSubscribeCommandHandler(string platform, CancellationToken cancellationToken)
     {
         if (_qbSvc == null || _userAgent == null)
         {
@@ -167,38 +186,56 @@ public class SubscribeCommandResponder
         SubscribeDbContext dbCtx = new(_dbPath);
         QQChannelSubscribeRepository qsRepo = new(dbCtx);
 
-        return platform switch
+        ISubscribeCommandHandler handler;
+
+        switch (platform)
         {
-            "b站" => new BilibiliSubscribeCommandHandler(
+            case "b站":
+                handler = new BilibiliSubscribeCommandHandler(
                     _qbSvc,
                     _userAgent,
                     dbCtx,
                     qsRepo,
                     new BilibiliSubscribeRepository(dbCtx),
-                    new BilibiliSubscribeConfigRepository(dbCtx)),
-            "推特" => new TwitterSubscribeCommandHandler(
-                    _qbSvc,
-                    _userAgent,
-                    dbCtx,
-                    qsRepo,
-                    new TwitterSubscribeRepository(dbCtx),
-                    new TwitterSubscribeConfigRepository(dbCtx)),
-            "油管" => new YoutubeSubscribeCommandHandler(
-                    _qbSvc,
-                    _userAgent,
-                    dbCtx,
-                    qsRepo,
-                    new YoutubeSubscribeRepository(dbCtx),
-                    new YoutubeSubscribeConfigRepository(dbCtx)),
-            "邮箱" => new MailSubscribeCommandHandler(
-                    _qbSvc,
-                    _userAgent,
-                    dbCtx,
-                    qsRepo,
-                    new MailSubscribeRepository(dbCtx),
-                    new MailSubscribeConfigRepository(dbCtx)),
-            _ => throw new NotSupportedException($"Not supported platform {platform}"),
+                    new BilibiliSubscribeConfigRepository(dbCtx));
+                break;
+
+            case "推特":
+                handler = new TwitterSubscribeCommandHandler(
+                        _qbSvc,
+                        _userAgent,
+                        dbCtx,
+                        qsRepo,
+                        new TwitterSubscribeRepository(dbCtx),
+                        new TwitterSubscribeConfigRepository(dbCtx));
+                break;
+
+            case "油管":
+                handler = new YoutubeSubscribeCommandHandler(
+                        _qbSvc,
+                        _userAgent,
+                        dbCtx,
+                        qsRepo,
+                        new YoutubeSubscribeRepository(dbCtx),
+                        new YoutubeSubscribeConfigRepository(dbCtx));
+                break;
+
+            case "邮箱":
+                handler = new MailSubscribeCommandHandler(
+                        _qbSvc,
+                        _userAgent,
+                        dbCtx,
+                        qsRepo,
+                        new MailSubscribeRepository(dbCtx),
+                        new MailSubscribeConfigRepository(dbCtx));
+                break;
+
+            default:
+                throw new NotSupportedException($"Not supported platform {platform}");
         };
+
+        _qbSvc.RegisterBotDeletedEvent(handler.BotDeletedHandlerAsync, cancellationToken);
+        return handler;
     }
 }
 

@@ -63,15 +63,21 @@
 - 油管：
   - archivePush: `false`（推送直播录像）
 - 邮箱：
-  - address（必须，邮箱地址）
-  - password（必须，邮箱密码或授权码）
-  - host （必须，邮箱imap服务器地址）
-  - port （必须，邮箱imap端口）
-  - mailbox: `INBOX` （订阅的邮箱）
-  - SSL: `false`
+  - address（必须，邮箱地址，修改需取消订阅后重新订阅）
+  - password（必须，邮箱密码或授权码，修改需取消订阅后重新订阅）
+  - host （必须，邮箱imap服务器地址，修改需取消订阅后重新订阅）
+  - port （必须，邮箱imap端口，修改需取消订阅后重新订阅）
+  - mailbox: `INBOX` （订阅的邮箱，修改需取消订阅后重新订阅）
+  - SSL: `false`（修改需取消订阅后重新订阅）
   - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
+  - detail: `false` （带from、to、subject、time信息）
 
 > ※当前`pushToThread`有点问题，无法显示在话题子频道中，即使显示了也没有新消息提醒。
+
+## 查询参数
+
+- 列出订阅：
+  - allChannels（bool，列出当前频道所有子频道的指定平台的订阅）
 
 # 其他
 

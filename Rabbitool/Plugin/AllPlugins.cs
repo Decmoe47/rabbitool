@@ -40,7 +40,11 @@ public class AllPlugins
 
     public async Task RunAsync()
     {
-        LogConfig.Register();
+        if (_configs.ErrorNotifier is not null)
+            LogConfig.Register(_configs.ErrorNotifier.ToOptions(), _configs.ConsoleLevel, _configs.FileLevel);
+        else
+            LogConfig.Register(_configs.ConsoleLevel, _configs.FileLevel);
+
         AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
         {
             _tokenSource.Cancel();
@@ -49,11 +53,9 @@ public class AllPlugins
 
         QQBotPlugin qPlugin = new(_qbSvc);
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
-        qPlugin.RunAsync()
-            .ContinueWith(
-                (task) => Console.WriteLine(task?.Exception?.InnerException?.ToString()),
-                TaskContinuationOptions.OnlyOnFaulted
-            );
+        qPlugin.RunAsync().ContinueWith(
+            (task) => Log.Error(task?.Exception?.InnerException?.ToString() ?? ""),
+            TaskContinuationOptions.OnlyOnFaulted);
 #pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
 
         await _host.RunAsync(_tokenSource.Token);
@@ -65,7 +67,8 @@ public class AllPlugins
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
-                .EverySeconds(_configs.Interval.BilibiliPlugin));
+                .EverySeconds(_configs.Interval.BilibiliPlugin)
+                .PreventOverlapping("BilibiliPlugin"));
     }
 
     public void InitTwitterPlugin()
@@ -81,7 +84,8 @@ public class AllPlugins
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
-                .EverySeconds(_configs.Interval.TwitterPlugin));
+                .EverySeconds(_configs.Interval.TwitterPlugin)
+                .PreventOverlapping("TwitterPlugin"));
     }
 
     public void InitYoutubePlugin()
@@ -90,7 +94,8 @@ public class AllPlugins
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
-                .EverySeconds(_configs.Interval.YoutubePlugin));
+                .EverySeconds(_configs.Interval.YoutubePlugin)
+                .PreventOverlapping("YoutubePlugin"));
     }
 
     public void InitMailPlugin()
@@ -99,6 +104,7 @@ public class AllPlugins
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
-                .EverySeconds(_configs.Interval.MailPlugin));
+                .EverySeconds(_configs.Interval.MailPlugin)
+                .PreventOverlapping("MailPlugin"));
     }
 }

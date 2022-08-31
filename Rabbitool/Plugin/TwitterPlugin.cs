@@ -14,6 +14,8 @@ public class TwitterPlugin : BasePlugin
     private readonly TwitterSubscribeRepository _repo;
     private readonly TwitterSubscribeConfigRepository _configRepo;
 
+    private Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
+
     public TwitterPlugin(
         QQBotService qbSvc,
         CosService cosSvc,
@@ -64,7 +66,7 @@ public class TwitterPlugin : BasePlugin
         List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
         if (records.Count == 0)
         {
-            Log.Warning("There isn't any twitter subscribe yet!");
+            Log.Debug("There isn't any twitter subscribe yet!");
             return;
         }
 
@@ -79,18 +81,52 @@ public class TwitterPlugin : BasePlugin
         try
         {
             Tweet tweet = await _svc.GetLatestTweetAsync(record.ScreenName, cancellationToken);
-            if (tweet.PubTime > record.LastTweetTime)
+            if (tweet.PubTime <= record.LastTweetTime)
             {
-                await PushTweetAsync(tweet, record, cancellationToken);
-                Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
-                        tweet.Author, tweet.AuthorScreenName);
+                Log.Debug("No new tweet from the twitter user {name}(screenName: {screenName}).",
+                    tweet.Author, tweet.AuthorScreenName);
+                return;
+            }
 
-                record.LastTweetTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(tweet.PubTime, "China Standard Time");
+            async Task FnAsync(Tweet tweet)
+            {
+                bool pushed = await PushTweetAsync(tweet, record, cancellationToken);
+                if (pushed)
+                {
+                    Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
+                        tweet.Author, tweet.AuthorScreenName);
+                }
+
+                record.LastTweetTime = tweet.PubTime;
                 record.LastTweetId = tweet.Id;
                 await _repo.SaveAsync(cancellationToken);
-                Log.Information("Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
+                Log.Debug("Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
                         tweet.Author, tweet.AuthorScreenName);
             }
+
+            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            if (now.Hour >= 0 && now.Hour <= 6)
+            {
+                if (!_storedTweets.ContainsKey(tweet.AuthorScreenName) || !_storedTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
+                    _storedTweets[tweet.AuthorScreenName][tweet.PubTime] = tweet;
+                Log.Debug("Tweet message of the user {name}(screenName: {screenName}) is skipped because it's curfew time now.",
+                    tweet.Author, tweet.AuthorScreenName);
+                return;
+            }
+
+            if (_storedTweets.TryGetValue(tweet.AuthorScreenName, out Dictionary<DateTime, Tweet>? storedTweets) && storedTweets != null && storedTweets.Count != 0)
+            {
+                List<DateTime> pubTimes = storedTweets.Keys.ToList();
+                pubTimes.Sort();
+                foreach (DateTime pubTime in pubTimes)
+                {
+                    await FnAsync(storedTweets[pubTime]);
+                    _storedTweets[tweet.AuthorScreenName].Remove(pubTime);
+                }
+                return;
+            }
+
+            await FnAsync(tweet);
         }
         catch (Exception ex)
         {
@@ -99,7 +135,7 @@ public class TwitterPlugin : BasePlugin
         }
     }
 
-    private async Task PushTweetAsync(
+    private async Task<bool> PushTweetAsync(
         Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken cancellationToken = default)
     {
         (string title, string text) = await TweetToStrAsync(tweet, cancellationToken);
@@ -109,6 +145,7 @@ public class TwitterPlugin : BasePlugin
         List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
             subscribe.ScreenName, cancellationToken: cancellationToken);
 
+        bool pushed = false;
         List<Task> tasks = new();
         foreach (QQChannelSubscribeEntity channel in subscribe.QQChannels)
         {
@@ -119,25 +156,25 @@ public class TwitterPlugin : BasePlugin
                 continue;
             }
 
-            TwitterSubscribeConfigEntity? config = configs.FirstOrDefault(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config is not null)
+            TwitterSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            if (tweet.Origin is not null)
             {
-                if (tweet.Origin is not null)
-                {
-                    if (config.RtPush is false) continue;
-                    if (tweet.Type == TweetTypeEnum.RT && !config.PureRtPush) continue;
-                }
-                if (config.PushToThread)
-                {
-                    tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
-                    continue;
-                }
+                if (config.QuotePush is false) continue;
+                if (tweet.Type == TweetTypeEnum.RT && !config.RtPush) continue;
+            }
+            if (config.PushToThread)
+            {
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
+                pushed = true;
+                continue;
             }
 
             tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls));
+            pushed = true;
         }
 
         await Task.WhenAll(tasks);
+        return pushed;
     }
 
     private async Task<(string title, string text)> TweetToStrAsync(
@@ -152,10 +189,10 @@ public class TwitterPlugin : BasePlugin
         if (tweet.Origin is null)
         {
             title = $"【新推文】来自 {tweet.Author}";
-            text = $@"{PluginHelper.AddRedirectToUrls(tweet.Text, _redirectUrl)}
+            text = $@"{tweet.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 推文发布时间：{pubTimeStr}
-推文链接：{PluginHelper.AddRedirectToUrls(tweet.Url, _redirectUrl)}";
+推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}";
         }
         else if (tweet.Type == TweetTypeEnum.Quote)
         {
@@ -164,18 +201,18 @@ public class TwitterPlugin : BasePlugin
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             title = $"【新带评论转发推文】来自 {tweet.Author}";
-            text = $@"{PluginHelper.AddRedirectToUrls(tweet.Text, _redirectUrl)}
+            text = $@"{tweet.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 推文发布时间：{pubTimeStr}
-推文链接：{PluginHelper.AddRedirectToUrls(tweet.Url, _redirectUrl)}
+推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}
 
 ====================
 【原推文】来自 {tweet.Origin.Author}
 
-{PluginHelper.AddRedirectToUrls(tweet.Origin.Text, _redirectUrl)}
+{tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 原推文发布时间：{originPubTimeStr}
-原推文链接：{PluginHelper.AddRedirectToUrls(tweet.Origin.Url, _redirectUrl)}";
+原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}";
         }
         else if (tweet.Type == TweetTypeEnum.RT)
         {
@@ -186,17 +223,18 @@ public class TwitterPlugin : BasePlugin
             title = $"【新转发推文】来自 {tweet.Author}";
             text = $@"【原推文】来自 {tweet.Origin.Author}
 
-{PluginHelper.AddRedirectToUrls(tweet.Origin.Text, _redirectUrl)}
+{tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
 ——————————
 原推文发布时间：{originPubTimeStr}
-原推文链接：{PluginHelper.AddRedirectToUrls(tweet.Origin.Url, _redirectUrl)}";
+原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}";
         }
         else
         {
             throw new NotSupportedException($"Not Supported tweet type {tweet.Type}");
         }
 
-        if (tweet.ImageUrls is not null) text += "\n图片：\n";
+        if (tweet.ImageUrls?.Count is int and not 0)
+            text += "\n图片：\n";
 
         if (tweet.HasVideo || (tweet.Origin?.HasVideo == true))
         {

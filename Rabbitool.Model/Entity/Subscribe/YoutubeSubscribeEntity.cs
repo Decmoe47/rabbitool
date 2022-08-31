@@ -32,6 +32,18 @@ public class YoutubeSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     {
         return ChannelId;
     }
+
+    public bool ContainsQQChannel(string channelId)
+    {
+        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
+    }
+
+    public void RemoveQQChannel(string channelId)
+    {
+        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
+        if (channel != null)
+            QQChannels.Remove(channel);
+    }
 }
 
 [Table("YoutubeSubscribeConfig")]

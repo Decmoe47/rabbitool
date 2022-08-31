@@ -1,6 +1,6 @@
 ﻿namespace Rabbitool.Event;
 
-public class MailSubscribeEvent
+public static class MailSubscribeEvent
 {
     public delegate void AddMailSubscribeDelegate(
         string host, int port, bool usingSsl, string address, string password, string mailbox = "INBOX");

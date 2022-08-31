@@ -16,7 +16,9 @@ public class LimiterCollection
     public static LimiterUtil QQBotLimter = new(5, 5);
 
     public static LimiterUtil GetLimterBySubscribeEntity<T>()
-        where T : ISubscribeEntity => typeof(T).Name switch
+        where T : ISubscribeEntity
+    {
+        return typeof(T).Name switch
         {
             nameof(BilibiliSubscribeEntity) => BilibiliLimter,
             nameof(TwitterSubscribeEntity) => TwitterLimter,
@@ -24,4 +26,5 @@ public class LimiterCollection
             nameof(QQChannelSubscribeEntity) => QQBotLimter,
             _ => throw new ArgumentException($"The T {typeof(T).Name} is invalid!")
         };
+    }
 }

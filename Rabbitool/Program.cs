@@ -1,17 +1,18 @@
 ﻿using Rabbitool;
-using Rabbitool.Common.Tool;
 using Rabbitool.Plugin;
 
-LogConfig.Register();
-
 Configs configs = Configs.Load("configs.yml");
+
+if (configs.InTestEnvironment && configs.HttpProxy != null && configs.HttpsProxy != null)
+{
+    System.Environment.SetEnvironmentVariable("http_proxy", configs.HttpProxy);
+    System.Environment.SetEnvironmentVariable("https_proxy", configs.HttpsProxy);
+}
 
 AllPlugins allPlugins = new(configs);
 allPlugins.InitBilibiliPlugin();
 allPlugins.InitTwitterPlugin();
 allPlugins.InitYoutubePlugin();
 allPlugins.InitMailPlugin();
-
-Thread.Sleep(TimeSpan.FromSeconds(3));
 
 await allPlugins.RunAsync();

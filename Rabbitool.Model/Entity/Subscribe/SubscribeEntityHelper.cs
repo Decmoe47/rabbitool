@@ -1,6 +1,6 @@
 ﻿namespace Rabbitool.Model.Entity.Subscribe;
 
-public class SubscribeEntityHelper
+public static class SubscribeEntityHelper
 {
     public static TSubscribe NewSubscribeEntity<TSubscribe>(string id, string name)
         where TSubscribe : ISubscribeEntity

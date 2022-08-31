@@ -2,6 +2,7 @@
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
+using Rabbitool.Common.Extension;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Bilibili;
 using Serilog;
@@ -26,15 +27,15 @@ public class BilibiliService
             .SetQueryParam("mid", uid)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
-        if ((int?)body["code"] is int code && code is not 0)
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties().RemoveNullAndEmptyProperties();
+        if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 
         string uname = (string)body["data"]!["name"]!;
 
         if ((int?)body["data"]?["live_room"]?["roomStatus"] is null or 0)
         {
-            Log.Warning("The bilibili user {uname}(uid: {uid}) hasn't live room yet!", uname, uid);
+            Log.Debug("The bilibili user {uname}(uid: {uid}) hasn't live room yet!", uname, uid);
             return null;
         }
 
@@ -44,8 +45,8 @@ public class BilibiliService
             .SetQueryParam("room_id", roomId)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
-        JObject body2 = JObject.Parse(resp2);
-        if ((int?)body2["code"] is int code2 && code2 is not 0)
+        JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
+        if ((int?)body2["code"] is int code2 and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code2, body2);
 
         int liveStatus = (int)body2["data"]!["room_info"]!["live_status"]!;
@@ -115,14 +116,14 @@ public class BilibiliService
                 .SetQueryParam("host_uid", uid)
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
-        if ((int?)body["code"] is int code && code is not 0)
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
+        if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 
         JToken? dy = body["data"]?["cards"]?[0];
         if (dy is null)
         {
-            Log.Warning("The {uid} is invaild or the user hasn't any dynamic yet!", uid);
+            Log.Debug("The {uid} is invaild or the user hasn't any dynamic yet!", uid);
             return null;
         }
         UnmarshalCard(dy);
@@ -144,14 +145,14 @@ public class BilibiliService
         uint uid = (uint?)dy["desc"]?["uid"] ?? 0;
         string cardStr = (string?)dy["card"]
             ?? throw new JsonUnmarshalException($"Failed to unmarshal the card!(uid: {uid})");
-        JObject card = JObject.Parse(cardStr);
+        JObject card = JObject.Parse(cardStr).RemoveNullAndEmptyProperties();
 
         if ((string?)card["origin"] is string origin)
-            card["origin"] = JObject.Parse(origin);
+            card["origin"] = JObject.Parse(origin).RemoveNullAndEmptyProperties();
         if ((string?)card["origin_extend_json"] is string originExtendJson)
-            card["origin_extend_json"] = JObject.Parse(originExtendJson);
+            card["origin_extend_json"] = JObject.Parse(originExtendJson).RemoveNullAndEmptyProperties();
         if ((string?)card["ctrl"] is string ctrl)
-            card["ctrl"] = JObject.Parse(ctrl);
+            card["ctrl"] = JObject.Parse(ctrl).RemoveNullAndEmptyProperties();
 
         dy["card"] = card;
     }
@@ -408,7 +409,7 @@ public class BilibiliService
             .SetQueryParam("mid", uid)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp);
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code && code is not 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);
 

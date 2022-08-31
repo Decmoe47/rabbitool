@@ -11,8 +11,8 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    [Migration("20220831092241_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20220903034747_Update")]
+    partial class Update
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -115,6 +115,9 @@ namespace Rabbitool.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Detail")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("PushToThread")
                         .HasColumnType("INTEGER");
 
@@ -164,6 +167,10 @@ namespace Rabbitool.Repository.Migrations
                     b.Property<bool>("Ssl")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("MailSubscribe");
@@ -183,6 +190,10 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("GuildId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("QQChannelSubscribe");
@@ -194,14 +205,14 @@ namespace Rabbitool.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("PureRtPush")
-                        .HasColumnType("INTEGER");
-
                     b.Property<bool>("PushToThread")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("QQChannelId")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("QuotePush")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("RtPush")
                         .HasColumnType("INTEGER");

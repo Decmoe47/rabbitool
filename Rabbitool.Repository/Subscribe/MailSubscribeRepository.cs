@@ -18,8 +18,13 @@ public class MailSubscribeRepository
     {
         return tracking switch
         {
-            false => await _dbCtx.MailSubscribeEntity.AsNoTracking().ToListAsync(cancellationToken),
-            true => await _dbCtx.MailSubscribeEntity.ToListAsync(cancellationToken)
+            false => await _dbCtx.MailSubscribeEntity
+                .AsNoTracking()
+                .Include(e => e.QQChannels)
+                .ToListAsync(cancellationToken),
+            true => await _dbCtx.MailSubscribeEntity
+                .Include(e => e.QQChannels)
+                .ToListAsync(cancellationToken)
         };
     }
 
@@ -31,9 +36,11 @@ public class MailSubscribeRepository
             false => await _dbCtx
                 .MailSubscribeEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannels)
                 .FirstAsync(m => m.Address == address, cancellationToken),
             true => await _dbCtx
                 .MailSubscribeEntity
+                .Include(e => e.QQChannels)
                 .FirstAsync(m => m.Address == address, cancellationToken)
         };
     }
@@ -46,9 +53,11 @@ public class MailSubscribeRepository
             false => await _dbCtx
                 .MailSubscribeEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(m => m.Address == address, cancellationToken),
             true => await _dbCtx
                 .MailSubscribeEntity
+                .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(m => m.Address == address, cancellationToken)
         };
     }
@@ -92,10 +101,14 @@ public class MailSubscribeConfigRepository
             false => _dbCtx
                 .MailSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .Where(m => m.Subscribe.Address == address)
                 .ToListAsync(cancellationToken),
             true => _dbCtx
                 .MailSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .Where(m => m.Subscribe.Address == address)
                 .ToListAsync(cancellationToken)
         };
@@ -112,9 +125,13 @@ public class MailSubscribeConfigRepository
             false => await _dbCtx
                 .MailSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, cancellationToken),
             true => await _dbCtx
                 .MailSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, cancellationToken)
         };
     }
@@ -130,9 +147,13 @@ public class MailSubscribeConfigRepository
             false => await _dbCtx
                 .MailSubscribeConfigEntity
                 .AsNoTracking()
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, cancellationToken),
             true => await _dbCtx
                 .MailSubscribeConfigEntity
+                .Include(e => e.QQChannel)
+                .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, cancellationToken)
         };
     }

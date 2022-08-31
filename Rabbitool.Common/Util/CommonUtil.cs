@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Rabbitool.Common.Util;
 
-public class CommonUtil
+public static class CommonUtil
 {
     /// <summary>
     /// 不存在的属性名会被忽略

@@ -366,6 +366,9 @@ FodyWeavers.xsd
 *.db
 *.db-shm
 *.db-wal
+
 *.yml
 *.yaml
+!configs_example.yml
+
 *.xlsx
