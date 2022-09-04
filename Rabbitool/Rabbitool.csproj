@@ -16,6 +16,7 @@
     <PackageReference Include="Coravel" Version="4.1.2" />
     <PackageReference Include="Flurl" Version="3.0.6" />
     <PackageReference Include="Flurl.Http" Version="3.2.4" />
+    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.57.0.2756" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.45" />
     <PackageReference Include="MailKit" Version="3.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.8">

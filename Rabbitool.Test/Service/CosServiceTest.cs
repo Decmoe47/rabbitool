@@ -1,4 +1,5 @@
-﻿using Xunit.Abstractions;
+﻿using Rabbitool.Config;
+using Xunit.Abstractions;
 
 namespace Rabbitool.Service.Test;
 
@@ -9,11 +10,12 @@ public class CosServiceTest
 
     public CosServiceTest(ITestOutputHelper output)
     {
-        System.Environment.SetEnvironmentVariable("http_proxy", "http://127.0.0.1:7890");
-        System.Environment.SetEnvironmentVariable("https_proxy", "http://127.0.0.1:7890");
+        Configs configs = Configs.Load("configs.yml");
+
+        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
+        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
 
         _output = output;
-        Configs configs = Configs.Load("configs.yml");
         _svc = new CosService(configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);
     }
 

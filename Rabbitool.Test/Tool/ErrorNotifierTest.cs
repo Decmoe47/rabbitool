@@ -1,4 +1,6 @@
-﻿namespace Rabbitool.Common.Tool.Test;
+﻿using Rabbitool.Config;
+
+namespace Rabbitool.Common.Tool.Test;
 
 public class ErrorNotifierTest
 {

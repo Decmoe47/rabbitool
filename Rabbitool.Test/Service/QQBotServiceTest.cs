@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using QQChannelFramework.Models;
+using Rabbitool.Config;
 using Rabbitool.Model.DTO.QQBot;
 
 namespace Rabbitool.Service.Test;
@@ -11,10 +12,11 @@ public class QQBotServiceTest
 
     public QQBotServiceTest()
     {
-        System.Environment.SetEnvironmentVariable("http_proxy", "http://127.0.0.1:7890");
-        System.Environment.SetEnvironmentVariable("https_proxy", "http://127.0.0.1:7890");
-
         Configs configs = Configs.Load("configs.yml");
+
+        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
+        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
+
         _svc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true);
         _cosSvc = new CosService(
             configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);

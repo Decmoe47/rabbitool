@@ -15,13 +15,14 @@ public class YoutubePlugin : BasePlugin
     private Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
 
     public YoutubePlugin(
+        string apiKey,
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
         string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
-        _svc = new YoutubeService();
+        _svc = new YoutubeService(apiKey);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);

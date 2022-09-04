@@ -1,9 +1,10 @@
 ﻿using Coravel;
 using Microsoft.Extensions.Hosting;
 using Rabbitool.Common.Tool;
+using Rabbitool.Config;
 using Rabbitool.Plugin.Command.Subscribe;
 using Rabbitool.Service;
-using Serilog;
+using Log = Serilog.Log;
 
 namespace Rabbitool.Plugin;
 
@@ -41,9 +42,9 @@ public class AllPlugins
     public async Task RunAsync()
     {
         if (_configs.ErrorNotifier is not null)
-            LogConfig.Register(_configs.ErrorNotifier.ToOptions(), _configs.ConsoleLevel, _configs.FileLevel);
+            LogConfig.Register(_configs.ErrorNotifier.ToOptions(), _configs.Log.ConsoleLevel, _configs.Log.FileLevel);
         else
-            LogConfig.Register(_configs.ConsoleLevel, _configs.FileLevel);
+            LogConfig.Register(_configs.Log.ConsoleLevel, _configs.Log.FileLevel);
 
         AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
         {
@@ -90,7 +91,7 @@ public class AllPlugins
 
     public void InitYoutubePlugin()
     {
-        YoutubePlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
+        YoutubePlugin plugin = new(_configs.Youtube.ApiKey, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))

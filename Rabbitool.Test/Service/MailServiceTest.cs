@@ -1,4 +1,5 @@
-﻿using Rabbitool.Model.DTO.Mail;
+﻿using Rabbitool.Config;
+using Rabbitool.Model.DTO.Mail;
 using Xunit.Abstractions;
 
 namespace Rabbitool.Service.Test;

@@ -1,8 +1,6 @@
-﻿using System.Xml;
-using System.Xml.XPath;
-using CodeHollow.FeedReader;
-using Flurl.Http;
-using HtmlAgilityPack;
+﻿using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Youtube;
 
@@ -11,63 +9,78 @@ namespace Rabbitool.Service;
 public class YoutubeService
 {
     private readonly LimiterUtil _limiter = LimiterCollection.YoutubeLimter;
+    private readonly YouTubeService _ytb;
 
-    public YoutubeService()
+    public YoutubeService(string apiKey)
     {
+        _ytb = new YouTubeService(new BaseClientService.Initializer
+        {
+            ApplicationName = "Rabbitool",
+            ApiKey = apiKey
+        });
     }
 
     public async Task<YoutubeBase> GetLatestVideoOrLiveAsync(string channelId, CancellationToken cancellationToken = default)
     {
         _limiter.Wait();
 
-        Feed feed = await FeedReader.ReadAsync(
-            $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}", cancellationToken);
-        FeedItem item = feed.Items[0];
-        string url = item.Link;
+        // https://developers.google.com/youtube/v3/docs/channels
+        ChannelsResource.ListRequest channelsReq = _ytb.Channels
+            .List(new Google.Apis.Util.Repeatable<string>(new string[3] { "snippet", "contentDetails", "statistics" }));
+        channelsReq.Id = channelId;
+        Channel channel = (await channelsReq.ExecuteAsync(cancellationToken)).Items[0];
 
-        XmlDocument doc = new();
-        XmlNamespaceManager nsmgr = new(doc.NameTable);
-        nsmgr.AddNamespace("yt", "http://www.youtube.com/xml/schemas/2015");
-        nsmgr.AddNamespace("media", "http://search.yahoo.com/mrss/");
+        // https://developers.google.com/youtube/v3/docs/playlistItems
+        PlaylistItemsResource.ListRequest playListReq = _ytb.PlaylistItems
+            .List(new Google.Apis.Util.Repeatable<string>(new string[3] { "contentDetails", "snippet", "status" }));
+        playListReq.PlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
+        PlaylistItem item = (await playListReq.ExecuteAsync(cancellationToken)).Items[0];
 
-        return await IsLiveRoomAsync(channelId, url, cancellationToken)
+        // https://developers.google.com/youtube/v3/docs/videos
+        VideosResource.ListRequest videosReq = _ytb.Videos
+            .List(new Google.Apis.Util.Repeatable<string>(new string[4] { "snippet", "contentDetails", "statistics", "liveStreamingDetails" }));
+        videosReq.Id = item.ContentDetails.VideoId;
+        Video video = (await videosReq.ExecuteAsync(cancellationToken)).Items[0];
+
+        bool isStreaming = IsStreaming(video.Snippet.LiveBroadcastContent);
+
+        return isStreaming
             ? new YoutubeLive()
             {
-                ChannelId = channelId,
                 Type = YoutubeTypeEnum.Live,
-                Author = item.Author,
-                Id = item.SpecificItem.Element.XPathSelectElement(@"yt:videoId", nsmgr)!.Value,
-                Title = item.Title,
-                ThumbnailUrl = item.SpecificItem.Element
-                    .XPathSelectElement(@"media:group/media:thumbnail", nsmgr)!
-                    .Attribute("url")!.Value,
-                Url = url,
-                LiveStartTime = DateTime.Now.ToUniversalTime()
+                ChannelId = channelId,
+                Author = channel.Snippet.Title,
+                Id = item.ContentDetails.VideoId,
+                ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
+                Url = "https://www.youtube.com/watch?v=" + item.ContentDetails.VideoId,
+                LiveStartTime = video.LiveStreamingDetails.ActualStartTime ?? DateTime.UtcNow
             }
             : new YoutubeVideo()
             {
-                ChannelId = channelId,
                 Type = YoutubeTypeEnum.Live,
-                Author = item.Author,
-                Id = item.SpecificItem.Element.XPathSelectElement(@"yt:videoId", nsmgr)!.Value,
-                Title = item.Title,
-                ThumbnailUrl = item.SpecificItem.Element
-                    .XPathSelectElement(@"media:group/media:thumbnail", nsmgr)!
-                    .Attribute("url")!.Value,
-                Url = url,
-                PubTime = (DateTime)item.PublishingDate!
+                ChannelId = channelId,
+                Author = channel.Snippet.Title,
+                Id = item.ContentDetails.VideoId,
+                ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
+                Url = "https://www.youtube.com/watch?v=" + item.ContentDetails.VideoId,
+                PubTime = video.Snippet.PublishedAt ?? throw new YoutubeApiException("Failed to get the pubTime of the latest video!", channelId)     // https://developers.google.com/youtube/v3/docs/videos#snippet.publishedAt
             };
     }
 
-    private async Task<bool> IsLiveRoomAsync(string channelId, string url, CancellationToken cancellationToken = default)
+    private static bool IsStreaming(string liveBroadcaseContent)
     {
-        _limiter.Wait();
+        return liveBroadcaseContent switch
+        {
+            "live" => true,
+            _ => false
+        };
+    }
 
-        string resp = await $"https://youtube.com/channel/{channelId}/live".GetStringAsync(cancellationToken);
-
-        HtmlDocument doc = new();
-        doc.LoadHtml(resp);
-
-        return url == doc.DocumentNode.SelectSingleNode("//link[@rel=\"canonical\"]").Attributes["href"].Value;
+    private static string GetThumbnailUrl(ThumbnailDetails thumbnailDetails)
+    {
+        return thumbnailDetails.Maxres?.Url
+            ?? thumbnailDetails.High?.Url
+            ?? thumbnailDetails.Medium?.Url
+            ?? thumbnailDetails.Default__.Url;
     }
 }

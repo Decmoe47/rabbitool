@@ -3,10 +3,11 @@
 redirectUrl: # string，重定向用
 userAgent: # string
 
-consoleLevel: "debug" # log输出到控制台的最低级别，可填"verbose", "debug", "info", "warn", "error", "fatal"
-fileLevel: "info" # log输出到文件的最低级别
-
 dbPath: "rabbitool.db" # string，目前只支持sqlite3
+
+log:
+  consoleLevel: "debug" # log输出到控制台的最低级别，可填"verbose", "debug", "info", "warn", "error", "fatal"
+  fileLevel: "info" # log输出到文件的最低级别
 
 interval: # 均为int，单位为秒
   bilibiliPlugin: 10
@@ -34,6 +35,8 @@ cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同�
   secretKey: # string
   bucketName: # string
   region: # string
+youtube:
+  apiKey: # string
 twitter: # （可选）
   x_csrf_token: # string，和cookie一起填
   cookie: # string，和x_csrf_token一起填

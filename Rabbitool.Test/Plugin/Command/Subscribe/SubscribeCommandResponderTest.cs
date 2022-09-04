@@ -1,5 +1,6 @@
 ﻿using QQChannelFramework.Models;
 using QQChannelFramework.Models.MessageModels;
+using Rabbitool.Config;
 using Rabbitool.Service;
 using Serilog;
 using Xunit.Abstractions;
@@ -15,14 +16,14 @@ public class SubscribeCommandResponderTest
         System.Environment.SetEnvironmentVariable("http_proxy", "http://127.0.0.1:7890");
         System.Environment.SetEnvironmentVariable("https_proxy", "http://127.0.0.1:7890");
 
-        Log.Logger = new LoggerConfiguration()
+        Serilog.Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Verbose()
             .WriteTo.TestOutput(output)
             .CreateLogger();
 
         Configs configs = Configs.Load("configs.yml");
         _qSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true);
-        SubscribeCommandResponder.Init(_qSvc, configs.TestDbPath!, configs.UserAgent);
+        SubscribeCommandResponder.Init(_qSvc, configs.DbPath!, configs.UserAgent);
     }
 
     [Theory()]

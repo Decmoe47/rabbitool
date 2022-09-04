@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using Rabbitool.Config;
+using Log = Serilog.Log;
 
 namespace Rabbitool.Common.Tool.Test;
 
