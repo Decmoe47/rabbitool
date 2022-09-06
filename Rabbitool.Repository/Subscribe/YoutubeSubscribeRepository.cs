@@ -166,6 +166,9 @@ public class YoutubeSubscribeConfigRepository
         catch (InvalidOperationException)
         {
             record = new YoutubeSubscribeConfigEntity(qqChannel, subscribe);
+            if (configs is not null)
+                CommonUtil.UpdateProperties(record, configs);
+
             await _dbCtx.YoutubeSubscribeConfigEntity.AddAsync(record, cancellationToken);
 
             return record;

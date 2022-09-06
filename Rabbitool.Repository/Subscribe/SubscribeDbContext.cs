@@ -57,6 +57,16 @@ public class SubscribeDbContext : DbContext
             .Property(e => e.AllArchiveVideoIds)
             .HasConversion(
                 v => JsonConvert.SerializeObject(v),
-                v => JsonConvert.DeserializeObject<List<string>?>(v));
+                v => DeserializeListString(v));
+        modelBuilder.Entity<YoutubeSubscribeEntity>()
+            .Property(e => e.AllUpcomingLiveRoomIds)
+            .HasConversion(
+                v => JsonConvert.SerializeObject(v),
+                v => DeserializeListString(v));
+    }
+
+    private List<string> DeserializeListString(string v)
+    {
+        return JsonConvert.DeserializeObject<List<string>>(v) ?? new List<string>();
     }
 }

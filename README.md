@@ -61,6 +61,9 @@
   - rTPush: `false`（推送无附带文字的转发推文）
   - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
 - 油管：
+  - videoPush: `true`（上传视频）
+  - livePush: `true`（开播）
+  - upcomingLivePush: `true`（预定直播间）
   - archivePush: `false`（推送直播录像）
 - 邮箱：
   - address（必须，邮箱地址，修改需取消订阅后重新订阅）

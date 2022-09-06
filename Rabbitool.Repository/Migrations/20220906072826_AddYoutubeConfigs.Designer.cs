@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rabbitool.Repository.Subscribe;
 
@@ -10,9 +11,10 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    partial class SubscribeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220906072826_AddYoutubeConfigs")]
+    partial class AddYoutubeConfigs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.8");

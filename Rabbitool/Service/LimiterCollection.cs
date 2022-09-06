@@ -5,7 +5,7 @@ namespace Rabbitool.Service;
 
 public class LimiterCollection
 {
-    public static LimiterUtil BilibiliLimter = new(5, 5);
+    public static LimiterUtil BilibiliLimter = new(1, 1);
     public static LimiterUtil TwitterLimter = new(1, 1);
 
     /// <summary>
@@ -13,7 +13,7 @@ public class LimiterCollection
     /// </summary>
     public static LimiterUtil YoutubeLimter = new(1, 10);
 
-    public static LimiterUtil QQBotLimter = new(5, 5);
+    public static LimiterUtil QQBotLimter = new(3, 3);
 
     public static LimiterUtil GetLimterBySubscribeEntity<T>()
         where T : ISubscribeEntity

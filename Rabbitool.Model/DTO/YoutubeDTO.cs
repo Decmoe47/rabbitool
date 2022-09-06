@@ -3,7 +3,8 @@
 public enum YoutubeTypeEnum
 {
     Video,
-    Live
+    Live,
+    UpcomingLive
 }
 
 public class YoutubeBase
@@ -13,20 +14,21 @@ public class YoutubeBase
     public string Author { get; set; } = string.Empty;
 }
 
-public class YoutubeVideo : YoutubeBase
+public class YoutubeItem : YoutubeBase
 {
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string ThumbnailUrl { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
+}
+
+public class YoutubeVideo : YoutubeItem
+{
     public DateTime PubTime { get; set; }
 }
 
-public class YoutubeLive : YoutubeBase
+public class YoutubeLive : YoutubeItem
 {
-    public string Id { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string ThumbnailUrl { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
-    public DateTime LiveStartTime { get; set; }
+    public DateTime? ScheduledStartTime { get; set; }
+    public DateTime? ActualStartTime { get; set; }
 }

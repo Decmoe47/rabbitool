@@ -167,6 +167,9 @@ public class TwitterSubscribeConfigRepository
         catch (InvalidOperationException)
         {
             record = new TwitterSubscribeConfigEntity(qqChannel, subscribe);
+            if (configs is not null)
+                CommonUtil.UpdateProperties(record, configs);
+
             await _dbCtx.TwitterSubscribeConfigEntity.AddAsync(record, cancellationToken);
 
             return record;
