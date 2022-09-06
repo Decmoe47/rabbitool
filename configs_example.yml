@@ -1,6 +1,6 @@
 # 以下除非有说明“可选”，否则均为必填
 
-redirectUrl: # string，重定向用
+redirectUrl: # string，重定向链接用
 userAgent: # string
 
 dbPath: "rabbitool.db" # string，目前只支持sqlite3
