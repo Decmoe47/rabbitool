@@ -33,7 +33,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         TConfigRepo configRepo)
     {
         if (!(typeof(TSubscribe).Name == nameof(MailSubscribeEntity)))
-            _limiter = LimiterCollection.GetLimterBySubscribeEntity<TSubscribe>();
+            _limiter = LimiterCollection.GetLimiterBySubscribeEntity<TSubscribe>();
         _qbSvc = qbSvc;
         _dbCtx = dbCtx;
         _qsRepo = qsRepo;

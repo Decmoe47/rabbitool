@@ -23,7 +23,7 @@ public class QQBotService
 
     public QQBotService(string appId, string token, bool isSandbox)
     {
-        _limiter = LimiterCollection.QQBotLimter;
+        _limiter = LimiterCollection.QQBotLimiter;
 
         OpenApiAccessInfo openApiAccessInfo = new()
         {

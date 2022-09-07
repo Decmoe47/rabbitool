@@ -5,25 +5,34 @@ namespace Rabbitool.Service;
 
 public class LimiterCollection
 {
-    public static LimiterUtil BilibiliLimter = new(1, 1);
-    public static LimiterUtil TwitterLimter = new(1, 1);
+    public static LimiterUtil BilibiliLimiter = new(1, 1);
+    public static LimiterUtil TwitterUserApiLimiter = new(1, 1);
 
     /// <summary>
-    /// comsume choose 10
+    /// <c>consume</c> choose 1
+    /// <para></para>
+    /// See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
     /// </summary>
-    public static LimiterUtil YoutubeLimter = new(1, 10);
+    public static LimiterUtil TwitterTimelineApiLimiter = new(0.0373f, 100000);
 
-    public static LimiterUtil QQBotLimter = new(3, 3);
+    /// <summary>
+    /// comsume choose 96
+    /// </summary>
+    public static LimiterUtil YoutubeApiLimiter = new(0.115f, 10000);
 
-    public static LimiterUtil GetLimterBySubscribeEntity<T>()
+    public static LimiterUtil YoutubeFeedLimiter = new(1, 1);
+
+    public static LimiterUtil QQBotLimiter = new(4, 4);
+
+    public static LimiterUtil GetLimiterBySubscribeEntity<T>()
         where T : ISubscribeEntity
     {
         return typeof(T).Name switch
         {
-            nameof(BilibiliSubscribeEntity) => BilibiliLimter,
-            nameof(TwitterSubscribeEntity) => TwitterLimter,
-            nameof(YoutubeSubscribeEntity) => YoutubeLimter,
-            nameof(QQChannelSubscribeEntity) => QQBotLimter,
+            nameof(BilibiliSubscribeEntity) => BilibiliLimiter,
+            nameof(TwitterSubscribeEntity) => TwitterUserApiLimiter,
+            nameof(YoutubeSubscribeEntity) => YoutubeFeedLimiter,
+            nameof(QQChannelSubscribeEntity) => QQBotLimiter,
             _ => throw new ArgumentException($"The T {typeof(T).Name} is invalid!")
         };
     }

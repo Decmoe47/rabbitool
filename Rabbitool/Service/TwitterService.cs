@@ -14,7 +14,8 @@ public class TwitterService
     private readonly string _apiV1_1Auth = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
     private readonly string? _apiV2Token;
     private readonly string? _cookie;
-    private readonly LimiterUtil _limiter = LimiterCollection.TwitterLimter;
+    private readonly LimiterUtil _timelineApiLimiter = LimiterCollection.TwitterTimelineApiLimiter;
+    private readonly LimiterUtil _userApiLimiter = LimiterCollection.TwitterUserApiLimiter;
     private readonly string _userAgent;
     private readonly bool _usingApiV2;
     private readonly string? _xCsrfToken;
@@ -52,7 +53,7 @@ public class TwitterService
     /// </summary>
     private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _timelineApiLimiter.Wait();
 
         Dictionary<string, string> headers = new()
         {
@@ -69,7 +70,7 @@ public class TwitterService
                 { "screen_name", screenName },
                 { "exclude_replies", "false" },
                 { "include_rts", "true" },
-                { "count", "25" },
+                { "count", "5" },
             })
             .GetStringAsync(cancellationToken);
         JArray body = JArray.Parse(resp);
@@ -177,7 +178,7 @@ public class TwitterService
     {
         (string userId, _) = await GetUserIdAsync(screenName, cancellationToken);
 
-        _limiter.Wait();
+        _timelineApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithOAuthBearerToken(_apiV2Token)
             .SetQueryParams(new Dictionary<string, string>()
@@ -187,6 +188,7 @@ public class TwitterService
                 { "expansions", "author_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys" },
                 { "user.fields", "username,name" },
                 { "media.fields", "preview_image_url,type,url" },
+                { "max_results", "5" }
             })
             .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
@@ -340,7 +342,7 @@ public class TwitterService
     private async Task<(string userId, string name)> GetUserIdAsync(
         string screenName, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _userApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);
@@ -352,7 +354,7 @@ public class TwitterService
     private async Task<(string name, string screenName)> GetUserNameAsync(
         string userId, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _userApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);

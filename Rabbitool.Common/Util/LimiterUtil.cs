@@ -2,26 +2,32 @@
 
 public class LimiterUtil
 {
-    private readonly int _rate, _capacity;
-    private long _currentAmount, _lastConsumeTime;
+    private readonly float _rate;
+    private readonly int _capacity;
+    private float _currentAmount;
+    private long _lastTriedTime;
 
-    public LimiterUtil(int rate, int capacity)
+    /// <param name="rate">每秒增加多少</param>
+    /// <param name="capacity">桶总量</param>
+    public LimiterUtil(float rate, int capacity)
     {
         _rate = rate;
         _capacity = capacity;
-        _currentAmount = capacity;
-        _lastConsumeTime = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
+        _currentAmount = 0;
+        _lastTriedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     public bool Allow(int consume = 1)
     {
-        long now = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
-        long increment = (now - _lastConsumeTime) * _rate;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        float increment = (now - _lastTriedTime) * _rate;
         _currentAmount = Math.Min(increment + _currentAmount, _capacity);
+        _lastTriedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
         if (consume > _currentAmount)
             return false;
-        _lastConsumeTime = now;
-        _currentAmount -= 1;
+
+        _currentAmount -= consume;
         return true;
     }
 

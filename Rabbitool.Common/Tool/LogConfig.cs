@@ -15,7 +15,7 @@ public static class LogConfig
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 new CompactJsonFormatter(),
-                "log/rabbitool.log",
+                $"log/rabbitool_{DateTime.UtcNow:szz}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)

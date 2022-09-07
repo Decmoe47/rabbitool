@@ -12,7 +12,7 @@ namespace Rabbitool.Service;
 public class BilibiliService
 {
     private readonly string _userAgent;
-    private readonly LimiterUtil _limiter = LimiterCollection.BilibiliLimter;
+    private readonly LimiterUtil _limiter = LimiterCollection.BilibiliLimiter;
 
     public BilibiliService(string userAgent)
     {

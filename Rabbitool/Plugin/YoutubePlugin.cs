@@ -53,7 +53,7 @@ public class YoutubePlugin : BasePlugin
     {
         try
         {
-            (YoutubeItem item, YoutubeItem secondItem) = await _svc.GetLatestTwoVideoOrLiveAsync(
+            YoutubeItem item = await _svc.GetLatestTwoVideoOrLiveAsync(
                 record.ChannelId, cancellationToken: cancellationToken);
 
             DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");

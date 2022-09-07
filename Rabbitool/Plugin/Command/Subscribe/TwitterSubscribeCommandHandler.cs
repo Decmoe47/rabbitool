@@ -42,6 +42,7 @@ public class TwitterSubscribeCommandHandler
                 {"screen_name", screenName},
                 {"exclude_replies", "false"},
                 {"include_rts", "true"},
+                {"count", "5"}
             })
             .GetStringAsync(cancellationToken);
         }
