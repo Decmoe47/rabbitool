@@ -10,10 +10,10 @@ log:
   fileLevel: "info" # log输出到文件的最低级别
 
 interval: # 均为int，单位为秒
-  bilibiliPlugin: 10
-  youtubePlugin: 10
-  twitterPlugin: 10
-  mailPlugin: 10
+  bilibiliPlugin: 10 # 尽量不要设太快，因为并不知道b站api的qps是多少
+  youtubePlugin: 10	# 再快也会受限于rate limiter，大约96秒一次查询
+  twitterPlugin: 10 # 再快也会受限于rate limiter，大约27秒一次查询
+  mailPlugin: 10 # 尽量不要设太快，因为并不知道你的邮箱的qps是多少
 
 errorNotifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
   senderHost: # string
@@ -26,7 +26,7 @@ errorNotifier: # （可选）用于发生错误时通知的，下面皆指邮箱
   intervalMinutes: 5 # int，重置积攒的重复通知
   allowedAmount: 25 # int，积攒的重复通知量在规定时间内达到上限后就发送
 qqbot:
-  appID: # string
+  appId: # string
   token: # string
   isSandbox: # bool
 cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
