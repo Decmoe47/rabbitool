@@ -23,9 +23,8 @@ errorNotifier: # （可选）用于发生错误时通知的，下面皆指邮箱
   senderPassword: # string
   senderAddress: # string
   receiverAddresses: # string[]
-  refreshMinutes: 5 # int，重置积攒的重复通知
-  maxAmount: 30 # int，积攒的重复通知量达到上限后就发送
-  allowedAmount: 25 # int，积攒的重复通知量到达重置时间了但未达到上限，那么如果超过了这个值也会发送
+  intervalMinutes: 5 # int，重置积攒的重复通知
+  allowedAmount: 25 # int，积攒的重复通知量在规定时间内达到上限后就发送
 qqbot:
   appID: # string
   token: # string
@@ -36,7 +35,7 @@ cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同�
   bucketName: # string
   region: # string
 youtube:
-  apiKey: # string
+  apiKey: # string，官方api，参见官方说明
 twitter: # （可选）
   x_csrf_token: # string，和cookie一起填
   cookie: # string，和x_csrf_token一起填

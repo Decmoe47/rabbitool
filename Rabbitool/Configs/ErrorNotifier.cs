@@ -26,10 +26,7 @@ public class ErrorNotifier
     public string[] ReceiverAddresses { get; set; } = null!;
 
     [Required]
-    public int RefreshMinutes { get; set; }
-
-    [Required]
-    public int MaxAmount { get; set; }
+    public int IntervalMinutes { get; set; }
 
     [Required]
     public int AllowedAmount { get; set; }
@@ -45,8 +42,7 @@ public class ErrorNotifier
             Password = SenderPassword,
             From = SenderAddress,
             To = ReceiverAddresses,
-            RefreshMinutes = RefreshMinutes,
-            MaxAmount = MaxAmount,
+            RefreshMinutes = IntervalMinutes,
             AllowedAmount = AllowedAmount
         };
     }

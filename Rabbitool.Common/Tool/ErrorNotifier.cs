@@ -19,8 +19,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
     private readonly string _username;
     private readonly string _password;
 
-    private readonly int _refreshMinutes;
-    private readonly int _maxAmount;
+    private readonly int _intervalMinutes;
     private readonly int _allowedAmount;
     private readonly List<ErrorCounter> _errorCounters;
 
@@ -40,8 +39,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
         _username = opts.Username;
         _password = opts.Password;
 
-        _refreshMinutes = opts.RefreshMinutes;
-        _maxAmount = opts.MaxAmount;
+        _intervalMinutes = opts.RefreshMinutes;
         _allowedAmount = opts.AllowedAmount;
 
         _formatProvider = formatProvider;
@@ -51,7 +49,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
 
     public void Emit(LogEvent logEvent)
     {
-        if (logEvent.Level != LogEventLevel.Error || logEvent.Level != LogEventLevel.Fatal)
+        if (logEvent.Level != LogEventLevel.Error && logEvent.Level != LogEventLevel.Fatal)
             return;
 
         string message = logEvent.RenderMessage(_formatProvider);
@@ -113,23 +111,19 @@ public class ErrorNotifier : ILogEventSink, IDisposable
 
     private bool Allow(string text)
     {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         int i = _errorCounters.FindIndex(e => e.Text == text);
         if (i == -1)
         {
             i = _errorCounters.Count;
-            _errorCounters.Add(new ErrorCounter(text));
+            _errorCounters.Add(new ErrorCounter(text, now + (_intervalMinutes * 60)));
         }
         else
         {
             _errorCounters[i].Amount++;
         }
 
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (_errorCounters[i].TimestampToRefresh == 0)
-            _errorCounters[i].TimestampToRefresh = now + (_refreshMinutes * 60);
-
-        if ((now >= _errorCounters[i].TimestampToRefresh && _errorCounters[i].Amount >= _allowedAmount)
-            || _errorCounters[i].Amount >= _maxAmount)
+        if (now < _errorCounters[i].TimestampToRefresh && _errorCounters[i].Amount >= _allowedAmount)
         {
             _errorCounters.RemoveAt(i);
             return true;
@@ -149,11 +143,12 @@ internal class ErrorCounter
 {
     public string Text { get; set; }
     public int Amount { get; set; } = 1;
-    public long TimestampToRefresh { get; set; } = 0;
+    public long TimestampToRefresh { get; set; }
 
-    public ErrorCounter(string text)
+    public ErrorCounter(string text, long timestampToRefresh)
     {
         Text = text;
+        TimestampToRefresh = timestampToRefresh;
     }
 }
 
