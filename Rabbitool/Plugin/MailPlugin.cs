@@ -89,8 +89,11 @@ public class MailPlugin : BasePlugin
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
-                if (!_storedMails.ContainsKey(record.Username) || !_storedMails[record.Username].ContainsKey(mail.Time))
+                if (!_storedMails.ContainsKey(record.Username))
+                    _storedMails[record.Username] = new Dictionary<DateTime, Mail>();
+                if (!_storedMails[record.Username].ContainsKey(mail.Time))
                     _storedMails[record.Username][mail.Time] = mail;
+
                 Log.Debug("Mail message of the user {userrname} is skipped because it's curfew time now.",
                     record.Username);
                 return;

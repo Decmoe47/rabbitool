@@ -80,8 +80,11 @@ public class BilibiliPlugin : BasePlugin
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
-                if (!_storedDynamics.ContainsKey(dy.Uid) || !_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
+                if (!_storedDynamics.ContainsKey(dy.Uid))
+                    _storedDynamics[dy.Uid] = new Dictionary<DateTime, BaseDynamicDTO>();
+                if (!_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
                     _storedDynamics[dy.Uid][dy.DynamicUploadTime] = dy;
+
                 Log.Debug("Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
                     dy.Uname, dy.Uid);
                 return;

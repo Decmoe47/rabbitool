@@ -108,8 +108,11 @@ public class TwitterPlugin : BasePlugin
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
-                if (!_storedTweets.ContainsKey(tweet.AuthorScreenName) || !_storedTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
+                if (!_storedTweets.ContainsKey(tweet.AuthorScreenName))
+                    _storedTweets[tweet.AuthorScreenName] = new Dictionary<DateTime, Tweet>();
+                if (!_storedTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
                     _storedTweets[tweet.AuthorScreenName][tweet.PubTime] = tweet;
+
                 Log.Debug("Tweet message of the user {name}(screenName: {screenName}) is skipped because it's curfew time now.",
                     tweet.Author, tweet.AuthorScreenName);
                 return;

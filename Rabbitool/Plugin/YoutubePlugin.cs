@@ -92,8 +92,11 @@ public class YoutubePlugin : BasePlugin
 
                     if (now.Hour >= 0 && now.Hour <= 6)
                     {
-                        if (!_storedVideos.ContainsKey(video.ChannelId) || !_storedVideos[video.ChannelId].ContainsKey(video.PubTime))
+                        if (!_storedVideos.ContainsKey(video.ChannelId))
+                            _storedVideos[video.ChannelId] = new Dictionary<DateTime, YoutubeVideo>();
+                        if (!_storedVideos[video.ChannelId].ContainsKey(video.PubTime))
                             _storedVideos[video.ChannelId][video.PubTime] = video;
+
                         Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                             video.Author, video.ChannelId);
                         return;
