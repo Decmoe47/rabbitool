@@ -129,9 +129,9 @@ public class QQBotService
             Channel channel = await GetChannelAsync(channelId);
             return true;
         }
-        catch (ErrorResultException)
+        catch (HttpApiException ex)
         {
-            return false;
+            return ex.InnerException is AccessInfoErrorException ? false : throw ex;
         }
     }
 

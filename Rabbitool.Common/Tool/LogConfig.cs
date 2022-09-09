@@ -1,6 +1,5 @@
 ﻿using Serilog;
 using Serilog.Events;
-using Serilog.Formatting.Compact;
 
 namespace Rabbitool.Common.Tool;
 
@@ -14,8 +13,7 @@ public static class LogConfig
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                new CompactJsonFormatter(),
-                $"log/rabbitool_{DateTime.UtcNow:szz}.log",
+                $"log/rabbitool_{DateTime.UtcNow:yyyyMMdd_HHmmsszz}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)
@@ -34,8 +32,7 @@ public static class LogConfig
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                new CompactJsonFormatter(),
-                "log/rabbitool.log",
+                $"log/rabbitool_{DateTime.UtcNow:yyyyMMdd_HHmmsszz}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)
