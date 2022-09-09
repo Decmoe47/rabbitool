@@ -304,7 +304,7 @@ public class BilibiliPlugin : BasePlugin
 动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
 ====================
-【视频】来自 P{vOrigin.Uname}
+【视频】来自 {vOrigin.Uname}
 
 【视频标题】
 {vOrigin.VideoTitle}

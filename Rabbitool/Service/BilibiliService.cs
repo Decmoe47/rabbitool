@@ -405,6 +405,7 @@ public class BilibiliService
 
     private async Task<string> GetUnameAsync(uint uid, CancellationToken cancellationToken = default)
     {
+        _limiter.Wait();
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)
             .WithHeader("User-Agent", _userAgent)
@@ -413,7 +414,7 @@ public class BilibiliService
         if ((int?)body["code"] is int code && code is not 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);
 
-        return (string)body["data"]!["uname"]!;
+        return (string)body["data"]!["name"]!;
     }
 
     private static bool IsPureForwardDynamic(string dynamicText)
