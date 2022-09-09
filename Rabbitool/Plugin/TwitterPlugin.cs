@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.QQBot;
 using Rabbitool.Model.DTO.Twitter;
 using Rabbitool.Model.Entity.Subscribe;
@@ -104,7 +105,7 @@ public class TwitterPlugin : BasePlugin
                         tweet.Author, tweet.AuthorScreenName);
             }
 
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
                 if (!_storedTweets.ContainsKey(tweet.AuthorScreenName) || !_storedTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
@@ -183,7 +184,7 @@ public class TwitterPlugin : BasePlugin
         string title;
         string text;
         string pubTimeStr = TimeZoneInfo
-            .ConvertTimeBySystemTimeZoneId(tweet.PubTime, "China Standard Time")
+            .ConvertTimeFromUtc(tweet.PubTime, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         if (tweet.Origin is null)
@@ -197,7 +198,7 @@ public class TwitterPlugin : BasePlugin
         else if (tweet.Type == TweetTypeEnum.Quote)
         {
             string originPubTimeStr = TimeZoneInfo
-                .ConvertTimeBySystemTimeZoneId(tweet.Origin.PubTime, "China Standard Time")
+                .ConvertTimeFromUtc(tweet.Origin.PubTime, TimeUtil.CST)
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             title = $"【新带评论转发推文】来自 {tweet.Author}";
@@ -217,7 +218,7 @@ public class TwitterPlugin : BasePlugin
         else if (tweet.Type == TweetTypeEnum.RT)
         {
             string originPubTimeStr = TimeZoneInfo
-                .ConvertTimeBySystemTimeZoneId(tweet.Origin.PubTime, "China Standard Time")
+                .ConvertTimeFromUtc(tweet.Origin.PubTime, TimeUtil.CST)
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             title = $"【新转发推文】来自 {tweet.Author}";

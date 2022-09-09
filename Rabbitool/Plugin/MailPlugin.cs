@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Rabbitool.Common.Util;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Mail;
 using Rabbitool.Model.Entity.Subscribe;
@@ -85,7 +86,7 @@ public class MailPlugin : BasePlugin
                 Log.Debug("Succeeded to updated the mail user {username}'s record.", record.Username);
             };
 
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
                 if (!_storedMails.ContainsKey(record.Username) || !_storedMails[record.Username].ContainsKey(mail.Time))
@@ -176,7 +177,7 @@ public class MailPlugin : BasePlugin
 
         string detailText = $@"From: {from}
 To: {to}
-Time: {TimeZoneInfo.ConvertTimeBySystemTimeZoneId(mail.Time, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+Time: {TimeZoneInfo.ConvertTimeFromUtc(mail.Time, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 Subject: {mail.Subject}
 ——————————
 {mail.Text.AddRedirectToUrls(_redirectUrl)}";

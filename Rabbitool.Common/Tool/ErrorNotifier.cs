@@ -1,5 +1,6 @@
 ﻿using MailKit.Net.Smtp;
 using MimeKit;
+using Rabbitool.Common.Util;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
@@ -78,7 +79,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
         msg.From.Add(new MailboxAddress(_from, _from));
         foreach (string to in _to)
             msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time"):yyyy-MM-ddTHH:mm:sszzz}";
+        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
         msg.Body = new TextPart() { Text = text };
 
         await _client.SendAsync(msg);
@@ -103,7 +104,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
         msg.From.Add(new MailboxAddress(_from, _from));
         foreach (string to in _to)
             msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time"):yyyy-MM-ddTHH:mm:sszzz}";
+        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
         msg.Body = new TextPart() { Text = text };
 
         _client.Send(msg);

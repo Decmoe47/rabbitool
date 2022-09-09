@@ -73,9 +73,8 @@ public class BilibiliService
 
             case (int)LiveStatusEnum.Streaming:
                 DateTime liveStartTime = DateTimeOffset
-                    .FromUnixTimeSeconds((long)body2["data"]!["room_info"]!["live_start_time"]!).
-                    DateTime;
-                liveStartTime = TimeZoneInfo.ConvertTimeToUtc(liveStartTime);
+                    .FromUnixTimeSeconds((long)body2["data"]!["room_info"]!["live_start_time"]!)
+                    .UtcDateTime;
                 return new Live()
                 {
                     Uid = uid,
@@ -161,26 +160,22 @@ public class BilibiliService
     {
         if ((int?)dy["display"]?["origin"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] is 6)
         {
-            DateTime startTime = DateTimeOffset.FromUnixTimeSeconds(
-                (long)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
-                .DateTime;
-            startTime = TimeZoneInfo.ConvertTimeToUtc(startTime);
             return new ReserveDTO()
             {
                 Title = (string)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["title"]!,
-                StartTime = startTime
+                StartTime = DateTimeOffset.FromUnixTimeSeconds(
+                    (long)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
+                    .UtcDateTime
             };
         }
         else if ((int?)dy["display"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] is 6)
         {
-            DateTime startTime = DateTimeOffset.FromUnixTimeSeconds(
-                (long)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
-                .DateTime;
-            startTime = TimeZoneInfo.ConvertTimeToUtc(startTime);
             return new ReserveDTO()
             {
                 Title = (string)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["title"]!,
-                StartTime = startTime
+                StartTime = DateTimeOffset.FromUnixTimeSeconds(
+                    (long)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
+                    .UtcDateTime
             };
         }
         else
@@ -202,11 +197,6 @@ public class BilibiliService
             }
         }
 
-        DateTime dynamicUploadTime = DateTimeOffset
-                .FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).
-                DateTime;
-        dynamicUploadTime = TimeZoneInfo.ConvertTimeToUtc(dynamicUploadTime);
-
         return new CommonDynamicDTO()
         {
             Uid = (uint)dy["desc"]!["uid"]!,
@@ -214,7 +204,7 @@ public class BilibiliService
             DynamicType = imgUrls is null ? DynamicTypeEnum.TextOnly : DynamicTypeEnum.WithImage,
             DynamicId = (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
-            DynamicUploadTime = dynamicUploadTime,
+            DynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime,
             Text = (string?)dy["card"]?["item"]?["description"]
                 ?? (string)dy["card"]!["item"]!["content"]!,
             ImageUrls = imgUrls,
@@ -224,11 +214,6 @@ public class BilibiliService
 
     private static VideoDynamicDTO ToVideoDynamic(JToken dy)
     {
-        DateTime dynamicUploadTime = DateTimeOffset
-                .FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).
-                DateTime;
-        dynamicUploadTime = TimeZoneInfo.ConvertTimeToUtc(dynamicUploadTime);
-
         return new VideoDynamicDTO()
         {
             Uid = (uint)dy["desc"]!["uid"]!,
@@ -236,7 +221,7 @@ public class BilibiliService
             DynamicType = DynamicTypeEnum.Video,
             DynamicId = (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
-            DynamicUploadTime = dynamicUploadTime,
+            DynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime,
             DynamicText = (string)dy["card"]!["dynamic"]!,
             VideoTitle = (string)dy["card"]!["title"]!,
             VideoThumbnailUrl = (string)dy["card"]!["pic"]!,
@@ -246,11 +231,6 @@ public class BilibiliService
 
     private static ArticleDynamicDTO ToArticleDynamic(JToken dy)
     {
-        DateTime dynamicUploadTime = DateTimeOffset
-                .FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!)
-                .DateTime;
-        dynamicUploadTime = TimeZoneInfo.ConvertTimeToUtc(dynamicUploadTime);
-
         return new ArticleDynamicDTO()
         {
             Uid = (uint)dy["desc"]!["uid"]!,
@@ -258,7 +238,7 @@ public class BilibiliService
             DynamicType = DynamicTypeEnum.Article,
             DynamicId = (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
-            DynamicUploadTime = dynamicUploadTime,
+            DynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime,
             ArticleTitle = (string)dy["card"]!["title"]!,
             ArticleThumbnailUrl = (string)dy["card"]!["image_urls"]![0]!,
             ArticleUrl = "https://www.bilibili.com/read/cv" + (string)dy["card"]!["id"]!
@@ -267,10 +247,7 @@ public class BilibiliService
 
     private async Task<ForwardDynamicDTO> ToForwardDynamicAsync(JToken dy, CancellationToken cancellationToken = default)
     {
-        DateTime dynamicUploadTime = DateTimeOffset
-                .FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!)
-                .DateTime;
-        dynamicUploadTime = TimeZoneInfo.ConvertTimeToUtc(dynamicUploadTime);
+        DateTime dynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime;
         string dynamicText = (string)dy["card"]!["item"]!["content"]!;
         DynamicTypeEnum dynamicType = IsPureForwardDynamic(dynamicText)
             ? DynamicTypeEnum.PureForward : DynamicTypeEnum.Forward;
@@ -297,8 +274,7 @@ public class BilibiliService
         string originDynamicUrl = "https://t.bilibili.com/" + originDynamicId;
         DateTime originDynamicUploadTime = DateTimeOffset
             .FromUnixTimeSeconds((long)dy["desc"]!["origin"]!["timestamp"]!)
-            .DateTime;
-        originDynamicUploadTime = TimeZoneInfo.ConvertTimeToUtc(originDynamicUploadTime);
+            .UtcDateTime;
         int originDynamicType = (int)dy["desc"]!["origin"]!["type"]!;
 
         switch (originDynamicType)
@@ -364,11 +340,6 @@ public class BilibiliService
                 break;
 
             case (int)DynamicTypeEnum.LiveCard:
-                DateTime liveStartTime = DateTimeOffset
-                    .FromUnixTimeSeconds((long)dy["card"]!["origin"]!["first_live_time"]!)
-                    .DateTime;
-                liveStartTime = TimeZoneInfo.ConvertTimeToUtc(liveStartTime); ;
-
                 origin = new LiveCardDynamicDTO()
                 {
                     Uid = originUid,
@@ -379,7 +350,9 @@ public class BilibiliService
                     DynamicUploadTime = originDynamicUploadTime,
                     RoomId = (uint)dy["card"]!["origin"]!["roomid"]!,
                     LiveStatus = ConvertIntToLiveStatusEnum((int)dy["card"]!["origin"]!["live_status"]!),
-                    LiveStartTime = liveStartTime,
+                    LiveStartTime = DateTimeOffset
+                        .FromUnixTimeSeconds((long)dy["card"]!["origin"]!["first_live_time"]!)
+                        .UtcDateTime,
                     Title = (string)dy["card"]!["origin"]!["title"]!,
                     CoverUrl = (string)dy["card"]!["origin"]!["cover"]!
                 };

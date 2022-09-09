@@ -1,4 +1,5 @@
-﻿using Rabbitool.Model.DTO.Bilibili;
+﻿using Rabbitool.Common.Util;
+using Rabbitool.Model.DTO.Bilibili;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -76,7 +77,7 @@ public class BilibiliPlugin : BasePlugin
             }
 
             // 宵禁时间发不出去，攒着
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
                 if (!_storedDynamics.ContainsKey(dy.Uid) || !_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
@@ -174,8 +175,8 @@ public class BilibiliPlugin : BasePlugin
     {
         string title = "【新动态】来自 " + dy.Uname;
         string text;
-        string uploadTimeStr = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-            dy.DynamicUploadTime, "China Standard Time").ToString("yyyy-MM-dd HH:mm:ss zzz");
+        string uploadTimeStr = TimeZoneInfo.ConvertTimeFromUtc(
+            dy.DynamicUploadTime, TimeUtil.CST).ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         if (dy.Reserve is null)
         {
@@ -212,7 +213,7 @@ public class BilibiliPlugin : BasePlugin
 【动态内容】
 {dynamicText}
 ——————————
-视频发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dy.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 视频链接：{dy.VideoUrl.AddRedirectToUrls(_redirectUrl)}
 视频封面：";
 
@@ -225,7 +226,7 @@ public class BilibiliPlugin : BasePlugin
         string text = $@"【专栏标题】
 {dy.ArticleTitle}
 ——————————
-专栏发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dy.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 专栏链接：{dy.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
 专栏封面：";
 
@@ -237,8 +238,8 @@ public class BilibiliPlugin : BasePlugin
         string title = "【新转发动态】来自 " + dy.Uname;
         string text;
         List<string>? imgUrls = null;
-        string uploadTimeStr = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-            dy.DynamicUploadTime, "China Standard Time").ToString("yyyy-MM-dd HH:mm:ss zzz");
+        string uploadTimeStr = TimeZoneInfo.ConvertTimeFromUtc(
+            dy.DynamicUploadTime, TimeUtil.CST).ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         switch (dy.Origin)
         {
@@ -254,7 +255,7 @@ public class BilibiliPlugin : BasePlugin
 
             case CommonDynamicDTO cOrigin:
                 string originUploadTimeStr = TimeZoneInfo
-                    .ConvertTimeBySystemTimeZoneId(cOrigin.DynamicUploadTime, "China Standard Time")
+                    .ConvertTimeFromUtc(cOrigin.DynamicUploadTime, TimeUtil.CST)
                     .ToString("yyyy-MM-dd HH:mm:ss zzz");
                 if (cOrigin.Reserve is null)
                 {
@@ -284,7 +285,7 @@ public class BilibiliPlugin : BasePlugin
 {cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
 
 {cOrigin.Reserve.Title}
-预约时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(cOrigin.Reserve.StartTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 ——————————
 原动态发布时间：{originUploadTimeStr}
 原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
@@ -312,7 +313,7 @@ public class BilibiliPlugin : BasePlugin
 【原动态内容】
 {vOrigin.DynamicText.AddRedirectToUrls(_redirectUrl)}
 ——————————
-视频发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(vOrigin.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(vOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 视频链接：{vOrigin.VideoUrl.AddRedirectToUrls(_redirectUrl)}
 封面：";
                 imgUrls = new List<string>() { vOrigin.VideoThumbnailUrl };
@@ -328,7 +329,7 @@ public class BilibiliPlugin : BasePlugin
 【专栏标题】
 {aOrigin.ArticleTitle}
 ——————————
-专栏发布时间：{TimeZoneInfo.ConvertTimeBySystemTimeZoneId(aOrigin.DynamicUploadTime, "China Standard Time"):yyyy-MM-dd HH:mm:ss zzz}
+专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(aOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
 专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
 封面：";
                 imgUrls = new List<string>() { aOrigin.ArticleThumbnailUrl };
@@ -360,7 +361,7 @@ public class BilibiliPlugin : BasePlugin
     {
         try
         {
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour >= 0 && now.Hour <= 6)
             {
                 // 由于开播下播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
@@ -458,7 +459,7 @@ public class BilibiliPlugin : BasePlugin
             && live.LiveStartTime is not null)
         {
             DateTime liveStartTime = TimeZoneInfo
-                .ConvertTimeBySystemTimeZoneId((DateTime)live.LiveStartTime!, "China Standard Time");
+                .ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST);
 
             title = "【开播】来自 " + live.Uname;
             text = $@"直播标题：{live.Title}
@@ -469,7 +470,7 @@ public class BilibiliPlugin : BasePlugin
         }
         else
         {
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             title = "【下播】来自 " + live.Uname;
             text = $@"下播时间：{now:yyyy-MM-dd HH:mm:ss zzz}

@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Flurl.Http;
+﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
@@ -107,7 +106,7 @@ public class TwitterService
             HasVideo = hasVideo,
             Url = $"https://twitter.com/{screenName}/status/{(string)tweet["id_str"]!}",
             PubTime = DateTime
-                .ParseExact((string)tweet["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", CultureInfo.InvariantCulture)
+                .ParseExact((string)tweet["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", null)
                 .ToUniversalTime(),
             Origin = origin,
         };
@@ -132,7 +131,7 @@ public class TwitterService
             ImageUrls = imgUrls,
             HasVideo = hasVideo,
             PubTime = DateTime
-                .ParseExact((string)origin["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", CultureInfo.InvariantCulture)
+                .ParseExact((string)origin["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", null)
                 .ToUniversalTime(),
             Url = $"https://twitter.com/{(string)origin["user"]!["screen_name"]!}/status/{(string)origin["id_str"]!}",
         };

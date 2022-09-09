@@ -1,4 +1,5 @@
-﻿using Rabbitool.Model.DTO.Youtube;
+﻿using Rabbitool.Common.Util;
+using Rabbitool.Model.DTO.Youtube;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -56,7 +57,7 @@ public class YoutubePlugin : BasePlugin
             YoutubeItem item = await _svc.GetLatestTwoVideoOrLiveAsync(
                 record.ChannelId, cancellationToken: cancellationToken);
 
-            DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             switch (item)
             {
@@ -127,7 +128,7 @@ public class YoutubePlugin : BasePlugin
 
     private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
     {
-        DateTime now = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "China Standard Time");
+        DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
         foreach (string roomId in record.AllUpcomingLiveRoomIds)
         {
@@ -240,7 +241,7 @@ public class YoutubePlugin : BasePlugin
         if (live.Type == YoutubeTypeEnum.Live)
         {
             string actualStartTime = TimeZoneInfo
-            .ConvertTimeBySystemTimeZoneId((DateTime)live.ActualStartTime!, "China Standard Time")
+            .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $@"直播标题：{live.Title}
@@ -251,7 +252,7 @@ public class YoutubePlugin : BasePlugin
         else
         {
             string scheduledStartTime = TimeZoneInfo
-            .ConvertTimeBySystemTimeZoneId((DateTime)live.ScheduledStartTime!, "China Standard Time")
+            .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $@"直播标题：{live.Title}
@@ -264,7 +265,7 @@ public class YoutubePlugin : BasePlugin
     private string VideoToStr(YoutubeVideo item)
     {
         string pubTimeStr = TimeZoneInfo
-            .ConvertTimeBySystemTimeZoneId(item.PubTime, "China Standard Time")
+            .ConvertTimeFromUtc(item.PubTime, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         return $@"视频标题：{item.Title}

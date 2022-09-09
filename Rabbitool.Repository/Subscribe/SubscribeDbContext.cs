@@ -63,9 +63,35 @@ public class SubscribeDbContext : DbContext
             .HasConversion(
                 v => JsonConvert.SerializeObject(v),
                 v => DeserializeListString(v));
+
+        modelBuilder.Entity<BilibiliSubscribeEntity>()
+            .Property(e => e.LastDynamicTime)
+            .HasConversion(
+                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
+        modelBuilder.Entity<YoutubeSubscribeEntity>()
+            .Property(e => e.LastVideoPubTime)
+            .HasConversion(
+                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
+        modelBuilder.Entity<YoutubeSubscribeEntity>()
+            .Property(e => e.LastLiveStartTime)
+            .HasConversion(
+                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
+        modelBuilder.Entity<TwitterSubscribeEntity>()
+            .Property(e => e.LastTweetTime)
+            .HasConversion(
+                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
+        modelBuilder.Entity<MailSubscribeEntity>()
+            .Property(e => e.LastMailTime)
+            .HasConversion(
+                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
     }
 
-    private List<string> DeserializeListString(string v)
+    private static List<string> DeserializeListString(string v)
     {
         return JsonConvert.DeserializeObject<List<string>>(v) ?? new List<string>();
     }

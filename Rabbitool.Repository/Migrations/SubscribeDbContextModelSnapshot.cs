@@ -86,7 +86,8 @@ namespace Rabbitool.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastDynamicTime")
+                    b.Property<string>("LastDynamicTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("LastDynamicType")
@@ -148,7 +149,8 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastMailTime")
+                    b.Property<string>("LastMailTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Mailbox")
@@ -237,7 +239,8 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastTweetTime")
+                    b.Property<string>("LastTweetTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -308,14 +311,16 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastLiveStartTime")
+                    b.Property<string>("LastLiveStartTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastVideoId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastVideoPubTime")
+                    b.Property<string>("LastVideoPubTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
