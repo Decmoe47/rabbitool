@@ -22,7 +22,7 @@ public class SubscribeCommandResponderTest
             .CreateLogger();
 
         Configs configs = Configs.Load("configs.yml");
-        _qSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true);
+        _qSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true, configs.QQBot.SandboxGuildName);
         SubscribeCommandResponder.Init(_qSvc, configs.DbPath!, configs.UserAgent);
     }
 
@@ -38,7 +38,7 @@ public class SubscribeCommandResponderTest
     [InlineData("油管", "UCkIimWZ9gBJRamKF0rmPU8w")]
     public async Task RespondToSubscribeCommandAsyncTestAsync(string platform, string id)
     {
-        Guild guild = (await _qSvc.GetGuildsAsync())[0];
+        Guild guild = (await _qSvc.GetAllGuildsAsync())[0];
         Channel channel = await _qSvc.GetChannelByNameAsync("默认", guild.Id);
         string result1 = await SubscribeCommandResponder.RespondToAddOrUpdateSubscribeCommandAsync(
             new List<string> { "/订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });

@@ -28,12 +28,7 @@ public static class CommandResponder
 
         try
         {
-            string[] temp = msg.Content.Replace("\xa0", " ").Split(" ")[1..];
-            foreach (string v in temp)
-            {
-                if (v != "")
-                    clearCommand.Add(v);
-            }
+            clearCommand = msg.Content.Replace("\xa0", " ").Split(" ", StringSplitOptions.RemoveEmptyEntries)[1..].ToList();
 
             bool isValidCommand = false;
             foreach (CommandInfo c in _allCommands)

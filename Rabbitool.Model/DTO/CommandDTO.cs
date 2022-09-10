@@ -15,6 +15,7 @@ public class SubscribeCommandDTO
 public class SubscribeCommandQQChannelDTO
 {
     public string GuildId { get; set; } = string.Empty;
+    public string GuildName { get; set; } = string.Empty;
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
 }

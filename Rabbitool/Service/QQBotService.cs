@@ -20,10 +20,15 @@ public class QQBotService
     private readonly QQChannelApi _qqApi;
     private readonly ChannelBot _qqBot;
     private readonly LimiterUtil _limiter;
+    private readonly bool _isSandbox;
+    private readonly string _sandboxGuildName;
+    private string _sandboxGuildId = "";
 
-    public QQBotService(string appId, string token, bool isSandbox)
+    public QQBotService(string appId, string token, bool isSandbox, string sandboxGuildName)
     {
         _limiter = LimiterCollection.QQBotLimiter;
+        _isSandbox = isSandbox;
+        _sandboxGuildName = sandboxGuildName;
 
         OpenApiAccessInfo openApiAccessInfo = new()
         {
@@ -42,6 +47,10 @@ public class QQBotService
     {
         RegisterBasicEvents();
         RegisterMessageAuditEvent();
+
+        Guild guild = await GetGuildByNameAsync(_sandboxGuildName);
+        _sandboxGuildId = guild.Id;
+
         await _qqBot.OnlineAsync();
     }
 
@@ -52,13 +61,15 @@ public class QQBotService
         _qqBot.RegisterAtMessageEvent();
         _qqBot.ReceivedAtMessage += async (message) =>
         {
+            if (!_isSandbox && message.ChannelId == _sandboxGuildId)
+                return;
             Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
             string text = await generateReplyMsgFunc(message, cancellationToken);
             try
             {
-                await PostMsgAsync(
+                await PostMessageAsync(
                     channelId: message.ChannelId,
                     text: text,
                     referenceMessageId: message.Id);
@@ -70,7 +81,9 @@ public class QQBotService
         };
     }
 
-    public void RegisterBotDeletedEvent(Func<WsGuild, CancellationToken, Task> handler, CancellationToken cancellationToken)
+    public void RegisterBotDeletedEvent(
+        Func<WsGuild, CancellationToken, Task> handler,
+        CancellationToken cancellationToken = default)
     {
         _qqBot.RegisterGuildsEvent();
         _qqBot.BotBeRemoved += async (guild) => await handler(guild, cancellationToken); // TODO: bot被删除
@@ -92,10 +105,28 @@ public class QQBotService
         _qqBot.OnClose += () => Log.Warning("QQBot connect closed!");
     }
 
-    public async Task<List<Guild>> GetGuildsAsync()
+    public async Task<List<Guild>> GetAllGuildsAsync()
     {
         _limiter.Wait();
         return await _qqApi.GetUserApi().GetAllJoinedChannelsAsync();
+    }
+
+    public async Task<Guild> GetGuidAsync(string guildId)
+    {
+        List<Guild> guilds = await GetAllGuildsAsync();
+        return guilds.First(c => c.Id == guildId);
+    }
+
+    public async Task<Guild> GetGuildByNameAsync(string name)
+    {
+        List<Guild> guilds = await GetAllGuildsAsync();
+        return guilds.First(c => c.Name == name);
+    }
+
+    public async Task<Guild?> GetGuildByNameOrDefaultAsync(string name)
+    {
+        List<Guild> guilds = await GetAllGuildsAsync();
+        return guilds.FirstOrDefault(c => c.Name == name);
     }
 
     public async Task<List<Channel>> GetAllChannelsAsync(string guildId)
@@ -135,7 +166,7 @@ public class QQBotService
         }
     }
 
-    public async Task<Message?> PostMsgAsync(
+    public async Task<Message?> PostMessageAsync(
         string channelId,
         string? text = null,
         string? imgUrl = null,
@@ -144,6 +175,9 @@ public class QQBotService
         string? referenceMessageId = null,
         string passiveReference = "")
     {
+        if (!_isSandbox && channelId == _sandboxGuildId)
+            return null;
+
         _limiter.Wait();
 
         try
@@ -178,32 +212,32 @@ public class QQBotService
 
     public async Task<Message?> PushCommonMsgAsync(string channelId, string text)
     {
-        return await PostMsgAsync(channelId, text);
+        return await PostMessageAsync(channelId, text);
     }
 
     public async Task<Message?> PushCommonMsgAsync(string channelId, string text, string imgUrl)
     {
-        return await PostMsgAsync(channelId, text, imgUrl);
+        return await PostMessageAsync(channelId, text, imgUrl);
     }
 
     public async Task<Message?> PushCommonMsgAsync(string channelId, string text, List<string>? imgUrls)
     {
         if (imgUrls is null)
-            return await PostMsgAsync(channelId, text);
+            return await PostMessageAsync(channelId, text);
 
         switch (imgUrls.Count)
         {
             case 0:
-                return await PostMsgAsync(channelId, text);
+                return await PostMessageAsync(channelId, text);
 
             case 1:
-                return await PostMsgAsync(channelId, text, imgUrls[0]);
+                return await PostMessageAsync(channelId, text, imgUrls[0]);
 
             default:
-                Message? msg = await PostMsgAsync(channelId, text, imgUrls[0]);
+                Message? msg = await PostMessageAsync(channelId, text, imgUrls[0]);
                 List<Task<Message?>> tasks = new();
                 foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
-                    tasks.Add(PostMsgAsync(channelId, imgUrl: imgUrl));
+                    tasks.Add(PostMessageAsync(channelId, imgUrl: imgUrl));
                 await Task.WhenAll(tasks);
                 return msg;
         }
@@ -211,6 +245,10 @@ public class QQBotService
 
     public async Task<(string, DateTime)?> PostThreadAsync(string channelId, string title, string text)
     {
+        if (!_isSandbox && channelId == _sandboxGuildId)
+            return null;
+
+        _limiter.Wait();
         try
         {
             Log.Information("Posting QQ channel thread...\nChannelId: {channelId}\nTitle: {title}\nText: {text}",

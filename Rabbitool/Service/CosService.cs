@@ -32,9 +32,7 @@ public class CosService
 
         Match match = Regex.Match(filename, @"(?<=format=).+?(?=&)");
         if (match.Success)
-        {
             format = match.Groups[0].Value;
-        }
 
         if (filename.IndexOf("?") is int j and not -1)
             filename = filename[..j];

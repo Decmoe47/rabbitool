@@ -94,7 +94,12 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         record = entity;
 
         (channel, added) = await _qsRepo.AddSubscribeAsync(
-            command.QQChannel.GuildId, command.QQChannel.Id, command.QQChannel.Name, record, cancellationToken);
+            guildId: command.QQChannel.GuildId,
+            guildName: command.QQChannel.GuildName,
+            channelId: command.QQChannel.Id,
+            channelName: command.QQChannel.Name,
+            subscribe: record,
+            cancellationToken: cancellationToken);
         await _configRepo.CreateOrUpdateAsync(channel, record, command.Configs, cancellationToken);
 
         await _dbCtx.SaveChangesAsync(cancellationToken);

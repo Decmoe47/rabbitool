@@ -62,7 +62,7 @@ public class YoutubePlugin : BasePlugin
             switch (item)
             {
                 case YoutubeLive live:
-                    if (live.Type == YoutubeTypeEnum.UpcomingLive && record.AllUpcomingLiveRoomIds.Contains(live.Id))
+                    if (live.Type == YoutubeTypeEnum.UpcomingLive && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
                     {
                         record.AllUpcomingLiveRoomIds.Add(live.Id);
                         await _repo.SaveAsync(cancellationToken);
@@ -162,7 +162,7 @@ public class YoutubePlugin : BasePlugin
 
         record.LastLiveRoomId = live.Id;
         record.LastLiveStartTime = (DateTime)live.ActualStartTime!;
-        record.AllArchiveVideoIds = (List<string>)record.AllArchiveVideoIds.Append(live.Id);
+        record.AllArchiveVideoIds.Add(live.Id);
 
         if (record.AllArchiveVideoIds.Count > 5)
             record.AllArchiveVideoIds.RemoveAt(0);
@@ -233,8 +233,8 @@ public class YoutubePlugin : BasePlugin
     {
         return item switch
         {
-            YoutubeLive lItem => ($"【开播】来自 {lItem.Author}", LiveToStr(lItem), lItem.ThumbnailUrl),
-            YoutubeVideo vItem => ($"【新视频】来自 {vItem.Author}", VideoToStr(vItem), vItem.ThumbnailUrl),
+            YoutubeLive lItem => ($"【油管开播】来自 {lItem.Author}", LiveToStr(lItem), lItem.ThumbnailUrl),
+            YoutubeVideo vItem => ($"【新油管视频】来自 {vItem.Author}", VideoToStr(vItem), vItem.ThumbnailUrl),
             _ => throw new NotSupportedException($"Not supported item type {item.GetType().Name}")
         };
     }

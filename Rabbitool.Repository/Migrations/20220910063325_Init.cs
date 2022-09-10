@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Rabbitool.Repository.Migrations
 {
-    public partial class Init : Migration
+    public partial class Init_20220910_143300 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -16,7 +16,7 @@ namespace Rabbitool.Repository.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Uid = table.Column<uint>(type: "INTEGER", nullable: false),
                     Uname = table.Column<string>(type: "TEXT", nullable: false),
-                    LastDynamicTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastDynamicTime = table.Column<string>(type: "TEXT", nullable: false),
                     LastDynamicType = table.Column<int>(type: "INTEGER", nullable: false),
                     LastLiveStatus = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -37,7 +37,7 @@ namespace Rabbitool.Repository.Migrations
                     Host = table.Column<string>(type: "TEXT", nullable: false),
                     Port = table.Column<int>(type: "INTEGER", nullable: false),
                     Ssl = table.Column<bool>(type: "INTEGER", nullable: false),
-                    LastMailTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    LastMailTime = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -50,6 +50,7 @@ namespace Rabbitool.Repository.Migrations
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     GuildId = table.Column<string>(type: "TEXT", nullable: false),
+                    GuildName = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelId = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelName = table.Column<string>(type: "TEXT", nullable: false)
                 },
@@ -66,7 +67,7 @@ namespace Rabbitool.Repository.Migrations
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     ScreenName = table.Column<string>(type: "TEXT", nullable: false),
                     LastTweetId = table.Column<string>(type: "TEXT", nullable: false),
-                    LastTweetTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    LastTweetTime = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,9 +81,12 @@ namespace Rabbitool.Repository.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelId = table.Column<string>(type: "TEXT", nullable: false),
-                    LastVideoOrLiveId = table.Column<string>(type: "TEXT", nullable: false),
-                    LastVideoOrLiveTime = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    AllArchiveVideoIds = table.Column<string>(type: "TEXT", nullable: true)
+                    LastVideoId = table.Column<string>(type: "TEXT", nullable: false),
+                    LastVideoPubTime = table.Column<string>(type: "TEXT", nullable: false),
+                    LastLiveRoomId = table.Column<string>(type: "TEXT", nullable: false),
+                    LastLiveStartTime = table.Column<string>(type: "TEXT", nullable: false),
+                    AllUpcomingLiveRoomIds = table.Column<string>(type: "TEXT", nullable: false),
+                    AllArchiveVideoIds = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -90,7 +94,7 @@ namespace Rabbitool.Repository.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BilibiliSubscribe_QQChannels",
+                name: "BilibiliSubscribe_QQChannelSubscribes",
                 columns: table => new
                 {
                     BilibiliSubscribesId = table.Column<Guid>(type: "TEXT", nullable: false),
@@ -98,15 +102,15 @@ namespace Rabbitool.Repository.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BilibiliSubscribe_QQChannels", x => new { x.BilibiliSubscribesId, x.QQChannelsId });
+                    table.PrimaryKey("PK_BilibiliSubscribe_QQChannelSubscribes", x => new { x.BilibiliSubscribesId, x.QQChannelsId });
                     table.ForeignKey(
-                        name: "FK_BilibiliSubscribe_QQChannels_BilibiliSubscribe_BilibiliSubscribesId",
+                        name: "FK_BilibiliSubscribe_QQChannelSubscribes_BilibiliSubscribe_BilibiliSubscribesId",
                         column: x => x.BilibiliSubscribesId,
                         principalTable: "BilibiliSubscribe",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_BilibiliSubscribe_QQChannels_QQChannelSubscribe_QQChannelsId",
+                        name: "FK_BilibiliSubscribe_QQChannelSubscribes_QQChannelSubscribe_QQChannelsId",
                         column: x => x.QQChannelsId,
                         principalTable: "QQChannelSubscribe",
                         principalColumn: "Id",
@@ -171,6 +175,7 @@ namespace Rabbitool.Repository.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Detail = table.Column<bool>(type: "INTEGER", nullable: false),
                     PushToThread = table.Column<bool>(type: "INTEGER", nullable: false),
                     QQChannelId = table.Column<Guid>(type: "TEXT", nullable: false),
                     SubscribeId = table.Column<Guid>(type: "TEXT", nullable: false)
@@ -273,6 +278,9 @@ namespace Rabbitool.Repository.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    VideoPush = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LivePush = table.Column<bool>(type: "INTEGER", nullable: false),
+                    UpcomingLivePush = table.Column<bool>(type: "INTEGER", nullable: false),
                     ArchivePush = table.Column<bool>(type: "INTEGER", nullable: false),
                     QQChannelId = table.Column<Guid>(type: "TEXT", nullable: false),
                     SubscribeId = table.Column<Guid>(type: "TEXT", nullable: false)
@@ -295,8 +303,8 @@ namespace Rabbitool.Repository.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_BilibiliSubscribe_QQChannels_QQChannelsId",
-                table: "BilibiliSubscribe_QQChannels",
+                name: "IX_BilibiliSubscribe_QQChannelSubscribes_QQChannelsId",
+                table: "BilibiliSubscribe_QQChannelSubscribes",
                 column: "QQChannelsId");
 
             migrationBuilder.CreateIndex(
@@ -358,7 +366,7 @@ namespace Rabbitool.Repository.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BilibiliSubscribe_QQChannels");
+                name: "BilibiliSubscribe_QQChannelSubscribes");
 
             migrationBuilder.DropTable(
                 name: "BilibiliSubscribeConfig");

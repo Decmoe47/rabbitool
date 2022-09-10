@@ -17,7 +17,7 @@ namespace Rabbitool.Repository.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannels", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
                 {
                     b.Property<Guid>("BilibiliSubscribesId")
                         .HasColumnType("TEXT");
@@ -29,7 +29,7 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("QQChannelsId");
 
-                    b.ToTable("BilibiliSubscribe_QQChannels");
+                    b.ToTable("BilibiliSubscribe_QQChannelSubscribes");
                 });
 
             modelBuilder.Entity("MailSubscribe_QQChannelSubscribes", b =>
@@ -191,6 +191,10 @@ namespace Rabbitool.Repository.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("GuildId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuildName")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -362,7 +366,7 @@ namespace Rabbitool.Repository.Migrations
                     b.ToTable("YoutubeSubscribe_QQChannelSubscribes");
                 });
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannels", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.BilibiliSubscribeEntity", null)
                         .WithMany()

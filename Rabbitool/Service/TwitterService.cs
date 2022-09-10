@@ -286,11 +286,11 @@ public class TwitterService
             if ((string?)medium["media_key"] == mediaKey)
             {
                 if (mediaKey.StartsWith("3_"))
-                    return ((string)medium["url"]!).Split('.')[0] + "?format=jpg&name=large";    // 获取原始尺寸大小
+                    return string.Join(".", ((string)medium["url"]!).Split('.')[..^1]) + "?format=jpg&name=large";    // 获取原始尺寸大小
                 else if (mediaKey.StartsWith("7_"))
-                    return ((string)medium["preview_image_url"]!).Split('.')[0] + "?format=jpg&name=large";
+                    return string.Join(".", ((string)medium["preview_image_url"]!).Split('.')[..^1]) + "?format=jpg&name=large";
                 else if (mediaKey.StartsWith("13_"))
-                    return ((string)medium["url"]!).Split('.')[0] + "?format=jpg&name=large";
+                    return string.Join(".", ((string)medium["url"]!).Split('.')[..^1]) + "?format=jpg&name=large";
             }
         }
 

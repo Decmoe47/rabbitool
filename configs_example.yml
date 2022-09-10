@@ -29,6 +29,7 @@ qqbot:
   appId: # string
   token: # string
   isSandbox: # bool
+  sandboxGuildName: # string
 cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
   secretId: # string
   secretKey: # string

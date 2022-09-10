@@ -155,17 +155,19 @@ public class QQChannelSubscribeRepository
 
     public async Task<QQChannelSubscribeEntity> CreateAsync(
         string guildId,
+        string guildName,
         string channelId,
         string channelName,
         CancellationToken cancellationToken = default)
     {
-        QQChannelSubscribeEntity record = new(guildId, channelId, channelName); ;
+        QQChannelSubscribeEntity record = new(guildId, guildName, channelId, channelName); ;
         await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, cancellationToken);
         return record;
     }
 
     public async Task<QQChannelSubscribeEntity> GetOrCreateAsync<TProperty>(
         string guildId,
+        string guildName,
         string channelId,
         string channelName,
         Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
@@ -174,7 +176,7 @@ public class QQChannelSubscribeRepository
         QQChannelSubscribeEntity? record = await GetOrDefaultAsync(channelId, subscribeProp, true, cancellationToken);
         if (record is null)
         {
-            record = new QQChannelSubscribeEntity(guildId, channelId, channelName);
+            record = new QQChannelSubscribeEntity(guildId, guildName, channelId, channelName);
             await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, cancellationToken);
         }
         return record;
@@ -182,6 +184,7 @@ public class QQChannelSubscribeRepository
 
     public async Task<(QQChannelSubscribeEntity channel, bool added)> AddSubscribeAsync(
         string guildId,
+        string guildName,
         string channelId,
         string channelName,
         ISubscribeEntity subscribe,
@@ -193,7 +196,7 @@ public class QQChannelSubscribeRepository
         switch (subscribe)
         {
             case BilibiliSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, channelId, channelName, q => q.BilibiliSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.BilibiliSubscribes, cancellationToken);
                 if (record.BilibiliSubscribes is null)
                     record.BilibiliSubscribes = new List<BilibiliSubscribeEntity>() { s };
                 else if (record.BilibiliSubscribes.Exists(b => b.Uid == s.Uid))
@@ -206,7 +209,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case TwitterSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, channelId, channelName, q => q.TwitterSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.TwitterSubscribes, cancellationToken);
                 if (record.TwitterSubscribes is null)
                     record.TwitterSubscribes = new List<TwitterSubscribeEntity>() { s };
                 else if (record.TwitterSubscribes.Exists(t => t.ScreenName == s.ScreenName))
@@ -219,7 +222,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case YoutubeSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, channelId, channelName, q => q.YoutubeSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.YoutubeSubscribes, cancellationToken);
                 if (record.YoutubeSubscribes is null)
                     record.YoutubeSubscribes = new List<YoutubeSubscribeEntity>() { s };
                 else if (record.YoutubeSubscribes.Exists(y => y.ChannelId == s.ChannelId))
@@ -232,7 +235,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case MailSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, channelId, channelName, q => q.MailSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.MailSubscribes, cancellationToken);
                 if (record.MailSubscribes is null)
                     record.MailSubscribes = new List<MailSubscribeEntity>() { s };
                 else if (record.MailSubscribes.Exists(m => m.Address == s.Address))

@@ -207,7 +207,7 @@ public class BilibiliPlugin : BasePlugin
 
     private (string title, string text) VideoDynamicToStr(VideoDynamicDTO dy)
     {
-        string title = "【新视频】来自 " + dy.Uname;
+        string title = "【新b站视频】来自 " + dy.Uname;
 
         string dynamicText = dy.DynamicText is "" ? "（无动态文本）" : dy.DynamicText;
         string text = $@"【视频标题】
@@ -464,7 +464,7 @@ public class BilibiliPlugin : BasePlugin
             DateTime liveStartTime = TimeZoneInfo
                 .ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST);
 
-            title = "【开播】来自 " + live.Uname;
+            title = "【b站开播】来自 " + live.Uname;
             text = $@"直播标题：{live.Title}
 开播时间：{liveStartTime:yyyy-MM-dd HH:mm:ss zzz}
 直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}";
@@ -475,7 +475,7 @@ public class BilibiliPlugin : BasePlugin
         {
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
-            title = "【下播】来自 " + live.Uname;
+            title = "【b站下播】来自 " + live.Uname;
             text = $@"下播时间：{now:yyyy-MM-dd HH:mm:ss zzz}
 直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}";
         }

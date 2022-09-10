@@ -130,6 +130,9 @@ public class ErrorNotifier : ILogEventSink, IDisposable
             return true;
         }
 
+        if (now >= _errorCounters[i].TimestampToRefresh)
+            _errorCounters[i].Amount = 0;
+
         return false;
     }
 

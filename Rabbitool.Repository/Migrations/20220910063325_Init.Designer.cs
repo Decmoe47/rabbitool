@@ -11,15 +11,15 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    [Migration("20220906072826_AddYoutubeConfigs")]
-    partial class AddYoutubeConfigs
+    [Migration("20220910063325_Init_20220910_143300")]
+    partial class Init_20220910_143300
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannels", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
                 {
                     b.Property<Guid>("BilibiliSubscribesId")
                         .HasColumnType("TEXT");
@@ -31,7 +31,7 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("QQChannelsId");
 
-                    b.ToTable("BilibiliSubscribe_QQChannels");
+                    b.ToTable("BilibiliSubscribe_QQChannelSubscribes");
                 });
 
             modelBuilder.Entity("MailSubscribe_QQChannelSubscribes", b =>
@@ -88,7 +88,8 @@ namespace Rabbitool.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastDynamicTime")
+                    b.Property<string>("LastDynamicTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("LastDynamicType")
@@ -150,7 +151,8 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastMailTime")
+                    b.Property<string>("LastMailTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Mailbox")
@@ -191,6 +193,10 @@ namespace Rabbitool.Repository.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("GuildId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuildName")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -239,7 +245,8 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastTweetTime")
+                    b.Property<string>("LastTweetTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -310,14 +317,16 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastLiveStartTime")
+                    b.Property<string>("LastLiveStartTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastVideoId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("LastVideoPubTime")
+                    b.Property<string>("LastVideoPubTime")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -359,7 +368,7 @@ namespace Rabbitool.Repository.Migrations
                     b.ToTable("YoutubeSubscribe_QQChannelSubscribes");
                 });
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannels", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.BilibiliSubscribeEntity", null)
                         .WithMany()

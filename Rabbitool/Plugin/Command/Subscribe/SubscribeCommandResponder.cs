@@ -82,6 +82,7 @@ public static class SubscribeCommandResponder
 
         List<string> configs = new();
         SubscribeConfigType configDict = new();
+        string guildName = (await _qbSvc.GetGuidAsync(message.GuildId)).Name;
         string channelName;
         string channelId = message.ChannelId;
         string? subscribeId = null;
@@ -101,7 +102,8 @@ public static class SubscribeCommandResponder
         foreach (string config in configs)
         {
             string[] kv = config.Split('=');
-            configDict.Add(kv[0], ParseValue(kv[0], kv[1]));
+            if (kv[0] != "" && kv[1] != "")
+                configDict.Add(kv[0], ParseValue(kv[0], kv[1]));
         }
 
         if (configDict.TryGetValue("channel", out dynamic? v) && v is string)
@@ -125,6 +127,7 @@ public static class SubscribeCommandResponder
             SubscribeId = subscribeId,
             QQChannel = new SubscribeCommandQQChannelDTO()
             {
+                GuildName = guildName,
                 GuildId = message.GuildId,
                 Id = channelId,
                 Name = channelName

@@ -13,7 +13,7 @@ public static class LogConfig
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                $"log/rabbitool_{DateTime.UtcNow:yyyyMMdd_HHmmsszz}.log",
+                $"log/rabbitool_{DateTime.Now:yyyyMMdd_HHmmsszz}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)
@@ -32,7 +32,7 @@ public static class LogConfig
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                $"log/rabbitool_{DateTime.UtcNow:yyyyMMdd_HHmmsszz}.log",
+                $"log/rabbitool_{DateTime.Now:yyyyMMdd_HHmmsszz}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)

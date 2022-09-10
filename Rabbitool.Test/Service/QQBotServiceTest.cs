@@ -17,7 +17,7 @@ public class QQBotServiceTest
         System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
         System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
 
-        _svc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true);
+        _svc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true, configs.QQBot.SandboxGuildName);
         _cosSvc = new CosService(
             configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);
 
@@ -29,7 +29,7 @@ public class QQBotServiceTest
     [Fact()]
     public async Task PushCommonMsgAsyncTestAsync()
     {
-        Guild guild = (await _svc.GetGuildsAsync())[0];
+        Guild guild = (await _svc.GetAllGuildsAsync())[0];
         Channel channel = await _svc.GetChannelByNameAsync("默认", guild.Id);
         await _svc.PushCommonMsgAsync(channel.Id, "test123\ntest456");
         Assert.True(true);
@@ -38,7 +38,7 @@ public class QQBotServiceTest
     [Fact()]
     public async Task PostThreadAsyncTestAsync()
     {
-        Guild guild = (await _svc.GetGuildsAsync())[0];
+        Guild guild = (await _svc.GetAllGuildsAsync())[0];
         Channel channel = await _svc.GetChannelByNameAsync("帖子", guild.Id);
 
         string title = "Test";

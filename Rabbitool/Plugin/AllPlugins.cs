@@ -24,7 +24,7 @@ public class AllPlugins
 
     public AllPlugins(Configs configs)
     {
-        _qbSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, configs.QQBot.IsSandBox);
+        _qbSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, configs.QQBot.IsSandBox, configs.QQBot.SandboxGuildName);
         _cosSvc = new CosService(configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);
         _redirectUrl = configs.RedirectUrl;
         _userAgent = configs.RedirectUrl;

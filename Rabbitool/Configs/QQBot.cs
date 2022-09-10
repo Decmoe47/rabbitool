@@ -14,4 +14,7 @@ public class QQBot
     [Required]
     [YamlMember(Alias = "isSandbox")]
     public bool IsSandBox { get; set; }
+
+    [Required]
+    public string SandboxGuildName { get; set; } = null!;
 }
