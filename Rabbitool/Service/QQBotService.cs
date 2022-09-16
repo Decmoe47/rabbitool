@@ -63,6 +63,8 @@ public class QQBotService
         {
             if (!_isSandbox && message.ChannelId == _sandboxGuildId)
                 return;
+            if (!message.Content.Contains("<@"))
+                return;
             Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
