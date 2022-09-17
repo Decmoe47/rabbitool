@@ -236,8 +236,7 @@ public class TwitterService
         bool hasVideo = false;
         List<string> imgUrls = new();
 
-        bool ignoreMediaKey = false;
-        List<string> tmpImgUrls = new();
+        bool ignoreMediaKeyImage = false;
 
         foreach (JToken medium in media)
         {
@@ -250,20 +249,22 @@ public class TwitterService
                     // 有images的情况，就是第三方链接生成的卡片，例如n站、t台、p站等
                     // 目前来看，同时存在images和mediay_key的是一些个别情况，例如有油管链接时；并且images[0]的图片是原始尺寸链接，因此优先获取
                     imgUrls.Add(imgUrl);
-                    ignoreMediaKey = true;
+                    ignoreMediaKeyImage = true;
                 }
-                else if (mediaKey?.StartsWith("3_") is true && !ignoreMediaKey)     // 目前来看，images和media_key同时存在的话往往是同一张图片
+                else if (mediaKey?.StartsWith("3_") is true)     // 目前来看，images和media_key同时存在的话往往是同一张图片
                 {
-                    imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
-                    text = text.Replace((string)medium["url"]!, "");
+                    if (!ignoreMediaKeyImage)
+                        imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
+                    text = text.Replace((string)medium["url"]!, "");    // 在正文里的图片链接仍然要去掉
                 }
-                else if (mediaKey?.StartsWith("7_") is true && !ignoreMediaKey)
+                else if (mediaKey?.StartsWith("7_") is true)
                 {
                     hasVideo = true;
-                    imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
+                    if (!ignoreMediaKeyImage)
+                        imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
                     text = text.Replace((string)medium["url"]!, "");
                 }
-                else if (mediaKey?.StartsWith("13_") is true && !ignoreMediaKey)    // 13应该是广告性质的视频
+                else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
                 {
                     hasVideo = true;
                     text = text.Replace((string)medium["url"]!, "");
