@@ -61,7 +61,7 @@ public class QQBotService
         _qqBot.RegisterAtMessageEvent();
         _qqBot.ReceivedAtMessage += async (message) =>
         {
-            if (!_isSandbox && message.ChannelId == _sandboxGuildId)
+            if (!_isSandbox && message.GuildId == _sandboxGuildId)
                 return;
             if (!message.Content.Contains("<@"))
                 return;
