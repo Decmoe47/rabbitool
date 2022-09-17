@@ -250,18 +250,18 @@ public class TwitterService
                 if (mediaKey?.StartsWith("3_") is true)
                 {
                     imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
-                    text = text.Replace((string)medium["url"]!, "");
+                    text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("7_") is true)
                 {
                     hasVideo = true;
                     imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
-                    text = text.Replace((string)medium["url"]!, "");
+                    text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
                 {
                     hasVideo = true;
-                    text = text.Replace((string)medium["url"]!, "");
+                    text = text.Replace((string)medium["expanded_url"]!, "");
                 }
             }
             catch (Exception ex)
