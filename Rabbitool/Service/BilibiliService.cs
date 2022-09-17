@@ -284,12 +284,10 @@ public class BilibiliService
                 if ((JArray?)dy["card"]?["origin"]?["item"]?["pictures"] is JArray pics)
                 {
                     imgUrls = new List<string>();
-                    foreach (JToken? imgUrl in pics)
+                    foreach (JToken? img in pics)
                     {
-                        if (imgUrl.Type == JTokenType.String)
-                        {
-                            imgUrls.Add((string)imgUrl!);
-                        }
+                        if ((string?)img["img_src"] is string src)
+                            imgUrls.Add(src);
                     }
                 }
 
