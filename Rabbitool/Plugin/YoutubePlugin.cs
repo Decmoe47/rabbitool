@@ -71,12 +71,6 @@ public class YoutubePlugin : BasePlugin
                     }
                     else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId)
                     {
-                        if (now.Hour >= 0 && now.Hour <= 6)
-                        {
-                            Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
-                                live.Author, live.ChannelId);
-                            return;
-                        }
                         await PushLiveAndUpdateDatabaseAsync(live, record, cancellationToken: cancellationToken);
                     }
 
@@ -131,21 +125,10 @@ public class YoutubePlugin : BasePlugin
 
     private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
     {
-        DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-
         foreach (string roomId in record.AllUpcomingLiveRoomIds)
         {
             if (await _svc.IsStreamingAsync(roomId, cancellationToken) is YoutubeLive live)
             {
-                if (now.Hour >= 0 && now.Hour <= 6)
-                {
-                    Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
-                        live.Author, live.ChannelId);
-                    record.AllUpcomingLiveRoomIds.Remove(roomId);     // 因为开播通知的及时性，没法及时推送的话也就没意义了，直接删掉
-                    await _repo.SaveAsync(cancellationToken);
-                    return;
-                }
-
                 await PushLiveAndUpdateDatabaseAsync(live, record, false, cancellationToken);
                 record.AllUpcomingLiveRoomIds.Remove(roomId);
                 await _repo.SaveAsync(cancellationToken);
@@ -156,9 +139,18 @@ public class YoutubePlugin : BasePlugin
     private async Task PushLiveAndUpdateDatabaseAsync(
         YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken cancellationToken = default)
     {
-        await PushMsgAsync(live, record, cancellationToken);
-        Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
-            live.Author, live.ChannelId);
+        DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
+        if (now.Hour >= 0 && now.Hour <= 6)
+        {
+            Log.Debug("Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                live.Author, live.ChannelId);
+        }
+        else
+        {
+            await PushMsgAsync(live, record, cancellationToken);
+            Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+                live.Author, live.ChannelId);
+        }
 
         record.LastLiveRoomId = live.Id;
         record.LastLiveStartTime = (DateTime)live.ActualStartTime!;

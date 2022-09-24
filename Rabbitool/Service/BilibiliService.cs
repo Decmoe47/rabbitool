@@ -27,7 +27,7 @@ public class BilibiliService
             .SetQueryParam("mid", uid)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
-        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties().RemoveNullAndEmptyProperties();
+        JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 

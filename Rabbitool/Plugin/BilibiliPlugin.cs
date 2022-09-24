@@ -365,13 +365,6 @@ public class BilibiliPlugin : BasePlugin
         try
         {
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 6)
-            {
-                // 由于开播下播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
-                Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
-                   record.Uname, record.Uid);
-                return;
-            }
 
             Live? live = await _svc.GetLiveAsync(record.Uid, cancellationToken: cancellationToken);
             if (live is null)
@@ -379,11 +372,20 @@ public class BilibiliPlugin : BasePlugin
 
             async Task FnAsync(Live live, LiveStatusEnum liveStatus)
             {
-                bool pushed = await PushLiveMsgAsync(live, record, liveStatus, cancellationToken);
-                if (pushed)
+                if (now.Hour >= 0 && now.Hour <= 6)
                 {
-                    Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
-                        live.Uname, live.Uid);
+                    // 由于开播下播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
+                    Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
+                       record.Uname, record.Uid);
+                }
+                else
+                {
+                    bool pushed = await PushLiveMsgAsync(live, record, liveStatus, cancellationToken);
+                    if (pushed)
+                    {
+                        Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
+                            live.Uname, live.Uid);
+                    }
                 }
 
                 record.LastLiveStatus = live.LiveStatus;
