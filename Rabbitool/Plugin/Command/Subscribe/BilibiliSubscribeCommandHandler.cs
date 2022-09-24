@@ -12,6 +12,8 @@ namespace Rabbitool.Plugin.Command.Subscribe;
 public class BilibiliSubscribeCommandHandler
     : AbstractSubscribeCommandHandler<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity, BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>
 {
+    private CookieJar? _jar;
+
     public BilibiliSubscribeCommandHandler(
         QQBotService qbSvc,
         string userAgent,
@@ -33,8 +35,17 @@ public class BilibiliSubscribeCommandHandler
             return ("", "错误：uid不正确！");
         }
 
+        if (_jar is null)
+        {
+            _jar = new CookieJar();
+            _ = await "https://bilibili.com"
+                    .WithCookies(_jar)
+                    .GetAsync();
+        }
+
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
+                .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
 
@@ -44,7 +55,7 @@ public class BilibiliSubscribeCommandHandler
         if (name is null)
         {
             Log.Warning($"The bilibili user which uid is {uid} doesn't exist!", uid);
-            return ("", $"错误：uid为 {uid} n的用户在b站上不存在!");
+            return ("", $"错误：uid为 {uid} 的用户在b站上不存在!");
         }
 
         return (name, null);

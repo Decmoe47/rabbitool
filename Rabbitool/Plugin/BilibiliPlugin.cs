@@ -23,7 +23,7 @@ public class BilibiliPlugin : BasePlugin
         string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
         _svc = new BilibiliService(userAgent);
-        SubscribeDbContext dbCtx = new SubscribeDbContext(_dbPath);
+        SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new BilibiliSubscribeRepository(dbCtx);
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }
@@ -36,6 +36,8 @@ public class BilibiliPlugin : BasePlugin
             Log.Debug("There isn't any bilibili subscribe yet!");
             return;
         }
+
+        await _svc.RefreshCookiesAsync();
 
         List<Task> tasks = new();
         foreach (BilibiliSubscribeEntity record in records)

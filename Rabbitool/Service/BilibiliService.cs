@@ -12,11 +12,20 @@ namespace Rabbitool.Service;
 public class BilibiliService
 {
     private readonly string _userAgent;
+    private readonly CookieJar _jar;
     private readonly LimiterUtil _limiter = LimiterCollection.BilibiliLimiter;
 
     public BilibiliService(string userAgent)
     {
         _userAgent = userAgent;
+        _jar = new CookieJar();
+    }
+
+    public async Task RefreshCookiesAsync()
+    {
+        _ = await "https://bilibili.com"
+            .WithCookies(_jar)
+            .GetAsync();
     }
 
     public async Task<Live?> GetLiveAsync(uint uid, CancellationToken cancellationToken = default)
@@ -24,9 +33,10 @@ public class BilibiliService
         _limiter.Wait();
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
-            .SetQueryParam("mid", uid)
-            .WithHeader("User-Agent", _userAgent)
-            .GetStringAsync(cancellationToken);
+                .SetQueryParam("mid", uid)
+                .WithCookies(_jar)
+                .WithHeader("User-Agent", _userAgent)
+                .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
@@ -43,6 +53,7 @@ public class BilibiliService
 
         string resp2 = await "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom"
             .SetQueryParam("room_id", roomId)
+            .WithCookies(_jar)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
@@ -113,6 +124,7 @@ public class BilibiliService
                 .SetQueryParam("offsetDynamic", offsetDynamic)
                 .SetQueryParam("needTop", needTop)
                 .SetQueryParam("host_uid", uid)
+                .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
@@ -377,8 +389,10 @@ public class BilibiliService
     private async Task<string> GetUnameAsync(uint uid, CancellationToken cancellationToken = default)
     {
         _limiter.Wait();
+
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)
+            .WithCookie("LIVE_BUVID", "AUTO3316488238515252")
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
