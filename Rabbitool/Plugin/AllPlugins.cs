@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Rabbitool.Common.Tool;
 using Rabbitool.Config;
+using Rabbitool.Event;
 using Rabbitool.Plugin.Command.Subscribe;
 using Rabbitool.Service;
 using Log = Serilog.Log;
@@ -22,6 +23,8 @@ public class AllPlugins
     private readonly CancellationToken _cancellationToken;
     private readonly IHost _host;
 
+    private Dictionary<string, bool> _pluginSwitches;
+
     public AllPlugins(Configs configs)
     {
         _qbSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, configs.QQBot.IsSandBox, configs.QQBot.SandboxGuildName);
@@ -31,6 +34,13 @@ public class AllPlugins
         _dbPath = configs.DbPath;
 
         _configs = configs;
+
+        _pluginSwitches = new Dictionary<string, bool>();
+        PluginSwitchEvent.SwitchBilibiliPluginEvent += HandleBilibiliPluginSwitchEvent;
+        PluginSwitchEvent.SwitchTwitterPluginEvent += HandleTwitterPluginSwitchEvent;
+        PluginSwitchEvent.SwitchYoutubePluginEvent += HandleYoutubePluginSwitchEvent;
+        PluginSwitchEvent.SwitchMailPluginEvent += HandleMailPluginSwitchEvent;
+        PluginSwitchEvent.GetPluginSwitchesEvent += HandleGetPluginSwitchesEvent;
 
         SubscribeCommandResponder.Init(_qbSvc, _dbPath, _userAgent);
 
@@ -64,16 +74,22 @@ public class AllPlugins
 
     public void InitBilibiliPlugin()
     {
+        _pluginSwitches["bilibili"] = true;
         BilibiliPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
+                .ScheduleAsync(async () =>
+                {
+                    if (_pluginSwitches["bilibili"])
+                        await plugin.CheckAllAsync(_cancellationToken);
+                })
                 .EverySeconds(_configs.Interval.BilibiliPlugin)
                 .PreventOverlapping("BilibiliPlugin"));
     }
 
     public void InitTwitterPlugin()
     {
+        _pluginSwitches["twitter"] = true;
         TwitterPlugin plugin;
         if (_configs.Twitter?.ApiV2Token is string apiV2Token)
             plugin = new(apiV2Token, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
@@ -84,28 +100,67 @@ public class AllPlugins
 
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
+                .ScheduleAsync(async () =>
+                {
+                    if (_pluginSwitches["twitter"])
+                        await plugin.CheckAllAsync(_cancellationToken);
+                })
                 .EverySeconds(_configs.Interval.TwitterPlugin)
                 .PreventOverlapping("TwitterPlugin"));
     }
 
     public void InitYoutubePlugin()
     {
+        _pluginSwitches["youtube"] = true;
         YoutubePlugin plugin = new(_configs.Youtube.ApiKey, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
+                .ScheduleAsync(async () =>
+                {
+                    if (_pluginSwitches["youtube"])
+                        await plugin.CheckAllAsync(_cancellationToken);
+                })
                 .EverySeconds(_configs.Interval.YoutubePlugin)
                 .PreventOverlapping("YoutubePlugin"));
     }
 
     public void InitMailPlugin()
     {
+        _pluginSwitches["mail"] = true;
         MailPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () => await plugin.CheckAllAsync(_cancellationToken))
+                .ScheduleAsync(async () =>
+                {
+                    if (_pluginSwitches["mail"])
+                        await plugin.CheckAllAsync(_cancellationToken);
+                })
                 .EverySeconds(_configs.Interval.MailPlugin)
                 .PreventOverlapping("MailPlugin"));
+    }
+
+    private void HandleBilibiliPluginSwitchEvent(bool status)
+    {
+        _pluginSwitches["bilibili"] = status;
+    }
+
+    private void HandleYoutubePluginSwitchEvent(bool status)
+    {
+        _pluginSwitches["youtube"] = status;
+    }
+
+    private void HandleTwitterPluginSwitchEvent(bool status)
+    {
+        _pluginSwitches["twitter"] = status;
+    }
+
+    private void HandleMailPluginSwitchEvent(bool status)
+    {
+        _pluginSwitches["mail"] = status;
+    }
+
+    private Dictionary<string, bool> HandleGetPluginSwitchesEvent()
+    {
+        return _pluginSwitches;
     }
 }

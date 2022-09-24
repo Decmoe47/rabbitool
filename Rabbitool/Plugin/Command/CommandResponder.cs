@@ -17,6 +17,13 @@ public static class CommandResponder
             Format = new string[1]{ "/帮助" },
             Example = "/帮助",
             Responder = RespondToHelpCommandAsync
+        },
+        new CommandInfo
+        {
+            Name = "/plugin",
+            Format = new string[1]{ "/plugin" },
+            Example = "/plugin list",
+            Responder = PluginCommandResponder.RespondToPluginCommandAsync,
         }
     };
 
