@@ -42,7 +42,7 @@ public class ErrorNotifier
             Password = SenderPassword,
             From = SenderAddress,
             To = ReceiverAddresses,
-            RefreshMinutes = IntervalMinutes,
+            IntervalMinutes = IntervalMinutes,
             AllowedAmount = AllowedAmount
         };
     }

@@ -9,9 +9,8 @@ public class LogConfigTest
     {
         Configs configs = Configs.Load("configs.yml");
         ErrorNotifierOptions opts = configs.ErrorNotifier!.ToOptions();
-        opts.RefreshMinutes = 1;
-        opts.MaxAmount = 6;
-        opts.AllowedAmount = 6;
+        opts.IntervalMinutes = 60;
+        opts.AllowedAmount = 25;
         LogConfig.Register(opts);
     }
 
@@ -24,7 +23,7 @@ public class LogConfigTest
         }
         catch (ArgumentException ex)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 26; i++)
                 Log.Error(ex, ex.Message);
         }
     }
@@ -38,7 +37,7 @@ public class LogConfigTest
         }
         catch (ArgumentException ex)
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 24; i++)
                 Log.Error(ex, ex.Message);
         }
     }
