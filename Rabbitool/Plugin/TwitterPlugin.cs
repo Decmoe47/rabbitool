@@ -106,7 +106,7 @@ public class TwitterPlugin : BasePlugin
             }
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 6)
+            if (now.Hour >= 0 && now.Hour <= 7)
             {
                 if (!_storedTweets.ContainsKey(tweet.AuthorScreenName))
                     _storedTweets[tweet.AuthorScreenName] = new Dictionary<DateTime, Tweet>();
