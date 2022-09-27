@@ -63,6 +63,7 @@ public class TwitterService
         if (_cookie is not null) headers.Add("Cookie", _cookie);
 
         string resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
+            .WithTimeout(10)
             .WithHeaders(headers)
             .SetQueryParams(new Dictionary<string, string>()
             {
@@ -179,6 +180,7 @@ public class TwitterService
 
         _timelineApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
+            .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
             .SetQueryParams(new Dictionary<string, string>()
             {
@@ -332,6 +334,7 @@ public class TwitterService
     {
         _userApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
+            .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
@@ -344,6 +347,7 @@ public class TwitterService
     {
         _userApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/{userId}"
+            .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
             .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();

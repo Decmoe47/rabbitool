@@ -40,7 +40,7 @@ public class CosService
         if (format != "")
             filename += "." + format;
 
-        byte[] resp = await url.GetBytesAsync(cancellationToken);
+        byte[] resp = await url.WithTimeout(60).GetBytesAsync(cancellationToken);
         return Upload(filename, resp, "/data/images/");
     }
 

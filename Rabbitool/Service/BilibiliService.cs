@@ -24,6 +24,7 @@ public class BilibiliService
     public async Task RefreshCookiesAsync()
     {
         _ = await "https://bilibili.com"
+            .WithTimeout(10)
             .WithCookies(_jar)
             .GetAsync();
     }
@@ -34,6 +35,7 @@ public class BilibiliService
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
+                .WithTimeout(10)
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
@@ -53,6 +55,7 @@ public class BilibiliService
 
         string resp2 = await "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom"
             .SetQueryParam("room_id", roomId)
+            .WithTimeout(10)
             .WithCookies(_jar)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
@@ -124,6 +127,7 @@ public class BilibiliService
                 .SetQueryParam("offsetDynamic", offsetDynamic)
                 .SetQueryParam("needTop", needTop)
                 .SetQueryParam("host_uid", uid)
+                .WithTimeout(10)
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
                 .GetStringAsync(cancellationToken);
@@ -392,7 +396,8 @@ public class BilibiliService
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)
-            .WithCookie("LIVE_BUVID", "AUTO3316488238515252")
+            .WithCookies(_jar)
+            .WithTimeout(10)
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(cancellationToken);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
