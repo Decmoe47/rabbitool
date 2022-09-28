@@ -13,7 +13,7 @@ public class TwitterService
     private readonly string _apiV1_1Auth = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
     private readonly string? _apiV2Token;
     private readonly string? _cookie;
-    private readonly LimiterUtil _timelineApiLimiter = LimiterCollection.TwitterTimelineApiLimiter;
+    private readonly LimiterUtil _tweetApiLimiter = LimiterCollection.TwitterTweetApiLimiter;
     private readonly LimiterUtil _userApiLimiter = LimiterCollection.TwitterUserApiLimiter;
     private readonly string _userAgent;
     private readonly bool _usingApiV2;
@@ -52,7 +52,7 @@ public class TwitterService
     /// </summary>
     private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken cancellationToken = default)
     {
-        _timelineApiLimiter.Wait();
+        _tweetApiLimiter.Wait();
 
         Dictionary<string, string> headers = new()
         {
@@ -178,7 +178,7 @@ public class TwitterService
     {
         (string userId, _) = await GetUserIdAsync(screenName, cancellationToken);
 
-        _timelineApiLimiter.Wait();
+        _tweetApiLimiter.Wait();
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
@@ -195,12 +195,13 @@ public class TwitterService
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         JObject tweet = (JObject)body["data"]![0]!;
+        string id = (string)tweet["id"]!;
         string text = (string)tweet["text"]!;
 
         List<string>? imgUrls = null;
         bool hasVideo = false;
         if ((JArray?)tweet["entities"]?["urls"] is JArray media)
-            (text, imgUrls, hasVideo) = GetMediaByApiV2(body, media, text);
+            (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, id, cancellationToken);
 
         TweetTypeEnum tweetType = TweetTypeEnum.Common;
         Tweet? origin = null;
@@ -219,7 +220,7 @@ public class TwitterService
 
         return new()
         {
-            Id = (string)tweet["id"]!,
+            Id = id,
             Type = tweetType,
             Url = $"https://twitter.com/{screenName}/status/{(string)tweet["id"]!}",
             PubTime = ((DateTime)tweet["created_at"]!).ToUniversalTime(),
@@ -232,8 +233,8 @@ public class TwitterService
         };
     }
 
-    private static (string text, List<string>? imgUrls, bool hasVideo) GetMediaByApiV2(
-        JObject body, JArray media, string text)
+    private async Task<(string text, List<string>? imgUrls, bool hasVideo)> GetMediaByApiV2Async(
+        JObject body, JArray media, string text, string tweetId, CancellationToken cancellationToken)
     {
         bool hasVideo = false;
         List<string> imgUrls = new();
@@ -251,13 +252,13 @@ public class TwitterService
             {
                 if (mediaKey?.StartsWith("3_") is true)
                 {
-                    imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
+                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, cancellationToken));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("7_") is true)
                 {
                     hasVideo = true;
-                    imgUrls.Add(GetImageOrVideoThumbnailUrl(body, mediaKey));
+                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, cancellationToken));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
@@ -276,7 +277,8 @@ public class TwitterService
         return (text, imgUrls.Count != 0 ? imgUrls : null, hasVideo);
     }
 
-    private static string GetImageOrVideoThumbnailUrl(JObject body, string mediaKey)
+    private async Task<string> GetImageOrVideoThumbnailUrlAsync(
+        JObject body, string mediaKey, string tweetId, CancellationToken cancellationToken)
     {
         foreach (JToken medium in (JArray)body["includes"]!["media"]!)
         {
@@ -291,7 +293,21 @@ public class TwitterService
             }
         }
 
-        throw new NotFoundException($"Couldn't find the the media url which media_key is {mediaKey}!");
+        _tweetApiLimiter.Wait();
+        string resp = await $"https://api.twitter.com/2/tweets/{tweetId}"
+            .WithTimeout(10)
+            .WithOAuthBearerToken(_apiV2Token)
+            .SetQueryParams(new Dictionary<string, string>()
+            {
+                { "tweet.fields", "author_id,created_at,entities,in_reply_to_user_id,referenced_tweets,text" },
+                { "expansions", "author_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys" },
+                { "user.fields", "username,name" },
+                { "media.fields", "preview_image_url,type,url" },
+            })
+            .GetStringAsync(cancellationToken);
+        JObject json = JObject.Parse(resp);
+        JObject img = (JObject)json["includes"]!["media"]!.First(m => (string)m["media_key"]! == mediaKey);
+        return string.Join(".", ((string)img["url"]!).Split('.')[..^1]) + "?format=jpg&name=large";
     }
 
     private async Task<Tweet> GetOriginTweetByApiV2Async(
@@ -309,7 +325,7 @@ public class TwitterService
                 List<string>? imgUrls = null;
                 bool hasVideo = false;
                 if ((JArray?)origin["entities"]?["urls"] is JArray media)
-                    (text, imgUrls, hasVideo) = GetMediaByApiV2(body, media, text);
+                    (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, originId, cancellationToken);
 
                 return new()
                 {

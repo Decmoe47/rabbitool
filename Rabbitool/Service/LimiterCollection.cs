@@ -13,7 +13,7 @@ public class LimiterCollection
     /// <para></para>
     /// See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
     /// </summary>
-    public static LimiterUtil TwitterTimelineApiLimiter = new(0.0373f, 100000);
+    public static LimiterUtil TwitterTweetApiLimiter = new(0.0373f, 100000);
 
     /// <summary>
     /// See https://developers.google.com/youtube/v3/getting-started?hl=ja
