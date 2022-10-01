@@ -21,7 +21,7 @@ public class MailPlugin : BasePlugin
     /// <summary>
     /// 会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent"/>
     /// 和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent"/>
-    /// 和<see cref="AppDomain.CurrentDomain.ProcessExit"/>事件。
+    /// 和<see cref="Console.CancelKeyPress"/>事件。
     /// </summary>
     public MailPlugin(
         QQBotService qbSvc,
@@ -36,7 +36,7 @@ public class MailPlugin : BasePlugin
 
         MailSubscribeEvent.AddMailSubscribeEvent += HandleMailSubscribeAddedEvent;
         MailSubscribeEvent.DeleteMailSubscribeEvent += HandleMailSubscribeDeletedEventAsync;
-        AppDomain.CurrentDomain.ProcessExit += DisposeAllServices;
+        Console.CancelKeyPress += DisposeAllServices;
     }
 
     public async Task CheckAllAsync(CancellationToken cancellationToken = default)
@@ -113,6 +113,9 @@ public class MailPlugin : BasePlugin
 
             await FnAsync(mail);
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to push mail message!\nAddress: {username}", record.Username);
@@ -149,9 +152,9 @@ public class MailPlugin : BasePlugin
             }
 
             if (config.Detail)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}"));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}", cancellationToken));
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}"));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", cancellationToken));
 
             pushed = true;
         }

@@ -18,7 +18,7 @@ public static class LogConfig
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)
             .CreateLogger();
-        AppDomain.CurrentDomain.ProcessExit += (sender, e) => Log.CloseAndFlush();
+        Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
     }
 
     public static void Register(
@@ -38,7 +38,7 @@ public static class LogConfig
                 fileSizeLimitBytes: 1024 * 1024)
             .WriteTo.Mail(errorNotifierOptions)
             .CreateLogger();
-        AppDomain.CurrentDomain.ProcessExit += (sender, e) => Log.CloseAndFlush();
+        Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
     }
 
     private static LogEventLevel ConvertLevelFromString(string level)

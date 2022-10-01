@@ -27,21 +27,21 @@ public class YoutubeService
         ChannelsResource.ListRequest channelsReq = _ytb.Channels
             .List(new Google.Apis.Util.Repeatable<string>(new string[1] { "contentDetails" }));
         channelsReq.Id = channelId;
-        _limiter.Wait(3);
+        _limiter.Wait(3, cancellationToken);
         Channel channel = (await channelsReq.ExecuteAsync(cancellationToken)).Items[0];
 
         // https://developers.google.com/youtube/v3/docs/playlistItems
         PlaylistItemsResource.ListRequest playListReq = _ytb.PlaylistItems
             .List(new Google.Apis.Util.Repeatable<string>(new string[1] { "contentDetails" }));
         playListReq.PlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
-        _limiter.Wait(3);
+        _limiter.Wait(3, cancellationToken);
         PlaylistItem item = (await playListReq.ExecuteAsync(cancellationToken)).Items[0];
 
         // https://developers.google.com/youtube/v3/docs/videos
         VideosResource.ListRequest videosReq = _ytb.Videos
             .List(new Google.Apis.Util.Repeatable<string>(new string[2] { "snippet", "liveStreamingDetails" }));
         videosReq.Id = item.ContentDetails.VideoId;
-        _limiter.Wait(5);
+        _limiter.Wait(5, cancellationToken);
         Video video = (await videosReq.ExecuteAsync(cancellationToken)).Items[0];
 
         return CreateDTO(channelId, item.ContentDetails.VideoId, video);
@@ -52,7 +52,7 @@ public class YoutubeService
         VideosResource.ListRequest videosReq = _ytb.Videos
             .List(new Google.Apis.Util.Repeatable<string>(new string[2] { "snippet", "liveStreamingDetails" }));
         videosReq.Id = liveRoomId;
-        _limiter.Wait(5);
+        _limiter.Wait(5, cancellationToken);
         Video video = (await videosReq.ExecuteAsync(cancellationToken)).Items[0];
 
         return video.Snippet.LiveBroadcastContent switch

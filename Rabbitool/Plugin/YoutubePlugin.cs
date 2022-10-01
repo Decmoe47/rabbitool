@@ -116,6 +116,9 @@ public class YoutubePlugin : BasePlugin
                     throw new NotSupportedException($"Not supported type {item.GetType().Name} of the item!");
             }
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to push youtube message!\nName: {name}\nChannelId: {channelId}",
@@ -212,7 +215,7 @@ public class YoutubePlugin : BasePlugin
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl, cancellationToken));
             pushed = true;
         }
 

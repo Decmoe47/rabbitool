@@ -56,26 +56,28 @@ public class AllPlugins
         else
             LogConfig.Register(_configs.Log.ConsoleLevel, _configs.Log.FileLevel);
 
-        AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-        {
-            _tokenSource.Cancel();
-            Log.Information("Shutdown successfully.");
-        };
+        Console.CancelKeyPress += (sender, e) => _tokenSource.Cancel();
 
         QQBotPlugin qPlugin = new(_qbSvc);
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
         qPlugin.RunAsync().ContinueWith(
-            (task) => Log.Error(task?.Exception?.InnerException?.ToString() ?? ""),
+            (task) =>
+            {
+                if (task.Exception?.InnerException is not OperationCanceledException)
+                    Log.Error(task.Exception?.InnerException?.ToString() ?? "");
+            },
             TaskContinuationOptions.OnlyOnFaulted);
 #pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
 
         await _host.RunAsync(_tokenSource.Token);
     }
 
-    public void InitBilibiliPlugin()
+    public async Task InitBilibiliPluginAsync()
     {
         _pluginSwitches["bilibili"] = true;
         BilibiliPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
+        await plugin.RefreshCookiesAsync(_cancellationToken);
+
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () =>

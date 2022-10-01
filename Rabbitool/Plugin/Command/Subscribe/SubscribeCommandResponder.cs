@@ -65,7 +65,7 @@ public static class SubscribeCommandResponder
     }
 
     private static async Task<string> RespondToSubscribeCommandAsync(
-        List<string> command, Message message, SubscribeCommandType commandType, CancellationToken cancellation = default)
+        List<string> command, Message message, SubscribeCommandType commandType, CancellationToken cancellationToken = default)
     {
         if (commandType == SubscribeCommandType.List)
         {
@@ -108,7 +108,7 @@ public static class SubscribeCommandResponder
 
         if (configDict.TryGetValue("channel", out dynamic? v) && v is string)
         {
-            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, message.GuildId);
+            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, message.GuildId, cancellationToken);
             if (channel is null)
                 return $"错误：不存在名为 {v} 的子频道！";
             channelId = channel.Id;
@@ -116,7 +116,7 @@ public static class SubscribeCommandResponder
         }
         else
         {
-            Channel channel = await _qbSvc.GetChannelAsync(channelId);
+            Channel channel = await _qbSvc.GetChannelAsync(channelId, cancellationToken);
             channelName = channel.Name;
         }
 
@@ -135,18 +135,18 @@ public static class SubscribeCommandResponder
             Configs = configDict.Count != 0 ? configDict : null
         };
 
-        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform, cancellation);
+        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform, cancellationToken);
 
         switch (commandType)
         {
             case SubscribeCommandType.AddOrUpdate:
-                return await handler.Add(subscribe, cancellation);
+                return await handler.Add(subscribe, cancellationToken);
 
             case SubscribeCommandType.Delete:
-                return await handler.Delete(subscribe, cancellation);
+                return await handler.Delete(subscribe, cancellationToken);
 
             case SubscribeCommandType.List:
-                return await handler.List(subscribe, cancellation);
+                return await handler.List(subscribe, cancellationToken);
 
             default:
                 Log.Error("Not supported subscribe command type {type}", commandType);

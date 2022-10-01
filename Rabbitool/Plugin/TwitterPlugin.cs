@@ -132,6 +132,9 @@ public class TwitterPlugin : BasePlugin
 
             await FnAsync(tweet);
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to push tweet message!\nName: {name}\nScreenName: {screenName}",
@@ -173,7 +176,7 @@ public class TwitterPlugin : BasePlugin
                 continue;
             }
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls, cancellationToken));
             pushed = true;
         }
 

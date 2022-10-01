@@ -21,17 +21,17 @@ public class BilibiliService
         _jar = new CookieJar();
     }
 
-    public async Task RefreshCookiesAsync()
+    public async Task RefreshCookiesAsync(CancellationToken cancellationToken = default)
     {
         _ = await "https://bilibili.com"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .GetAsync();
+            .GetAsync(cancellationToken);
     }
 
     public async Task<Live?> GetLiveAsync(uint uid, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _limiter.Wait(cancellationToken: cancellationToken);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
@@ -121,7 +121,7 @@ public class BilibiliService
         int needTop = 0,
         CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _limiter.Wait(cancellationToken: cancellationToken);
 
         string resp = await "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
                 .SetQueryParam("offsetDynamic", offsetDynamic)
@@ -392,7 +392,7 @@ public class BilibiliService
 
     private async Task<string> GetUnameAsync(uint uid, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _limiter.Wait(cancellationToken: cancellationToken);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)

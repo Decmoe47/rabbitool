@@ -28,6 +28,11 @@ public class BilibiliPlugin : BasePlugin
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }
 
+    public async Task RefreshCookiesAsync(CancellationToken cancellationToken = default)
+    {
+        await _svc.RefreshCookiesAsync(cancellationToken);
+    }
+
     public async Task CheckAllAsync(CancellationToken cancellationToken = default)
     {
         List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
@@ -36,8 +41,6 @@ public class BilibiliPlugin : BasePlugin
             Log.Debug("There isn't any bilibili subscribe yet!");
             return;
         }
-
-        await _svc.RefreshCookiesAsync();
 
         List<Task> tasks = new();
         foreach (BilibiliSubscribeEntity record in records)
@@ -107,6 +110,9 @@ public class BilibiliPlugin : BasePlugin
 
             await FnAsync(dy);
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to push dynamic message!\nUid: {uid}\nUname: {uname}",
@@ -143,7 +149,7 @@ public class BilibiliPlugin : BasePlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls, cancellationToken));
             pushed = true;
         }
 
@@ -415,6 +421,9 @@ public class BilibiliPlugin : BasePlugin
                     await FnAsync(live, LiveStatusEnum.NoLiveStream);
             }
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to push live message!\nUid: {uid}\nUname: {uname}",
@@ -447,9 +456,9 @@ public class BilibiliPlugin : BasePlugin
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
             if (redirectCoverUrl is null)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, cancellationToken));
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, cancellationToken));
 
             pushed = true;
         }

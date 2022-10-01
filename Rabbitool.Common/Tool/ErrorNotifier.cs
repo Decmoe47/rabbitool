@@ -45,7 +45,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
 
         _formatProvider = formatProvider;
 
-        AppDomain.CurrentDomain.ProcessExit += (sender, e) => Dispose();
+        Console.CancelKeyPress += (sender, e) => Dispose();
     }
 
     public void Emit(LogEvent logEvent)

@@ -52,7 +52,7 @@ public class TwitterService
     /// </summary>
     private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken cancellationToken = default)
     {
-        _tweetApiLimiter.Wait();
+        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
 
         Dictionary<string, string> headers = new()
         {
@@ -178,7 +178,7 @@ public class TwitterService
     {
         (string userId, _) = await GetUserIdAsync(screenName, cancellationToken);
 
-        _tweetApiLimiter.Wait();
+        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
@@ -293,7 +293,7 @@ public class TwitterService
             }
         }
 
-        _tweetApiLimiter.Wait();
+        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
         string resp = await $"https://api.twitter.com/2/tweets/{tweetId}"
             .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
@@ -348,7 +348,7 @@ public class TwitterService
     private async Task<(string userId, string name)> GetUserIdAsync(
         string screenName, CancellationToken cancellationToken = default)
     {
-        _userApiLimiter.Wait();
+        _userApiLimiter.Wait(cancellationToken: cancellationToken);
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
@@ -361,7 +361,7 @@ public class TwitterService
     private async Task<(string name, string screenName)> GetUserNameAsync(
         string userId, CancellationToken cancellationToken = default)
     {
-        _userApiLimiter.Wait();
+        _userApiLimiter.Wait(cancellationToken: cancellationToken);
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")

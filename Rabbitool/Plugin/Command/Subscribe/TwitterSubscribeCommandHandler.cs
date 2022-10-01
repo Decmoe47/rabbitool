@@ -26,7 +26,7 @@ public class TwitterSubscribeCommandHandler
     public override async Task<(string name, string? errCommandMsg)> CheckId(
         string screenName, CancellationToken cancellationToken = default)
     {
-        _limiter.Wait();
+        _limiter.Wait(cancellationToken: cancellationToken);
 
         string resp;
         try

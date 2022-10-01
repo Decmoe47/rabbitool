@@ -10,7 +10,7 @@ if (configs.InTestEnvironment && configs.Proxy?.HttpProxy != null && configs.Pro
 }
 
 AllPlugins allPlugins = new(configs);
-allPlugins.InitBilibiliPlugin();
+await allPlugins.InitBilibiliPluginAsync();
 allPlugins.InitTwitterPlugin();
 allPlugins.InitYoutubePlugin();
 allPlugins.InitMailPlugin();
