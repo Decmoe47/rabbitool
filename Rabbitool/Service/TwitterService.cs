@@ -216,6 +216,7 @@ public class TwitterService
             };
 
             origin = await GetOriginTweetByApiV2Async(body, originId, cancellationToken);
+            text = text.Replace(origin.Url, "");
         }
 
         return new()

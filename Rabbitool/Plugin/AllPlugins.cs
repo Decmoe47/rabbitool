@@ -86,7 +86,8 @@ public class AllPlugins
                         await plugin.CheckAllAsync(_cancellationToken);
                 })
                 .EverySeconds(_configs.Interval.BilibiliPlugin)
-                .PreventOverlapping("BilibiliPlugin"));
+                .PreventOverlapping("BilibiliPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
     }
 
     public void InitTwitterPlugin()
@@ -108,7 +109,8 @@ public class AllPlugins
                         await plugin.CheckAllAsync(_cancellationToken);
                 })
                 .EverySeconds(_configs.Interval.TwitterPlugin)
-                .PreventOverlapping("TwitterPlugin"));
+                .PreventOverlapping("TwitterPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from twitter plugin: {msg}", ex.Message));
     }
 
     public void InitYoutubePlugin()
@@ -123,7 +125,8 @@ public class AllPlugins
                         await plugin.CheckAllAsync(_cancellationToken);
                 })
                 .EverySeconds(_configs.Interval.YoutubePlugin)
-                .PreventOverlapping("YoutubePlugin"));
+                .PreventOverlapping("YoutubePlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
     }
 
     public void InitMailPlugin()
@@ -138,7 +141,8 @@ public class AllPlugins
                         await plugin.CheckAllAsync(_cancellationToken);
                 })
                 .EverySeconds(_configs.Interval.MailPlugin)
-                .PreventOverlapping("MailPlugin"));
+                .PreventOverlapping("MailPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
     }
 
     private void HandleBilibiliPluginSwitchEvent(bool status)
