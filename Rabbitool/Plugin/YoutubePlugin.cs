@@ -132,6 +132,7 @@ public class YoutubePlugin : BasePlugin
         {
             if (await _svc.IsStreamingAsync(roomId, cancellationToken) is YoutubeLive live)
             {
+                Log.Debug("Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
                 await PushLiveAndUpdateDatabaseAsync(live, record, false, cancellationToken);
                 record.AllUpcomingLiveRoomIds.Remove(roomId);
                 await _repo.SaveAsync(cancellationToken);

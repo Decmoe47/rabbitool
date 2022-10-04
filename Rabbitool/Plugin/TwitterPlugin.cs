@@ -240,14 +240,14 @@ public class TwitterPlugin : BasePlugin
             throw new NotSupportedException($"Not Supported tweet type {tweet.Type}");
         }
 
-        if (tweet.ImageUrls?.Count is int and not 0)
-            text += "\n图片：\n";
-
         if (tweet.HasVideo || (tweet.Origin?.HasVideo == true))
         {
             string videoUrl = await _cosSvc.UploadVideoAsync(tweet.Url, tweet.PubTime, cancellationToken);
-            text += $"\n\n视频：{videoUrl}\n";
+            text += $"\n\n视频下载直链：{videoUrl}\n";
         }
+
+        if (tweet.ImageUrls?.Count is int and not 0)
+            text += "\n图片：\n";
 
         return (title, text);
     }
