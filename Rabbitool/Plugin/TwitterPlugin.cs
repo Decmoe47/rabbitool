@@ -243,7 +243,7 @@ public class TwitterPlugin : BasePlugin
         if (tweet.HasVideo || (tweet.Origin?.HasVideo == true))
         {
             string videoUrl = await _cosSvc.UploadVideoAsync(tweet.Url, tweet.PubTime, cancellationToken);
-            text += $"\n\n视频下载直链：{videoUrl}\n";
+            text += $"\n\n视频下载直链：{videoUrl}";
         }
 
         if (tweet.ImageUrls?.Count is int and not 0)
