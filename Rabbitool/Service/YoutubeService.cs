@@ -72,6 +72,7 @@ public class YoutubeService
                 ChannelId = channelId,
                 Author = video.Snippet.ChannelTitle,
                 Id = itemId,
+                Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
                 ActualStartTime = video.LiveStreamingDetails.ActualStartTime?.ToUniversalTime() ?? DateTime.UtcNow
@@ -82,6 +83,7 @@ public class YoutubeService
                 ChannelId = channelId,
                 Author = video.Snippet.ChannelTitle,
                 Id = itemId,
+                Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
                 ScheduledStartTime = video.LiveStreamingDetails.ScheduledStartTime?.ToUniversalTime()
@@ -93,6 +95,7 @@ public class YoutubeService
                 ChannelId = channelId,
                 Author = video.Snippet.ChannelTitle,
                 Id = itemId,
+                Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
                 PubTime = video.Snippet.PublishedAt?.ToUniversalTime()

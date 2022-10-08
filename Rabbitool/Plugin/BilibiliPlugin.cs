@@ -83,7 +83,7 @@ public class BilibiliPlugin : BasePlugin
 
             // 宵禁时间发不出去，攒着
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 7)
+            if (now.Hour >= 0 && now.Hour <= 6)
             {
                 if (!_storedDynamics.ContainsKey(dy.Uid))
                     _storedDynamics[dy.Uid] = new Dictionary<DateTime, BaseDynamicDTO>();
@@ -380,7 +380,7 @@ public class BilibiliPlugin : BasePlugin
 
             async Task FnAsync(Live live, LiveStatusEnum liveStatus)
             {
-                if (now.Hour >= 0 && now.Hour <= 7)
+                if (now.Hour >= 0 && now.Hour <= 6)
                 {
                     // 由于开播下播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
                     Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
