@@ -86,7 +86,7 @@ public class YoutubePlugin : BasePlugin
                         return;
                     }
 
-                    if (now.Hour >= 0 && now.Hour <= 6)
+                    if (now.Hour >= 0 && now.Hour <= 5)
                     {
                         if (!_storedVideos.ContainsKey(video.ChannelId))
                             _storedVideos[video.ChannelId] = new Dictionary<DateTime, YoutubeVideo>();
@@ -146,7 +146,7 @@ public class YoutubePlugin : BasePlugin
         YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken cancellationToken = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-        if (now.Hour >= 0 && now.Hour <= 6)
+        if (now.Hour >= 0 && now.Hour <= 5)
         {
             Log.Debug("Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
@@ -175,7 +175,7 @@ public class YoutubePlugin : BasePlugin
         YoutubeLive live, YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-        if (now.Hour >= 0 && now.Hour <= 6)
+        if (now.Hour >= 0 && now.Hour <= 5)
         {
             Log.Debug("Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);

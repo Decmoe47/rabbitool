@@ -87,7 +87,7 @@ public class MailPlugin : BasePlugin
             };
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 6)
+            if (now.Hour >= 0 && now.Hour <= 5)
             {
                 if (!_storedMails.ContainsKey(record.Username))
                     _storedMails[record.Username] = new Dictionary<DateTime, Mail>();
