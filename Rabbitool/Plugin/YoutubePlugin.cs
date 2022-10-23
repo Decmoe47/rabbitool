@@ -12,7 +12,6 @@ public class YoutubePlugin : BasePlugin
     private readonly YoutubeService _svc;
     private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
-    private List<YoutubeLive> _upcomingLiveList;
 
     private Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
 
@@ -29,7 +28,6 @@ public class YoutubePlugin : BasePlugin
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
-        _upcomingLiveList = new List<YoutubeLive>();
     }
 
     public async Task CheckAllAsync(CancellationToken cancellationToken = default)
@@ -71,7 +69,7 @@ public class YoutubePlugin : BasePlugin
 
                         await PushUpcomingLiveAsync(live, record, cancellationToken);
                     }
-                    else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId)
+                    else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
                     {
                         await PushLiveAndUpdateDatabaseAsync(live, record, cancellationToken: cancellationToken);
                     }
