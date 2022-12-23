@@ -143,10 +143,10 @@ public class MailPlugin : BasePlugin
             MailSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.PushToThread)
             {
-                List<Model.DTO.QQBot.Paragraph> richText = config.Detail
-                    ? QQBotService.TextToParagraphs(detailText)
-                    : QQBotService.TextToParagraphs(text);
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
+                Model.DTO.QQBot.RichText richText = config.Detail
+                    ? QQBotService.TextToRichText(detailText)
+                    : QQBotService.TextToRichText(text);
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), cancellationToken));
                 pushed = true;
                 continue;
             }

@@ -128,7 +128,8 @@ public class YoutubePlugin : BasePlugin
 
     private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
     {
-        foreach (string roomId in record.AllUpcomingLiveRoomIds)
+        List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
+        foreach (string roomId in allUpcomingLiveRoomIdsTmp)
         {
             if (await _svc.IsStreamingAsync(roomId, cancellationToken) is YoutubeLive live)
             {

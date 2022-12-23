@@ -4,7 +4,7 @@ namespace Rabbitool.Model.DTO.QQBot;
 
 public class Paragraph
 {
-    [JsonProperty("elem", NullValueHandling = NullValueHandling.Ignore)]
+    [JsonProperty("elems", NullValueHandling = NullValueHandling.Ignore)]
     public List<Elem>? Elems { get; set; } = new List<Elem>();
 
     [JsonProperty("props")]

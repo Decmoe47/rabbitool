@@ -279,108 +279,80 @@ public class QQBotService
         }
     }
 
-    /// <summary>
-    /// TODO: 初步实现，待优化
-    /// </summary>
-    public static List<Paragraph> TextToParagraphs(string text)
+    public static RichText TextToRichText(string text)
     {
-        string splitPreceding, linePreceding, url;
-        List<Paragraph> result = new();
+        List<Paragraph> paras = new();
 
-        while (text.Contains('\n'))
+        text = text.Replace("\r", "");
+        List<string> textList = text.Split("\n").ToList();
+        List<string> newTextList = new();
+
+        foreach (string line in textList)
         {
-            List<Elem> precedingElems = new();
-            (linePreceding, text) = SplitTextByLF(text);
+            (string preceding, string rest, string url) = ExtractUrl(line);
+            newTextList.Add(preceding);
+            if (url != "")
+                newTextList.Add("@isURL#" + url);
+            if (rest != "")
+                newTextList.Add(rest);
+        }
 
-            while (CommonUtil.ExistUrl(text))
+        foreach (string line in newTextList)
+        {
+            if (CommonUtil.ExistUrl(line))
             {
-                (splitPreceding, text, url) = ExtractUrl(text);
-                if (url == "")
+                if (line.StartsWith("@isURL#"))
                 {
-                    precedingElems.Add(new Elem()
+                    string url = line.Replace("@isURL#", "");
+                    paras[^1].Elems?.Add(new Elem()
                     {
-                        Text = new TextElem() { Text = splitPreceding },
-                        Type = ElemTypeEnum.Text,
+                        Url = new UrlElem() { Url = url, Desc = url },
+                        Type = ElemTypeEnum.Url
                     });
                 }
                 else
                 {
-                    precedingElems.Add(new Elem()
+                    paras.Add(new Paragraph()
                     {
-                        Text = new TextElem() { Text = splitPreceding },
-                        Type = ElemTypeEnum.Text,
-                    });
-                    precedingElems.Add(new Elem()
-                    {
-                        Url = new UrlElem() { Url = url, Desc = url },
-                        Type = ElemTypeEnum.Url,
+                        Elems = new List<Elem>()
+                        {
+                            new Elem()
+                            {
+                                Url = new UrlElem() { Url = line, Desc = line },
+                                Type = ElemTypeEnum.Url
+                            }
+                        },
+                        Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
                     });
                 }
             }
-
-            precedingElems.Add(new Elem()
+            else
             {
-                Text = new TextElem() { Text = linePreceding },
-                Type = ElemTypeEnum.Text,
-            });
-            result.Add(new Paragraph()
-            {
-                Elems = precedingElems,
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Left },
-            });
-        }
-
-        (splitPreceding, string splitRest, url) = ExtractUrl(text);
-        if (url == "")
-        {
-            result.Add(new Paragraph()
-            {
-                Elems = new List<Elem>()
+                paras.Add(new Paragraph()
                 {
-                    new Elem()
+                    Elems = new List<Elem>()
                     {
-                        Text = new TextElem() { Text = text },
-                        Type = ElemTypeEnum.Text,
-                    }
-                },
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Left },
-            });
-        }
-        else
-        {
-            result.Add(new Paragraph()
-            {
-                Elems = new List<Elem>()
-                {
-                    new Elem()
-                    {
-                        Text = new TextElem() { Text = splitPreceding },
-                        Type = ElemTypeEnum.Text,
+                        new Elem()
+                        {
+                            Text = new TextElem() {Text = line },
+                            Type = ElemTypeEnum.Text,
+                        }
                     },
-                    new Elem()
-                    {
-                        Url = new UrlElem() { Url = url, Desc = url },
-                        Type = ElemTypeEnum.Url,
-                    },
-                    new Elem()
-                    {
-                        Text = new TextElem() { Text = splitRest },
-                        Type = ElemTypeEnum.Text,
-                    }
-                },
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Left },
-            });
+                    Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
+                });
+            }
         }
 
-        for (int i = 0; i < result.Count; i++)
+        // 空白行
+        for (int i = 0; i < paras.Count; i++)
         {
-            if (result[i].Elems is List<Elem> elems)
+            if (paras[i].Elems is List<Elem> elems)
             {
                 foreach (Elem elem in elems)
                 {
                     if (elem.Text?.Text is "")
                     {
-                        result[i] = new Paragraph()
+                        paras[i] = new Paragraph()
                         {
                             Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
                         };
@@ -389,7 +361,7 @@ public class QQBotService
             }
         }
 
-        return result;
+        return new RichText() { Paragraphs = paras };
     }
 
     public static async Task<List<Paragraph>> ImgagesToParagraphsAsync(
@@ -409,18 +381,6 @@ public class QQBotService
 
         return new()
         {
-            new Paragraph()
-            {
-                Elems = new List<Elem>()
-                {
-                    new Elem()
-                    {
-                        Text = new TextElem() { Text = "图片：" },
-                        Type = ElemTypeEnum.Text
-                    }
-                },
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
-            },
             new Paragraph()
             {
                 Elems = imgElems,

@@ -208,7 +208,7 @@ public class BilibiliPlugin : BasePlugin
         }
 
         if (dy.ImageUrls?.Count is int and not 0)
-            text += "\n图片：\n";
+            text += "\n图片：";
 
         return (title, text);
     }
@@ -303,7 +303,7 @@ public class BilibiliPlugin : BasePlugin
                 }
                 if (cOrigin.ImageUrls?.Count is int and not 0)
                 {
-                    text += "\n图片：\n";
+                    text += "\n图片：";
                     imgUrls = cOrigin.ImageUrls;
                 }
                 break;

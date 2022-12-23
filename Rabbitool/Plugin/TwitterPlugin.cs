@@ -146,7 +146,7 @@ public class TwitterPlugin : BasePlugin
         Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken cancellationToken = default)
     {
         (string title, string text) = await TweetToStrAsync(tweet, cancellationToken);
-        List<Paragraph> richText = await TweetToRichTextAsync(tweet, text, cancellationToken);
+        RichText richText = await TweetToRichTextAsync(tweet, text, cancellationToken);
         List<string> imgUrls = await GetTweetImgUrlsAsync(tweet, cancellationToken);
 
         List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
@@ -171,7 +171,7 @@ public class TwitterPlugin : BasePlugin
             }
             if (config.PushToThread)
             {
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText)));
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), cancellationToken));
                 pushed = true;
                 continue;
             }
@@ -247,7 +247,7 @@ public class TwitterPlugin : BasePlugin
         }
 
         if (tweet.ImageUrls?.Count is int and not 0)
-            text += "\n图片：\n";
+            text += "\n图片：";
 
         return (title, text);
     }
@@ -290,33 +290,33 @@ public class TwitterPlugin : BasePlugin
         return result;
     }
 
-    private async Task<List<Paragraph>> TweetToRichTextAsync(
+    private async Task<RichText> TweetToRichTextAsync(
         Tweet tweet, string text, CancellationToken cancellationToken = default)
     {
-        List<Paragraph> richText = QQBotService.TextToParagraphs(text);
+        RichText result = QQBotService.TextToRichText(text);
 
         if (tweet.ImageUrls is not null)
         {
-            richText.AddRange(
+            result.Paragraphs.AddRange(
                 await QQBotService.ImgagesToParagraphsAsync(tweet.ImageUrls, _cosSvc, cancellationToken));
         }
         else if (tweet.Origin?.ImageUrls is not null)
         {
-            richText.AddRange(
+            result.Paragraphs.AddRange(
                 await QQBotService.ImgagesToParagraphsAsync(tweet.Origin.ImageUrls, _cosSvc, cancellationToken));
         }
 
         if (tweet.HasVideo)
         {
-            richText.AddRange(
+            result.Paragraphs.AddRange(
                 await QQBotService.VideoToParagraphsAsync(tweet.Url, tweet.PubTime, _cosSvc, cancellationToken));
         }
         else if (tweet.Origin?.HasVideo is true)
         {
-            richText.AddRange(
+            result.Paragraphs.AddRange(
                 await QQBotService.VideoToParagraphsAsync(tweet.Origin.Url, tweet.Origin.PubTime, _cosSvc, cancellationToken));
         }
 
-        return richText;
+        return result;
     }
 }
