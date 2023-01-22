@@ -71,7 +71,8 @@ public class BilibiliSubscribeConfigEntity : BaseSubscribeConfigEntity<BilibiliS
     {
         string result = "livePush=" + LivePush.ToString().ToLower() + separator;
         result += "dynamicPush=" + DynamicPush.ToString().ToLower() + separator;
-        result += "pureForwardDynamicPush=" + PureForwardDynamicPush.ToString().ToLower();
+        result += "pureForwardDynamicPush=" + PureForwardDynamicPush.ToString().ToLower() + separator;
+        result += "LiveEndingPush=" + LiveEndingPush.ToString().ToLower();
         return result;
     }
 }
