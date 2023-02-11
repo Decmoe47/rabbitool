@@ -363,7 +363,7 @@ public class BilibiliService
                     DynamicUrl = originDynamicUrl,
                     DynamicUploadTime = originDynamicUploadTime,
                     RoomId = (uint)dy["card"]!["origin"]!["roomid"]!,
-                    LiveStatus = ConvertIntToLiveStatusEnum((int)dy["card"]!["origin"]!["live_status"]!),
+                    LiveStatus = (LiveStatusEnum)(int)dy["card"]!["origin"]!["live_status"]!,
                     LiveStartTime = DateTimeOffset
                         .FromUnixTimeSeconds((long)dy["card"]!["origin"]!["first_live_time"]!)
                         .UtcDateTime,
@@ -410,10 +410,5 @@ public class BilibiliService
     private static bool IsPureForwardDynamic(string dynamicText)
     {
         return dynamicText is "转发动态" || dynamicText.Split("//")[0].StartsWith("@");
-    }
-
-    private static LiveStatusEnum ConvertIntToLiveStatusEnum(int liveStatus)
-    {
-        return (LiveStatusEnum)liveStatus;
     }
 }

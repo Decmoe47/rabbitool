@@ -59,15 +59,7 @@ public class AllPlugins
         Console.CancelKeyPress += (sender, e) => _tokenSource.Cancel();
 
         QQBotPlugin qPlugin = new(_qbSvc);
-#pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
-        qPlugin.RunAsync().ContinueWith(
-            (task) =>
-            {
-                if (task.Exception?.InnerException is not OperationCanceledException)
-                    Log.Error(task.Exception?.InnerException?.ToString() ?? "");
-            },
-            TaskContinuationOptions.OnlyOnFaulted);
-#pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
+        await qPlugin.RunAsync();
 
         await _host.RunAsync(_tokenSource.Token);
     }

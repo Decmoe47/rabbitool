@@ -191,20 +191,24 @@ public class BilibiliPlugin : BasePlugin
 
         if (dy.Reserve is null)
         {
-            text = @$"{dy.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
+            text = $"""
+                {dy.Text.AddRedirectToUrls(_redirectUrl)}
+                ——————————
+                动态发布时间：{uploadTimeStr}
+                动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                """;
         }
         else
         {
-            text = $@"{dy.Text.AddRedirectToUrls(_redirectUrl)}
+            text = $"""
+                {dy.Text.AddRedirectToUrls(_redirectUrl)}
 
-{dy.Reserve.Title}
-预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
+                {dy.Reserve.Title}
+                预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
+                ——————————
+                动态发布时间：{uploadTimeStr}
+                动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                """;
         }
 
         if (dy.ImageUrls?.Count is int and not 0)
@@ -218,15 +222,17 @@ public class BilibiliPlugin : BasePlugin
         string title = "【新b站视频】来自 " + dy.Uname;
 
         string dynamicText = dy.DynamicText is "" ? "（无动态文本）" : dy.DynamicText;
-        string text = $@"【视频标题】
-{dy.VideoTitle}
+        string text = $"""
+            【视频标题】
+            {dy.VideoTitle}
 
-【动态内容】
-{dynamicText}
-——————————
-视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-视频链接：{dy.VideoUrl.AddRedirectToUrls(_redirectUrl)}
-视频封面：";
+            【动态内容】
+            {dynamicText}
+            ——————————
+            视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+            视频链接：{dy.VideoUrl.AddRedirectToUrls(_redirectUrl)}
+            视频封面：
+            """;
 
         return (title, text);
     }
@@ -234,12 +240,14 @@ public class BilibiliPlugin : BasePlugin
     private (string title, string text) ArticleDynamicToStr(ArticleDynamicDTO dy)
     {
         string title = "【新专栏】来自 " + dy.Uname;
-        string text = $@"【专栏标题】
-{dy.ArticleTitle}
-——————————
-专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-专栏链接：{dy.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
-专栏封面：";
+        string text = $"""
+            【专栏标题】
+            {dy.ArticleTitle}
+            ——————————
+            专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(dy.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+            专栏链接：{dy.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
+            专栏封面：
+            """;
 
         return (title, text);
     }
@@ -255,13 +263,15 @@ public class BilibiliPlugin : BasePlugin
         switch (dy.Origin)
         {
             case string:
-                text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                text = $"""
+                    {dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
+                    ——————————
+                    动态发布时间：{uploadTimeStr}
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-（原动态已被删除）";
+                    ====================
+                    （原动态已被删除）
+                    """;
                 break;
 
             case CommonDynamicDTO cOrigin:
@@ -270,36 +280,40 @@ public class BilibiliPlugin : BasePlugin
                     .ToString("yyyy-MM-dd HH:mm:ss zzz");
                 if (cOrigin.Reserve is null)
                 {
-                    text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                    text = $"""
+                        {dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
+                        ——————————
+                        动态发布时间：{uploadTimeStr}
+                        动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【原动态】来自 {cOrigin.Uname}
+                        ====================
+                        【原动态】来自 {cOrigin.Uname}
 
-{cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-原动态发布时间：{originUploadTimeStr}
-原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
+                        {cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
+                        ——————————
+                        原动态发布时间：{originUploadTimeStr}
+                        原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                        """;
                 }
                 else
                 {
-                    text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                    text = $"""
+                        {dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
+                        ——————————
+                        动态发布时间：{uploadTimeStr}
+                        动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【原动态】来自 {cOrigin.Uname}
+                        ====================
+                        【原动态】来自 {cOrigin.Uname}
 
-{cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
+                        {cOrigin.Text.AddRedirectToUrls(_redirectUrl)}
 
-{cOrigin.Reserve.Title}
-预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-——————————
-原动态发布时间：{originUploadTimeStr}
-原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}";
+                        {cOrigin.Reserve.Title}
+                        预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                        ——————————
+                        原动态发布时间：{originUploadTimeStr}
+                        原动态链接：{cOrigin.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                        """;
                 }
                 if (cOrigin.ImageUrls?.Count is int and not 0)
                 {
@@ -309,54 +323,60 @@ public class BilibiliPlugin : BasePlugin
                 break;
 
             case VideoDynamicDTO vOrigin:
-                text = $@"{dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
+                text = $"""
+                    {dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
 
-——————————
-动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                    ——————————
+                    动态发布时间：{uploadTimeStr}
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【视频】来自 {vOrigin.Uname}
+                    ====================
+                    【视频】来自 {vOrigin.Uname}
 
-【视频标题】
-{vOrigin.VideoTitle}
+                    【视频标题】
+                    {vOrigin.VideoTitle}
 
-【原动态内容】
-{vOrigin.DynamicText.AddRedirectToUrls(_redirectUrl)}
-——————————
-视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(vOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-视频链接：{vOrigin.VideoUrl.AddRedirectToUrls(_redirectUrl)}
-封面：";
+                    【原动态内容】
+                    {vOrigin.DynamicText.AddRedirectToUrls(_redirectUrl)}
+                    ——————————
+                    视频发布时间：{TimeZoneInfo.ConvertTimeFromUtc(vOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                    视频链接：{vOrigin.VideoUrl.AddRedirectToUrls(_redirectUrl)}
+                    封面：
+                    """;
                 imgUrls = new List<string>() { vOrigin.VideoThumbnailUrl };
                 break;
 
             case ArticleDynamicDTO aOrigin:
-                text = $@"动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                text = $"""
+                    动态发布时间：{uploadTimeStr}
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【专栏】来自 {aOrigin.Uname}
+                    ====================
+                    【专栏】来自 {aOrigin.Uname}
 
-【专栏标题】
-{aOrigin.ArticleTitle}
-——————————
-专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(aOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
-封面：";
+                    【专栏标题】
+                    {aOrigin.ArticleTitle}
+                    ——————————
+                    专栏发布时间：{TimeZoneInfo.ConvertTimeFromUtc(aOrigin.DynamicUploadTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                    专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls(_redirectUrl)}
+                    封面：
+                    """;
                 imgUrls = new List<string>() { aOrigin.ArticleThumbnailUrl };
                 break;
 
             case LiveCardDynamicDTO lOrigin:
-                text = $@"动态发布时间：{uploadTimeStr}
-动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
+                text = $"""
+                    动态发布时间：{uploadTimeStr}
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【直播】来自 {lOrigin.Uname}
+                    ====================
+                    【直播】来自 {lOrigin.Uname}
 
-直播标题：{lOrigin.Title}
-直播开始时间：{lOrigin.LiveStartTime}
-直播间链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls(_redirectUrl)}
-直播间封面：";
+                    直播标题：{lOrigin.Title}
+                    直播开始时间：{lOrigin.LiveStartTime}
+                    直播间链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls(_redirectUrl)}
+                    直播间封面：
+                    """;
                 break;
 
             default:
@@ -478,9 +498,11 @@ public class BilibiliPlugin : BasePlugin
                 .ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST);
 
             title = "【b站开播】来自 " + live.Uname;
-            text = $@"直播标题：{live.Title}
-开播时间：{liveStartTime:yyyy-MM-dd HH:mm:ss zzz}
-直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}";
+            text = $"""
+                直播标题：{live.Title}
+                开播时间：{liveStartTime:yyyy-MM-dd HH:mm:ss zzz}
+                直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}
+                """;
             if (live.CoverUrl is string and not "")
                 text += "\n封面：\n";
         }
@@ -489,8 +511,10 @@ public class BilibiliPlugin : BasePlugin
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             title = "【b站下播】来自 " + live.Uname;
-            text = $@"下播时间：{now:yyyy-MM-dd HH:mm:ss zzz}
-直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}";
+            text = $"""
+                下播时间：{now:yyyy-MM-dd HH:mm:ss zzz}
+                直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}
+                """;
         }
 
         return (title, text);

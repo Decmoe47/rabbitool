@@ -196,10 +196,12 @@ public class TwitterPlugin : BasePlugin
         if (tweet.Origin is null)
         {
             title = $"【新推文】来自 {tweet.Author}";
-            text = $@"{tweet.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-推文发布时间：{pubTimeStr}
-推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}";
+            text = $"""
+                {tweet.Text.AddRedirectToUrls(_redirectUrl)}
+                ——————————
+                推文发布时间：{pubTimeStr}
+                推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}
+                """;
         }
         else if (tweet.Type == TweetTypeEnum.Quote)
         {
@@ -208,18 +210,20 @@ public class TwitterPlugin : BasePlugin
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             title = $"【新带评论转发推文】来自 {tweet.Author}";
-            text = $@"{tweet.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-推文发布时间：{pubTimeStr}
-推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}
+            text = $"""
+                {tweet.Text.AddRedirectToUrls(_redirectUrl)}
+                ——————————
+                推文发布时间：{pubTimeStr}
+                推文链接：{tweet.Url.AddRedirectToUrls(_redirectUrl)}
 
-====================
-【原推文】来自 {tweet.Origin.Author}
+                ====================
+                【原推文】来自 {tweet.Origin.Author}
 
-{tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-原推文发布时间：{originPubTimeStr}
-原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}";
+                {tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
+                ——————————
+                原推文发布时间：{originPubTimeStr}
+                原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}
+                """;
         }
         else if (tweet.Type == TweetTypeEnum.RT)
         {
@@ -228,12 +232,14 @@ public class TwitterPlugin : BasePlugin
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             title = $"【新转发推文】来自 {tweet.Author}";
-            text = $@"【原推文】来自 {tweet.Origin.Author}
+            text = $"""
+                【原推文】来自 {tweet.Origin.Author}
 
-{tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
-——————————
-原推文发布时间：{originPubTimeStr}
-原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}";
+                {tweet.Origin.Text.AddRedirectToUrls(_redirectUrl)}
+                ——————————
+                原推文发布时间：{originPubTimeStr}
+                原推文链接：{tweet.Origin.Url.AddRedirectToUrls(_redirectUrl)}
+                """;
         }
         else
         {

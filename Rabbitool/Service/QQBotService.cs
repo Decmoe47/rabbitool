@@ -23,6 +23,7 @@ public class QQBotService
     private readonly bool _isSandbox;
     private readonly string _sandboxGuildName;
     private string _sandboxGuildId = "";
+    private string _botId = "";
 
     public QQBotService(string appId, string token, bool isSandbox, string sandboxGuildName)
     {
@@ -48,27 +49,30 @@ public class QQBotService
         RegisterBasicEvents();
         RegisterMessageAuditEvent();
 
+        await _qqBot.OnlineAsync();
+
         Guild guild = await GetGuildByNameAsync(_sandboxGuildName);
         _sandboxGuildId = guild.Id;
 
-        await _qqBot.OnlineAsync();
+        _botId = await GetBotIdAsync();
     }
 
     public void RegisterAtMessageEvent(
-        Func<Message, CancellationToken, Task<string>> generateReplyMsgFunc,
+        Func<Message, CancellationToken, Task<string>> fn,
         CancellationToken cancellationToken = default)
     {
         _qqBot.RegisterAtMessageEvent();
         _qqBot.ReceivedAtMessage += async (message) =>
         {
+            // 在沙箱频道里@bot，正式环境里的bot不会响应
             if (!_isSandbox && message.GuildId == _sandboxGuildId)
                 return;
-            if (!message.Content.Contains("<@"))
+            if (!message.Content.Contains("<@" + _botId + ">"))
                 return;
             Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
-            string text = await generateReplyMsgFunc(message, cancellationToken);
+            string text = await fn(message, cancellationToken);
             try
             {
                 await PostMessageAsync(
@@ -106,6 +110,12 @@ public class QQBotService
         _qqBot.OnConnected += () => Log.Information("QQBot connected!");
         _qqBot.OnError += (ex) => Log.Error(ex, "QQBot error: {message}", ex.Message);
         _qqBot.OnClose += () => Log.Warning("QQBot connect closed!");
+    }
+
+    private async Task<string> GetBotIdAsync()
+    {
+        User bot = await _qqApi.GetUserApi().GetCurrentUserAsync();
+        return bot.Id;
     }
 
     public async Task<List<Guild>> GetAllGuildsAsync(CancellationToken cancellationToken = default)

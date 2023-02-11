@@ -264,10 +264,12 @@ public class YoutubePlugin : BasePlugin
             .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-            return $@"直播标题：{live.Title}
-开播时间：{actualStartTime}
-直播间链接：{live.Url.AddRedirectToUrls(_redirectUrl)}
-直播间封面：";
+            return $"""
+                直播标题：{live.Title}
+                开播时间：{actualStartTime}
+                直播间链接：{live.Url.AddRedirectToUrls(_redirectUrl)}
+                直播间封面：
+                """;
         }
         else
         {
@@ -275,10 +277,12 @@ public class YoutubePlugin : BasePlugin
             .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-            return $@"直播标题：{live.Title}
-预定开播时间：{scheduledStartTime}
-直播间链接：{live.Url.AddRedirectToUrls(_redirectUrl)}
-直播间封面：";
+            return $"""
+                直播标题：{live.Title}
+                预定开播时间：{scheduledStartTime}
+                直播间链接：{live.Url.AddRedirectToUrls(_redirectUrl)}
+                直播间封面：
+                """;
         }
     }
 
@@ -288,9 +292,11 @@ public class YoutubePlugin : BasePlugin
             .ConvertTimeFromUtc(item.PubTime, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-        return $@"视频标题：{item.Title}
-视频发布时间：{pubTimeStr}
-视频链接：{item.Url.AddRedirectToUrls(_redirectUrl)}
-视频封面：";
+        return $"""
+            视频标题：{item.Title}
+            视频发布时间：{pubTimeStr}
+            视频链接：{item.Url.AddRedirectToUrls(_redirectUrl)}
+            视频封面：
+            """;
     }
 }

@@ -181,12 +181,14 @@ public class MailPlugin : BasePlugin
                 @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
                 new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
 
-        string detailText = $@"From: {from}
-To: {to}
-Time: {TimeZoneInfo.ConvertTimeFromUtc(mail.Time, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-Subject: {mail.Subject}
-——————————
-{mail.Text.AddRedirectToUrls(_redirectUrl)}";
+        string detailText = $"""
+            From: {from}
+            To: {to}
+            Time: {TimeZoneInfo.ConvertTimeFromUtc(mail.Time, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+            Subject: {mail.Subject}
+            ——————————
+            {mail.Text.AddRedirectToUrls(_redirectUrl)}
+            """;
 
         detailText = Regex.Replace(
                 detailText,
