@@ -19,7 +19,7 @@ public static class SubscribeEntityHelper
 
             default:
                 throw new NotSupportedException(
-                    $"The type TSubscribe which is {typeof(TSubscribe).Name} cann't be generated in this function!");
+                    $"The type TSubscribe which is {typeof(TSubscribe).Name} can't be generated in this function!");
         }
     }
 

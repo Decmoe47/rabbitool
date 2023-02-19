@@ -9,12 +9,12 @@ public class PluginCommandResponder
 
     public static async Task<string> RespondToPluginCommandAsync(
 #pragma warning restore CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
-        List<string> command, Message message, CancellationToken cancellationToken)
+        List<string> cmd, Message msg, CancellationToken ct)
     {
-        switch (command[1])
+        switch (cmd[1])
         {
             case "list" or "ls":
-                Dictionary<string, bool>? switches = PluginSwitchEvent.GetPluginsSwitches();
+                Dictionary<string, bool>? switches = PluginSwitchEvent.GetAllPluginsStatus();
                 if (switches is null)
                     return "No plugin is running.";
 
@@ -25,10 +25,10 @@ public class PluginCommandResponder
                 return result;
 
             case "start":
-                return StartPlugin(command[2]);
+                return StartPlugin(cmd[2]);
 
             case "stop":
-                return StopPlugin(command[2]);
+                return StopPlugin(cmd[2]);
 
             default:
                 return "[Error] Invalid command!";
@@ -40,19 +40,19 @@ public class PluginCommandResponder
         switch (pluginName)
         {
             case "bilibili":
-                PluginSwitchEvent.OnBilibiliPluginSwitched(true);
+                PluginSwitchEvent.OnBilibiliPluginSwitching(true);
                 return "Bilibili plugin started successfully!";
 
             case "youtube":
-                PluginSwitchEvent.OnYoutubePluginSwitched(true);
+                PluginSwitchEvent.OnYoutubePluginSwitching(true);
                 return "Youtube plugin started successfully!";
 
             case "twitter":
-                PluginSwitchEvent.OnTwitterPluginSwitched(true);
+                PluginSwitchEvent.OnTwitterPluginSwitching(true);
                 return "Twitter plugin started successfully!";
 
-            case "Mail":
-                PluginSwitchEvent.OnMailPluginSwitched(true);
+            case "mail":
+                PluginSwitchEvent.OnMailPluginSwitching(true);
                 return "Mail plugin started successfully!";
 
             default:
@@ -65,19 +65,19 @@ public class PluginCommandResponder
         switch (pluginName)
         {
             case "bilibili":
-                PluginSwitchEvent.OnBilibiliPluginSwitched(false);
+                PluginSwitchEvent.OnBilibiliPluginSwitching(false);
                 return "Bilibili plugin stopped successfully!";
 
             case "youtube":
-                PluginSwitchEvent.OnYoutubePluginSwitched(false);
+                PluginSwitchEvent.OnYoutubePluginSwitching(false);
                 return "Youtube plugin stopped successfully!";
 
             case "twitter":
-                PluginSwitchEvent.OnTwitterPluginSwitched(false);
+                PluginSwitchEvent.OnTwitterPluginSwitching(false);
                 return "Twitter plugin stopped successfully!";
 
-            case "Mail":
-                PluginSwitchEvent.OnMailPluginSwitched(false);
+            case "mail":
+                PluginSwitchEvent.OnMailPluginSwitching(false);
                 return "Mail plugin stopped successfully!";
 
             default:

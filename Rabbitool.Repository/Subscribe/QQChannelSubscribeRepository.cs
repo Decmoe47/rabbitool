@@ -14,7 +14,7 @@ public class QQChannelSubscribeRepository
     public async Task<List<QQChannelSubscribeEntity>> GetAllAsync(
         string guildId,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -26,7 +26,7 @@ public class QQChannelSubscribeRepository
                 .Include(e => e.TwitterSubscribes)
                 .Include(e => e.MailSubscribes)
                 .Where(e => e.GuildId == guildId)
-                .ToListAsync(cancellationToken),
+                .ToListAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(e => e.BilibiliSubscribes)
@@ -34,14 +34,14 @@ public class QQChannelSubscribeRepository
                 .Include(e => e.TwitterSubscribes)
                 .Include(e => e.MailSubscribes)
                 .Where(e => e.GuildId == guildId)
-                .ToListAsync(cancellationToken)
+                .ToListAsync(ct)
         };
     }
 
     public async Task<QQChannelSubscribeEntity> GetAsync(
        string channelId,
        bool tracking = false,
-       CancellationToken cancellationToken = default)
+       CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -53,7 +53,7 @@ public class QQChannelSubscribeRepository
                 .Include(e => e.TwitterSubscribes)
                 .Include(e => e.MailSubscribes)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken),
+                .FirstAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(e => e.BilibiliSubscribes)
@@ -61,7 +61,7 @@ public class QQChannelSubscribeRepository
                 .Include(e => e.TwitterSubscribes)
                 .Include(e => e.MailSubscribes)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken)
+                .FirstAsync(ct)
         };
     }
 
@@ -69,7 +69,7 @@ public class QQChannelSubscribeRepository
         string channelId,
         Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -78,12 +78,12 @@ public class QQChannelSubscribeRepository
                 .AsNoTracking()
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken),
+                .FirstAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken)
+                .FirstAsync(ct)
         };
     }
 
@@ -91,7 +91,7 @@ public class QQChannelSubscribeRepository
         string channelId,
         string subscribeProp,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -100,12 +100,12 @@ public class QQChannelSubscribeRepository
                 .AsNoTracking()
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken),
+                .FirstAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstAsync(cancellationToken)
+                .FirstAsync(ct)
         };
     }
 
@@ -113,7 +113,7 @@ public class QQChannelSubscribeRepository
         string channelId,
         Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -122,12 +122,12 @@ public class QQChannelSubscribeRepository
                 .AsNoTracking()
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(cancellationToken),
+                .FirstOrDefaultAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(cancellationToken)
+                .FirstOrDefaultAsync(ct)
         };
     }
 
@@ -135,7 +135,7 @@ public class QQChannelSubscribeRepository
         string channelId,
         string subscribeProp,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -144,12 +144,12 @@ public class QQChannelSubscribeRepository
                 .AsNoTracking()
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(cancellationToken),
+                .FirstOrDefaultAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
                 .Include(subscribeProp)
                 .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(cancellationToken)
+                .FirstOrDefaultAsync(ct)
         };
     }
 
@@ -158,10 +158,10 @@ public class QQChannelSubscribeRepository
         string guildName,
         string channelId,
         string channelName,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         QQChannelSubscribeEntity record = new(guildId, guildName, channelId, channelName); ;
-        await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, cancellationToken);
+        await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, ct);
         return record;
     }
 
@@ -171,13 +171,13 @@ public class QQChannelSubscribeRepository
         string channelId,
         string channelName,
         Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        QQChannelSubscribeEntity? record = await GetOrDefaultAsync(channelId, subscribeProp, true, cancellationToken);
+        QQChannelSubscribeEntity? record = await GetOrDefaultAsync(channelId, subscribeProp, true, ct);
         if (record is null)
         {
             record = new QQChannelSubscribeEntity(guildId, guildName, channelId, channelName);
-            await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, cancellationToken);
+            await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, ct);
         }
         return record;
     }
@@ -188,7 +188,7 @@ public class QQChannelSubscribeRepository
         string channelId,
         string channelName,
         ISubscribeEntity subscribe,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         bool added = true;
         QQChannelSubscribeEntity record;
@@ -196,7 +196,7 @@ public class QQChannelSubscribeRepository
         switch (subscribe)
         {
             case BilibiliSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.BilibiliSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.BilibiliSubscribes, ct);
                 if (record.BilibiliSubscribes is null)
                     record.BilibiliSubscribes = new List<BilibiliSubscribeEntity>() { s };
                 else if (record.BilibiliSubscribes.Exists(b => b.Uid == s.Uid))
@@ -209,7 +209,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case TwitterSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.TwitterSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.TwitterSubscribes, ct);
                 if (record.TwitterSubscribes is null)
                     record.TwitterSubscribes = new List<TwitterSubscribeEntity>() { s };
                 else if (record.TwitterSubscribes.Exists(t => t.ScreenName == s.ScreenName))
@@ -222,7 +222,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case YoutubeSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.YoutubeSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.YoutubeSubscribes, ct);
                 if (record.YoutubeSubscribes is null)
                     record.YoutubeSubscribes = new List<YoutubeSubscribeEntity>() { s };
                 else if (record.YoutubeSubscribes.Exists(y => y.ChannelId == s.ChannelId))
@@ -235,7 +235,7 @@ public class QQChannelSubscribeRepository
                 break;
 
             case MailSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.MailSubscribes, cancellationToken);
+                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.MailSubscribes, ct);
                 if (record.MailSubscribes is null)
                     record.MailSubscribes = new List<MailSubscribeEntity>() { s };
                 else if (record.MailSubscribes.Exists(m => m.Address == s.Address))
@@ -257,9 +257,9 @@ public class QQChannelSubscribeRepository
         string channelId,
         string subscribeId,
         Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        QQChannelSubscribeEntity record = await GetAsync(channelId, true, cancellationToken);
+        QQChannelSubscribeEntity record = await GetAsync(channelId, true, ct);
 
         switch (typeof(TProperty).Name)
         {
@@ -320,9 +320,9 @@ public class QQChannelSubscribeRepository
         string channelId,
         string subscribeId,
         string subscribeProp,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        QQChannelSubscribeEntity record = await GetAsync(channelId, true, cancellationToken);
+        QQChannelSubscribeEntity record = await GetAsync(channelId, true, ct);
 
         switch (subscribeProp)
         {

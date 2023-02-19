@@ -13,7 +13,7 @@ public class YoutubePlugin : BasePlugin
     private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
 
-    private Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
+    private readonly Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
 
     public YoutubePlugin(
         string apiKey,
@@ -30,9 +30,9 @@ public class YoutubePlugin : BasePlugin
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }
 
-    public async Task CheckAllAsync(CancellationToken cancellationToken = default)
+    public async Task CheckAllAsync(CancellationToken ct = default)
     {
-        List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
+        List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
             Log.Debug("There isn't any youtube subscribe yet!");
@@ -42,18 +42,18 @@ public class YoutubePlugin : BasePlugin
         List<Task> tasks = new();
         foreach (YoutubeSubscribeEntity record in records)
         {
-            tasks.Add(CheckAsync(record, cancellationToken));
-            tasks.Add(CheckUpcomingLiveAsync(record, cancellationToken));
+            tasks.Add(CheckAsync(record, ct));
+            tasks.Add(CheckUpcomingLiveAsync(record, ct));
         }
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task CheckAsync(YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
             YoutubeItem item = await _svc.GetLatestTwoVideoOrLiveAsync(
-                record.ChannelId, cancellationToken: cancellationToken);
+                record.ChannelId, ct: ct);
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
@@ -63,15 +63,15 @@ public class YoutubePlugin : BasePlugin
                     if (live.Type == YoutubeTypeEnum.UpcomingLive && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
                     {
                         record.AllUpcomingLiveRoomIds.Add(live.Id);
-                        await _repo.SaveAsync(cancellationToken);
+                        await _repo.SaveAsync(ct);
                         Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
                             live.Author, live.ChannelId);
 
-                        await PushUpcomingLiveAsync(live, record, cancellationToken);
+                        await PushUpcomingLiveAsync(live, record, ct);
                     }
                     else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
                     {
-                        await PushLiveAndUpdateDatabaseAsync(live, record, cancellationToken: cancellationToken);
+                        await PushLiveAndUpdateDatabaseAsync(live, record, ct: ct);
                     }
 
                     break;
@@ -103,13 +103,13 @@ public class YoutubePlugin : BasePlugin
                         pubTimes.Sort();
                         foreach (DateTime pubTime in pubTimes)
                         {
-                            await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record, cancellationToken);
+                            await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record, ct);
                             _storedVideos[video.ChannelId].Remove(pubTime);
                         }
                         return;
                     }
 
-                    await PushVideoAndUpdateDatabaseAsync(video, record, cancellationToken);
+                    await PushVideoAndUpdateDatabaseAsync(video, record, ct);
                     break;
 
                 default:
@@ -126,23 +126,23 @@ public class YoutubePlugin : BasePlugin
         }
     }
 
-    private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
         foreach (string roomId in allUpcomingLiveRoomIdsTmp)
         {
-            if (await _svc.IsStreamingAsync(roomId, cancellationToken) is YoutubeLive live)
+            if (await _svc.IsStreamingAsync(roomId, ct) is YoutubeLive live)
             {
                 Log.Debug("Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
-                await PushLiveAndUpdateDatabaseAsync(live, record, false, cancellationToken);
+                await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
                 record.AllUpcomingLiveRoomIds.Remove(roomId);
-                await _repo.SaveAsync(cancellationToken);
+                await _repo.SaveAsync(ct);
             }
         }
     }
 
     private async Task PushLiveAndUpdateDatabaseAsync(
-        YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken cancellationToken = default)
+        YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken ct = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
         if (now.Hour >= 0 && now.Hour <= 5)
@@ -152,7 +152,7 @@ public class YoutubePlugin : BasePlugin
         }
         else
         {
-            await PushMsgAsync(live, record, cancellationToken);
+            await PushMsgAsync(live, record, ct);
             Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                 live.Author, live.ChannelId);
         }
@@ -165,13 +165,13 @@ public class YoutubePlugin : BasePlugin
             record.AllArchiveVideoIds.RemoveAt(0);
 
         if (saving)
-            await _repo.SaveAsync(cancellationToken);
+            await _repo.SaveAsync(ct);
         Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             live.Author, live.ChannelId);
     }
 
     private async Task PushUpcomingLiveAsync(
-        YoutubeLive live, YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
+        YoutubeLive live, YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
         if (now.Hour >= 0 && now.Hour <= 5)
@@ -181,7 +181,7 @@ public class YoutubePlugin : BasePlugin
         }
         else
         {
-            bool pushed = await PushMsgAsync(live, record, cancellationToken);
+            bool pushed = await PushMsgAsync(live, record, ct);
             if (pushed)
             {
                 Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
@@ -190,9 +190,9 @@ public class YoutubePlugin : BasePlugin
         }
     }
 
-    private async Task PushVideoAndUpdateDatabaseAsync(YoutubeVideo video, YoutubeSubscribeEntity record, CancellationToken cancellationToken)
+    private async Task PushVideoAndUpdateDatabaseAsync(YoutubeVideo video, YoutubeSubscribeEntity record, CancellationToken ct)
     {
-        bool pushed = await PushMsgAsync(video, record, cancellationToken);
+        bool pushed = await PushMsgAsync(video, record, ct);
         if (pushed)
         {
             Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
@@ -201,19 +201,19 @@ public class YoutubePlugin : BasePlugin
 
         record.LastVideoId = video.Id;
         record.LastVideoPubTime = video.PubTime;
-        await _repo.SaveAsync(cancellationToken);
+        await _repo.SaveAsync(ct);
         Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             video.Author, video.ChannelId);
     }
 
-    private async Task<bool> PushMsgAsync<T>(T item, YoutubeSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task<bool> PushMsgAsync<T>(T item, YoutubeSubscribeEntity record, CancellationToken ct = default)
         where T : YoutubeItem
     {
         (string title, string text, string imgUrl) = ItemToStr(item);
-        string uploadedImgUrl = await _cosSvc.UploadImageAsync(imgUrl, cancellationToken);
+        string uploadedImgUrl = await _cosSvc.UploadImageAsync(imgUrl, ct);
 
         List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            item.ChannelId, cancellationToken: cancellationToken);
+            item.ChannelId, ct: ct);
 
         bool pushed = false;
         List<Task> tasks = new();
@@ -237,7 +237,7 @@ public class YoutubePlugin : BasePlugin
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl, cancellationToken));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl, ct));
             pushed = true;
         }
 

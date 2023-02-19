@@ -20,10 +20,10 @@ public class YoutubeSubscribeCommandHandler
     {
     }
 
-    public override async Task<(string name, string? errCommandMsg)> CheckId(
-        string channelId, CancellationToken cancellationToken = default)
+    public override async Task<(string name, string? errMsg)> CheckId(
+        string channelId, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         string resp;
         try

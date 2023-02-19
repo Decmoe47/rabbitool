@@ -14,49 +14,49 @@ public class BilibiliSubscribeRepository
     }
 
     public async Task<List<BilibiliSubscribeEntity>> GetAllAsync(
-        bool tracking = false, CancellationToken cancellationToken = default)
+        bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
             false => await _dbCtx.BibiliSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .ToListAsync(cancellationToken),
+                .ToListAsync(ct),
             true => await _dbCtx.BibiliSubscribeEntity
                 .Include(e => e.QQChannels)
-                .ToListAsync(cancellationToken)
+                .ToListAsync(ct)
         };
     }
 
     public async Task<BilibiliSubscribeEntity> GetAsync(
-        string uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string uid, bool tracking = false, CancellationToken ct = default)
     {
-        return await GetAsync(uint.Parse(uid), tracking, cancellationToken);
+        return await GetAsync(uint.Parse(uid), tracking, ct);
     }
 
     public async Task<BilibiliSubscribeEntity> GetAsync(
-        uint uid, bool tracking = false, CancellationToken cancellationToken = default)
+        uint uid, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
             false => await _dbCtx.BibiliSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .FirstAsync(b => b.Uid == uid, cancellationToken),
+                .FirstAsync(b => b.Uid == uid, ct),
             true => await _dbCtx.BibiliSubscribeEntity
                 .Include(e => e.QQChannels)
-                .FirstAsync(b => b.Uid == uid, cancellationToken)
+                .FirstAsync(b => b.Uid == uid, ct)
         };
     }
 
     public async Task<BilibiliSubscribeEntity?> GetOrDefaultAsync(
-        string uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string uid, bool tracking = false, CancellationToken ct = default)
     {
-        return await GetOrDefaultAsync(uint.Parse(uid), tracking, cancellationToken);
+        return await GetOrDefaultAsync(uint.Parse(uid), tracking, ct);
     }
 
     public async Task<BilibiliSubscribeEntity?> GetOrDefaultAsync(
-        uint uid, bool tracking = false, CancellationToken cancellationToken = default)
+        uint uid, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -64,26 +64,26 @@ public class BilibiliSubscribeRepository
                 .BibiliSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .FirstOrDefaultAsync(b => b.Uid == uid, cancellationToken),
+                .FirstOrDefaultAsync(b => b.Uid == uid, ct),
             true => await _dbCtx.BibiliSubscribeEntity
                 .Include(e => e.QQChannels)
-                .FirstOrDefaultAsync(b => b.Uid == uid, cancellationToken)
+                .FirstOrDefaultAsync(b => b.Uid == uid, ct)
         };
     }
 
-    public async Task AddAsync(BilibiliSubscribeEntity entity, CancellationToken cancellationToken = default)
+    public async Task AddAsync(BilibiliSubscribeEntity entity, CancellationToken ct = default)
     {
-        await _dbCtx.BibiliSubscribeEntity.AddAsync(entity, cancellationToken);
+        await _dbCtx.BibiliSubscribeEntity.AddAsync(entity, ct);
     }
 
-    public async Task<BilibiliSubscribeEntity> DeleteAsync(string uid, CancellationToken cancellationToken = default)
+    public async Task<BilibiliSubscribeEntity> DeleteAsync(string uid, CancellationToken ct = default)
     {
-        return await DeleteAsync(uint.Parse(uid), cancellationToken);
+        return await DeleteAsync(uint.Parse(uid), ct);
     }
 
-    public async Task<BilibiliSubscribeEntity> DeleteAsync(uint uid, CancellationToken cancellationToken = default)
+    public async Task<BilibiliSubscribeEntity> DeleteAsync(uint uid, CancellationToken ct = default)
     {
-        BilibiliSubscribeEntity record = await GetAsync(uid, true, cancellationToken);
+        BilibiliSubscribeEntity record = await GetAsync(uid, true, ct);
         _dbCtx.BibiliSubscribeEntity.Remove(record);
         return record;
     }
@@ -98,13 +98,13 @@ public class BilibiliSubscribeConfigRepository
     }
 
     public async Task<List<BilibiliSubscribeConfigEntity>> GetAllAsync(
-        string uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string uid, bool tracking = false, CancellationToken ct = default)
     {
-        return await GetAllAsync(uint.Parse(uid), tracking, cancellationToken);
+        return await GetAllAsync(uint.Parse(uid), tracking, ct);
     }
 
     public async Task<List<BilibiliSubscribeConfigEntity>> GetAllAsync(
-        uint uid, bool tracking = false, CancellationToken cancellationToken = default)
+        uint uid, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -114,24 +114,24 @@ public class BilibiliSubscribeConfigRepository
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(b => b.Subscribe.Uid == uid)
-                .ToListAsync(cancellationToken),
+                .ToListAsync(ct),
             true => await _dbCtx
                 .BibiliSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(b => b.Subscribe.Uid == uid)
-                .ToListAsync(cancellationToken)
+                .ToListAsync(ct)
         };
     }
 
     public async Task<BilibiliSubscribeConfigEntity> GetAsync(
-        string qqChannelId, string uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string qqChannelId, string uid, bool tracking = false, CancellationToken ct = default)
     {
-        return await GetAsync(qqChannelId, uint.Parse(uid), tracking, cancellationToken);
+        return await GetAsync(qqChannelId, uint.Parse(uid), tracking, ct);
     }
 
     public async Task<BilibiliSubscribeConfigEntity> GetAsync(
-        string qqChannelId, uint uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string qqChannelId, uint uid, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -140,23 +140,23 @@ public class BilibiliSubscribeConfigRepository
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
-                .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, cancellationToken),
+                .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct),
             true => await _dbCtx
                 .BibiliSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
-                .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, cancellationToken)
+                .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct)
         };
     }
 
     public async Task<BilibiliSubscribeConfigEntity?> GetOrDefaultAsync(
-        string qqChannelId, string uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string qqChannelId, string uid, bool tracking = false, CancellationToken ct = default)
     {
-        return await GetOrDefaultAsync(qqChannelId, uint.Parse(uid), tracking, cancellationToken);
+        return await GetOrDefaultAsync(qqChannelId, uint.Parse(uid), tracking, ct);
     }
 
     public async Task<BilibiliSubscribeConfigEntity?> GetOrDefaultAsync(
-        string qqChannelId, uint uid, bool tracking = false, CancellationToken cancellationToken = default)
+        string qqChannelId, uint uid, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -165,12 +165,12 @@ public class BilibiliSubscribeConfigRepository
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
-                .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, cancellationToken),
+                .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct),
             true => await _dbCtx
                 .BibiliSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
-                .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, cancellationToken)
+                .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct)
         };
     }
 
@@ -178,13 +178,13 @@ public class BilibiliSubscribeConfigRepository
         QQChannelSubscribeEntity qqChannel,
         BilibiliSubscribeEntity subscribe,
         SubscribeConfigType? configs,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         BilibiliSubscribeConfigEntity record;
 
         try
         {
-            record = await GetAsync(qqChannel.ChannelId, subscribe.Uid, true, cancellationToken);
+            record = await GetAsync(qqChannel.ChannelId, subscribe.Uid, true, ct);
         }
         catch (InvalidOperationException)
         {
@@ -192,7 +192,7 @@ public class BilibiliSubscribeConfigRepository
             if (configs is not null)
                 CommonUtil.UpdateProperties(record, configs);
 
-            await _dbCtx.BibiliSubscribeConfigEntity.AddAsync(record, cancellationToken);
+            await _dbCtx.BibiliSubscribeConfigEntity.AddAsync(record, ct);
 
             return record;
         }
@@ -202,15 +202,15 @@ public class BilibiliSubscribeConfigRepository
     }
 
     public async Task<BilibiliSubscribeConfigEntity> DeleteAsync(
-        string qqChannelId, string uid, CancellationToken cancellationToken = default)
+        string qqChannelId, string uid, CancellationToken ct = default)
     {
-        return await DeleteAsync(qqChannelId, uint.Parse(uid), cancellationToken);
+        return await DeleteAsync(qqChannelId, uint.Parse(uid), ct);
     }
 
     public async Task<BilibiliSubscribeConfigEntity> DeleteAsync(
-        string qqChannelId, uint uid, CancellationToken cancellationToken = default)
+        string qqChannelId, uint uid, CancellationToken ct = default)
     {
-        BilibiliSubscribeConfigEntity record = await GetAsync(qqChannelId, uid, true, cancellationToken);
+        BilibiliSubscribeConfigEntity record = await GetAsync(qqChannelId, uid, true, ct);
         _dbCtx.BibiliSubscribeConfigEntity.Remove(record);
         return record;
     }

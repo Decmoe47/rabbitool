@@ -62,9 +62,9 @@ public class TwitterPlugin : BasePlugin
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
     }
 
-    public async Task CheckAllAsync(CancellationToken cancellationToken = default)
+    public async Task CheckAllAsync(CancellationToken ct = default)
     {
-        List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
+        List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
             Log.Debug("There isn't any twitter subscribe yet!");
@@ -73,15 +73,15 @@ public class TwitterPlugin : BasePlugin
 
         List<Task> tasks = new();
         foreach (TwitterSubscribeEntity record in records)
-            tasks.Add(CheckAsync(record, cancellationToken));
+            tasks.Add(CheckAsync(record, ct));
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(TwitterSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task CheckAsync(TwitterSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
-            Tweet tweet = await _svc.GetLatestTweetAsync(record.ScreenName, cancellationToken);
+            Tweet tweet = await _svc.GetLatestTweetAsync(record.ScreenName, ct);
             if (tweet.PubTime <= record.LastTweetTime)
             {
                 Log.Debug("No new tweet from the twitter user {name}(screenName: {screenName}).",
@@ -91,7 +91,7 @@ public class TwitterPlugin : BasePlugin
 
             async Task FnAsync(Tweet tweet)
             {
-                bool pushed = await PushTweetAsync(tweet, record, cancellationToken);
+                bool pushed = await PushTweetAsync(tweet, record, ct);
                 if (pushed)
                 {
                     Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
@@ -100,7 +100,7 @@ public class TwitterPlugin : BasePlugin
 
                 record.LastTweetTime = tweet.PubTime;
                 record.LastTweetId = tweet.Id;
-                await _repo.SaveAsync(cancellationToken);
+                await _repo.SaveAsync(ct);
                 Log.Debug("Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
                         tweet.Author, tweet.AuthorScreenName);
             }
@@ -143,14 +143,14 @@ public class TwitterPlugin : BasePlugin
     }
 
     private async Task<bool> PushTweetAsync(
-        Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken cancellationToken = default)
+        Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken ct = default)
     {
-        (string title, string text) = await TweetToStrAsync(tweet, cancellationToken);
-        RichText richText = await TweetToRichTextAsync(tweet, text, cancellationToken);
-        List<string> imgUrls = await GetTweetImgUrlsAsync(tweet, cancellationToken);
+        (string title, string text) = await TweetToStrAsync(tweet, ct);
+        RichText richText = await TweetToRichTextAsync(tweet, text, ct);
+        List<string> imgUrls = await GetTweetImgUrlsAsync(tweet, ct);
 
         List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            subscribe.ScreenName, cancellationToken: cancellationToken);
+            subscribe.ScreenName, ct: ct);
 
         bool pushed = false;
         List<Task> tasks = new();
@@ -171,12 +171,12 @@ public class TwitterPlugin : BasePlugin
             }
             if (config.PushToThread)
             {
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), cancellationToken));
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), ct));
                 pushed = true;
                 continue;
             }
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls, cancellationToken));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls, ct));
             pushed = true;
         }
 
@@ -185,7 +185,7 @@ public class TwitterPlugin : BasePlugin
     }
 
     private async Task<(string title, string text)> TweetToStrAsync(
-        Tweet tweet, CancellationToken cancellationToken = default)
+        Tweet tweet, CancellationToken ct = default)
     {
         string title;
         string text;
@@ -248,7 +248,7 @@ public class TwitterPlugin : BasePlugin
 
         if (tweet.HasVideo || (tweet.Origin?.HasVideo == true))
         {
-            string videoUrl = await _cosSvc.UploadVideoAsync(tweet.Url, tweet.PubTime, cancellationToken);
+            string videoUrl = await _cosSvc.UploadVideoAsync(tweet.Url, tweet.PubTime, ct);
             text += $"\n\n视频下载直链：{videoUrl}";
         }
 
@@ -258,7 +258,7 @@ public class TwitterPlugin : BasePlugin
         return (title, text);
     }
 
-    private async Task<List<string>> GetTweetImgUrlsAsync(Tweet tweet, CancellationToken cancellationToken = default)
+    private async Task<List<string>> GetTweetImgUrlsAsync(Tweet tweet, CancellationToken ct = default)
     {
         List<string> result = new();
 
@@ -268,7 +268,7 @@ public class TwitterPlugin : BasePlugin
             {
                 try
                 {
-                    result.Add(await _cosSvc.UploadImageAsync(url, cancellationToken));
+                    result.Add(await _cosSvc.UploadImageAsync(url, ct));
                 }
                 catch (Exception ex)
                 {
@@ -283,7 +283,7 @@ public class TwitterPlugin : BasePlugin
             {
                 try
                 {
-                    result.Add(await _cosSvc.UploadImageAsync(url, cancellationToken));
+                    result.Add(await _cosSvc.UploadImageAsync(url, ct));
                 }
                 catch (Exception ex)
                 {
@@ -297,30 +297,30 @@ public class TwitterPlugin : BasePlugin
     }
 
     private async Task<RichText> TweetToRichTextAsync(
-        Tweet tweet, string text, CancellationToken cancellationToken = default)
+        Tweet tweet, string text, CancellationToken ct = default)
     {
         RichText result = QQBotService.TextToRichText(text);
 
         if (tweet.ImageUrls is not null)
         {
             result.Paragraphs.AddRange(
-                await QQBotService.ImgagesToParagraphsAsync(tweet.ImageUrls, _cosSvc, cancellationToken));
+                await QQBotService.ImagesToParagraphsAsync(tweet.ImageUrls, _cosSvc, ct));
         }
         else if (tweet.Origin?.ImageUrls is not null)
         {
             result.Paragraphs.AddRange(
-                await QQBotService.ImgagesToParagraphsAsync(tweet.Origin.ImageUrls, _cosSvc, cancellationToken));
+                await QQBotService.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, _cosSvc, ct));
         }
 
         if (tweet.HasVideo)
         {
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.Url, tweet.PubTime, _cosSvc, cancellationToken));
+                await QQBotService.VideoToParagraphsAsync(tweet.Url, tweet.PubTime, _cosSvc, ct));
         }
         else if (tweet.Origin?.HasVideo is true)
         {
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.Origin.Url, tweet.Origin.PubTime, _cosSvc, cancellationToken));
+                await QQBotService.VideoToParagraphsAsync(tweet.Origin.Url, tweet.Origin.PubTime, _cosSvc, ct));
         }
 
         return result;

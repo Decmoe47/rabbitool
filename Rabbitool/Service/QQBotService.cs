@@ -59,7 +59,7 @@ public class QQBotService
 
     public void RegisterAtMessageEvent(
         Func<Message, CancellationToken, Task<string>> fn,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         _qqBot.RegisterAtMessageEvent();
         _qqBot.ReceivedAtMessage += async (message) =>
@@ -72,14 +72,14 @@ public class QQBotService
             Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
-            string text = await fn(message, cancellationToken);
+            string text = await fn(message, ct);
             try
             {
                 await PostMessageAsync(
                     channelId: message.ChannelId,
                     text: text,
                     referenceMessageId: message.Id,
-                    cancellationToken: cancellationToken);
+                    ct: ct);
             }
             catch (Exception ex)
             {
@@ -88,12 +88,24 @@ public class QQBotService
         };
     }
 
+    public void RegisterChannelMessageEvent(
+        Func<Message, CancellationToken, Task<string>> fn,
+        CancellationToken ct = default)
+    {
+        _qqBot.RegisterUserMessageEvent();
+        _qqBot.ReceivedUserMessage += (message) =>
+        {
+            if (message.Content.Contains("<@" + _botId + ">"))
+                return;
+        };
+    }
+
     public void RegisterBotDeletedEvent(
         Func<WsGuild, CancellationToken, Task> handler,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         _qqBot.RegisterGuildsEvent();
-        _qqBot.BotBeRemoved += async (guild) => await handler(guild, cancellationToken); // TODO: bot被删除
+        _qqBot.BotBeRemoved += async (guild) => await handler(guild, ct); // TODO: bot被删除
     }
 
     private void RegisterMessageAuditEvent()
@@ -118,52 +130,52 @@ public class QQBotService
         return bot.Id;
     }
 
-    public async Task<List<Guild>> GetAllGuildsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<Guild>> GetAllGuildsAsync(CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
         return await _qqApi.GetUserApi().GetAllJoinedChannelsAsync();
     }
 
-    public async Task<Guild> GetGuidAsync(string guildId, CancellationToken cancellationToken = default)
+    public async Task<Guild> GetGuidAsync(string guildId, CancellationToken ct = default)
     {
-        List<Guild> guilds = await GetAllGuildsAsync(cancellationToken);
+        List<Guild> guilds = await GetAllGuildsAsync(ct);
         return guilds.First(c => c.Id == guildId);
     }
 
-    public async Task<Guild> GetGuildByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<Guild> GetGuildByNameAsync(string name, CancellationToken ct = default)
     {
-        List<Guild> guilds = await GetAllGuildsAsync(cancellationToken);
+        List<Guild> guilds = await GetAllGuildsAsync(ct);
         return guilds.First(c => c.Name == name);
     }
 
-    public async Task<Guild?> GetGuildByNameOrDefaultAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<Guild?> GetGuildByNameOrDefaultAsync(string name, CancellationToken ct = default)
     {
-        List<Guild> guilds = await GetAllGuildsAsync(cancellationToken);
+        List<Guild> guilds = await GetAllGuildsAsync(ct);
         return guilds.FirstOrDefault(c => c.Name == name);
     }
 
-    public async Task<List<Channel>> GetAllChannelsAsync(string guildId, CancellationToken cancellationToken = default)
+    public async Task<List<Channel>> GetAllChannelsAsync(string guildId, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
         return await _qqApi.GetChannelApi().GetChannelsAsync(guildId);
     }
 
-    public async Task<Channel> GetChannelAsync(string channelId, CancellationToken cancellationToken = default)
+    public async Task<Channel> GetChannelAsync(string channelId, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
         return await _qqApi.GetChannelApi().GetInfoAsync(channelId);
     }
 
-    public async Task<Channel> GetChannelByNameAsync(string name, string guildId, CancellationToken cancellationToken = default)
+    public async Task<Channel> GetChannelByNameAsync(string name, string guildId, CancellationToken ct = default)
     {
-        List<Channel> channels = await GetAllChannelsAsync(guildId, cancellationToken);
+        List<Channel> channels = await GetAllChannelsAsync(guildId, ct);
         return channels.First(c => c.Name == name);
     }
 
     public async Task<Channel?> GetChannelByNameOrDefaultAsync(
-        string name, string guildId, CancellationToken cancellationToken = default)
+        string name, string guildId, CancellationToken ct = default)
     {
-        List<Channel> channels = await GetAllChannelsAsync(guildId, cancellationToken);
+        List<Channel> channels = await GetAllChannelsAsync(guildId, ct);
         return channels.FirstOrDefault(c => c.Name == name);
     }
 
@@ -188,12 +200,12 @@ public class QQBotService
         JObject? ark = null,
         string? referenceMessageId = null,
         string passiveReference = "",
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         if (!_isSandbox && channelId == _sandboxGuildId)
             return null;
 
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         try
         {
@@ -225,48 +237,48 @@ public class QQBotService
         }
     }
 
-    public async Task<Message?> PushCommonMsgAsync(string channelId, string text, CancellationToken cancellationToken = default)
+    public async Task<Message?> PushCommonMsgAsync(string channelId, string text, CancellationToken ct = default)
     {
-        return await PostMessageAsync(channelId, text, cancellationToken: cancellationToken);
+        return await PostMessageAsync(channelId, text, ct: ct);
     }
 
     public async Task<Message?> PushCommonMsgAsync(
-        string channelId, string text, string imgUrl, CancellationToken cancellationToken = default)
+        string channelId, string text, string imgUrl, CancellationToken ct = default)
     {
-        return await PostMessageAsync(channelId, text, imgUrl, cancellationToken: cancellationToken);
+        return await PostMessageAsync(channelId, text, imgUrl, ct: ct);
     }
 
     public async Task<Message?> PushCommonMsgAsync(
-        string channelId, string text, List<string>? imgUrls, CancellationToken cancellationToken = default)
+        string channelId, string text, List<string>? imgUrls, CancellationToken ct = default)
     {
         if (imgUrls is null)
-            return await PostMessageAsync(channelId, text, cancellationToken: cancellationToken);
+            return await PostMessageAsync(channelId, text, ct: ct);
 
         switch (imgUrls.Count)
         {
             case 0:
-                return await PostMessageAsync(channelId, text, cancellationToken: cancellationToken);
+                return await PostMessageAsync(channelId, text, ct: ct);
 
             case 1:
-                return await PostMessageAsync(channelId, text, imgUrls[0], cancellationToken: cancellationToken);
+                return await PostMessageAsync(channelId, text, imgUrls[0], ct: ct);
 
             default:
-                Message? msg = await PostMessageAsync(channelId, text, imgUrls[0], cancellationToken: cancellationToken);
+                Message? msg = await PostMessageAsync(channelId, text, imgUrls[0], ct: ct);
                 List<Task<Message?>> tasks = new();
                 foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
-                    tasks.Add(PostMessageAsync(channelId, imgUrl: imgUrl, cancellationToken: cancellationToken));
+                    tasks.Add(PostMessageAsync(channelId, imgUrl: imgUrl, ct: ct));
                 await Task.WhenAll(tasks);
                 return msg;
         }
     }
 
     public async Task<(string, DateTime)?> PostThreadAsync(
-        string channelId, string title, string text, CancellationToken cancellationToken = default)
+        string channelId, string title, string text, CancellationToken ct = default)
     {
         if (!_isSandbox && channelId == _sandboxGuildId)
             return null;
 
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
         try
         {
             Log.Information("Posting QQ channel thread...\nChannelId: {channelId}\nTitle: {title}\nText: {text}",
@@ -374,14 +386,14 @@ public class QQBotService
         return new RichText() { Paragraphs = paras };
     }
 
-    public static async Task<List<Paragraph>> ImgagesToParagraphsAsync(
-        List<string> urls, CosService cosSvc, CancellationToken cancellationToken = default)
+    public static async Task<List<Paragraph>> ImagesToParagraphsAsync(
+        List<string> urls, CosService cosSvc, CancellationToken ct = default)
     {
         List<Elem> imgElems = new(urls.Count);
 
         foreach (string url in urls)
         {
-            string uploadedUrl = await cosSvc.UploadImageAsync(url, cancellationToken);
+            string uploadedUrl = await cosSvc.UploadImageAsync(url, ct);
             imgElems.Add(new Elem()
             {
                 Image = new ImageElem() { ThirdUrl = uploadedUrl },
@@ -400,9 +412,9 @@ public class QQBotService
     }
 
     public static async Task<List<Paragraph>> VideoToParagraphsAsync(
-        string tweetUrl, DateTime pubTime, CosService cosSvc, CancellationToken cancellationToken = default)
+        string tweetUrl, DateTime pubTime, CosService cosSvc, CancellationToken ct = default)
     {
-        string url = await cosSvc.UploadVideoAsync(tweetUrl, pubTime, cancellationToken);
+        string url = await cosSvc.UploadVideoAsync(tweetUrl, pubTime, ct);
 
         return new()
         {
@@ -430,12 +442,6 @@ public class QQBotService
                 }
             }
         };
-    }
-
-    private static (string preceding, string rest) SplitTextByLF(string text)
-    {
-        int i = text.IndexOf('\n');
-        return i == -1 ? (text, "") : (text[0..i], text[(i + 1)..^0]);
     }
 
     /// <summary>

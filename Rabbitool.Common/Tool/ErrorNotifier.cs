@@ -60,20 +60,20 @@ public class ErrorNotifier : ILogEventSink, IDisposable
         Send(message);
     }
 
-    public async Task SendAsync(System.Exception ex, CancellationToken cancellationToken = default)
+    public async Task SendAsync(System.Exception ex, CancellationToken ct = default)
     {
-        await SendAsync(ex.ToString(), cancellationToken);
+        await SendAsync(ex.ToString(), ct);
     }
 
-    public async Task SendAsync(string text, CancellationToken cancellationToken = default)
+    public async Task SendAsync(string text, CancellationToken ct = default)
     {
         if (!Allow(text))
             return;
 
         if (!_client.IsConnected)
-            await _client.ConnectAsync(_host, _port, _ssl, cancellationToken);
+            await _client.ConnectAsync(_host, _port, _ssl, ct);
         if (!_client.IsAuthenticated)
-            await _client.AuthenticateAsync(_username, _password, cancellationToken);
+            await _client.AuthenticateAsync(_username, _password, ct);
 
         MimeMessage msg = new();
         msg.From.Add(new MailboxAddress(_from, _from));

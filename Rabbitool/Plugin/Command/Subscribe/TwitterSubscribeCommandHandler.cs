@@ -23,10 +23,10 @@ public class TwitterSubscribeCommandHandler
     {
     }
 
-    public override async Task<(string name, string? errCommandMsg)> CheckId(
-        string screenName, CancellationToken cancellationToken = default)
+    public override async Task<(string name, string? errMsg)> CheckId(
+        string screenName, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         string resp;
         try
@@ -44,7 +44,7 @@ public class TwitterSubscribeCommandHandler
                 {"include_rts", "true"},
                 {"count", "5"}
             })
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         }
         catch (FlurlHttpException ex)
         {

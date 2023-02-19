@@ -15,9 +15,9 @@ public abstract class BaseRepository<TEntity, TDbContext> : IRepository<TEntity>
         _dbCtx = dbCtx;
     }
 
-    public async Task<int> SaveAsync(CancellationToken cancellationToken = default)
+    public async Task<int> SaveAsync(CancellationToken ct = default)
     {
-        return await _dbCtx.SaveChangesAsync(cancellationToken);
+        return await _dbCtx.SaveChangesAsync(ct);
     }
 
     protected virtual async ValueTask DisposeAsync(bool disposing)

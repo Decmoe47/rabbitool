@@ -39,9 +39,9 @@ public class MailPlugin : BasePlugin
         Console.CancelKeyPress += DisposeAllServices;
     }
 
-    public async Task CheckAllAsync(CancellationToken cancellationToken = default)
+    public async Task CheckAllAsync(CancellationToken ct = default)
     {
-        List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
+        List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
             Log.Debug("There isn't any mail subscribe yet!");
@@ -58,17 +58,17 @@ public class MailPlugin : BasePlugin
                 _services.Add(svc);
             }
 
-            tasks.Add(CheckAsync(svc, record, cancellationToken));
+            tasks.Add(CheckAsync(svc, record, ct));
         }
         await Task.WhenAll(tasks);
     }
 
     private async Task CheckAsync(
-        MailService svc, MailSubscribeEntity record, CancellationToken cancellationToken = default)
+        MailService svc, MailSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
-            Mail mail = await svc.GetLatestMailAsync(cancellationToken);
+            Mail mail = await svc.GetLatestMailAsync(ct);
             if (mail.Time <= record.LastMailTime)
             {
                 Log.Debug("No new mail from the mail user {username}", record.Username);
@@ -77,12 +77,12 @@ public class MailPlugin : BasePlugin
 
             async Task FnAsync(Mail mail)
             {
-                bool pushed = await PushMsgAsync(mail, record, cancellationToken);
+                bool pushed = await PushMsgAsync(mail, record, ct);
                 if (pushed)
                     Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
 
                 record.LastMailTime = mail.Time;
-                await _repo.SaveAsync(cancellationToken);
+                await _repo.SaveAsync(ct);
                 Log.Debug("Succeeded to updated the mail user {username}'s record.", record.Username);
             };
 
@@ -122,12 +122,12 @@ public class MailPlugin : BasePlugin
         }
     }
 
-    private async Task<bool> PushMsgAsync(Mail mail, MailSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task<bool> PushMsgAsync(Mail mail, MailSubscribeEntity record, CancellationToken ct = default)
     {
         (string title, string text, string detailText) = MailToStr(mail);
 
         List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Address, cancellationToken: cancellationToken);
+            record.Address, ct: ct);
 
         bool pushed = false;
         List<Task> tasks = new();
@@ -146,15 +146,15 @@ public class MailPlugin : BasePlugin
                 Model.DTO.QQBot.RichText richText = config.Detail
                     ? QQBotService.TextToRichText(detailText)
                     : QQBotService.TextToRichText(text);
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), cancellationToken));
+                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), ct));
                 pushed = true;
                 continue;
             }
 
             if (config.Detail)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}", cancellationToken));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}", ct));
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", cancellationToken));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", ct));
 
             pushed = true;
         }
@@ -205,14 +205,14 @@ public class MailPlugin : BasePlugin
             _services.Add(new MailService(host, port, usingSsl, address, password, mailbox));
     }
 
-    private async Task HandleMailSubscribeDeletedEventAsync(string address, CancellationToken cancellationToken)
+    private async Task HandleMailSubscribeDeletedEventAsync(string address, CancellationToken ct)
     {
         MailService? svc = _services.FirstOrDefault(s => s.Username == address);
         if (svc is not null)
         {
             try
             {
-                await svc.DisconnectAsync(cancellationToken);
+                await svc.DisconnectAsync(ct);
             }
             catch (Exception ex)
             {

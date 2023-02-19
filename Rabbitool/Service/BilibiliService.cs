@@ -21,24 +21,24 @@ public class BilibiliService
         _jar = new CookieJar();
     }
 
-    public async Task RefreshCookiesAsync(CancellationToken cancellationToken = default)
+    public async Task RefreshCookiesAsync(CancellationToken ct = default)
     {
         _ = await "https://bilibili.com"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .GetAsync(cancellationToken);
+            .GetAsync(ct);
     }
 
-    public async Task<Live?> GetLiveAsync(uint uid, CancellationToken cancellationToken = default)
+    public async Task<Live?> GetLiveAsync(uint uid, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
                 .WithTimeout(10)
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
-                .GetStringAsync(cancellationToken);
+                .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
@@ -58,7 +58,7 @@ public class BilibiliService
             .WithTimeout(10)
             .WithCookies(_jar)
             .WithHeader("User-Agent", _userAgent)
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
         if ((int?)body2["code"] is int code2 and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code2, body2);
@@ -119,9 +119,9 @@ public class BilibiliService
         uint uid,
         int offsetDynamic = 0,
         int needTop = 0,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         string resp = await "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
                 .SetQueryParam("offsetDynamic", offsetDynamic)
@@ -130,7 +130,7 @@ public class BilibiliService
                 .WithTimeout(10)
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
-                .GetStringAsync(cancellationToken);
+                .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
@@ -150,7 +150,7 @@ public class BilibiliService
                 => ToCommonDynamic(dy),
             (int)DynamicTypeEnum.Video => ToVideoDynamic(dy),
             (int)DynamicTypeEnum.Article => ToArticleDynamic(dy),
-            (int)DynamicTypeEnum.Forward => await ToForwardDynamicAsync(dy, cancellationToken),
+            (int)DynamicTypeEnum.Forward => await ToForwardDynamicAsync(dy, ct),
             _ => throw new NotSupportedException($"Not supported dynamic type {type}\nDynamic: {dy}"),
         };
     }
@@ -261,7 +261,7 @@ public class BilibiliService
         };
     }
 
-    private async Task<ForwardDynamicDTO> ToForwardDynamicAsync(JToken dy, CancellationToken cancellationToken = default)
+    private async Task<ForwardDynamicDTO> ToForwardDynamicAsync(JToken dy, CancellationToken ct = default)
     {
         DateTime dynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime;
         string dynamicText = (string)dy["card"]!["item"]!["content"]!;
@@ -285,7 +285,7 @@ public class BilibiliService
 
         object origin;
         uint originUid = (uint)dy["desc"]!["origin"]!["uid"]!;
-        string originUname = await GetUnameAsync(originUid, cancellationToken);
+        string originUname = await GetUnameAsync(originUid, ct);
         string originDynamicId = (string)dy["desc"]!["origin"]!["dynamic_id_str"]!;
         string originDynamicUrl = "https://t.bilibili.com/" + originDynamicId;
         DateTime originDynamicUploadTime = DateTimeOffset
@@ -390,16 +390,16 @@ public class BilibiliService
         };
     }
 
-    private async Task<string> GetUnameAsync(uint uid, CancellationToken cancellationToken = default)
+    private async Task<string> GetUnameAsync(uint uid, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)
             .WithCookies(_jar)
             .WithTimeout(10)
             .WithHeader("User-Agent", _userAgent)
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code && code is not 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);

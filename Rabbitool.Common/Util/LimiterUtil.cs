@@ -31,12 +31,12 @@ public class LimiterUtil
         return true;
     }
 
-    public void Wait(int consume = 1, CancellationToken cancellationToken = default)
+    public void Wait(int consume = 1, CancellationToken ct = default)
     {
         while (!Allow(consume))
         {
             Thread.Sleep(1000);
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
         }
     }
 }

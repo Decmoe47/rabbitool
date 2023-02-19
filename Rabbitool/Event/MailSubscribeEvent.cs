@@ -5,7 +5,7 @@ public static class MailSubscribeEvent
     public delegate void AddMailSubscribeDelegate(
         string host, int port, bool usingSsl, string address, string password, string mailbox = "INBOX");
 
-    public delegate Task DeleteMailSubscribeDelegate(string address, CancellationToken cancellationToken = default);
+    public delegate Task DeleteMailSubscribeDelegate(string address, CancellationToken ct = default);
 
     public static event AddMailSubscribeDelegate? AddMailSubscribeEvent;
 
@@ -18,9 +18,9 @@ public static class MailSubscribeEvent
             AddMailSubscribeEvent(host, port, usingSsl, address, password, mailbox);
     }
 
-    public static async Task OnMailSubscribeDeletedAsync(string address, CancellationToken cancellationToken = default)
+    public static async Task OnMailSubscribeDeletedAsync(string address, CancellationToken ct = default)
     {
         if (DeleteMailSubscribeEvent is not null)
-            await DeleteMailSubscribeEvent(address, cancellationToken);
+            await DeleteMailSubscribeEvent(address, ct);
     }
 }

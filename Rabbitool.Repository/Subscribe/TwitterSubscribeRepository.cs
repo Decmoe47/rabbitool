@@ -14,22 +14,22 @@ public class TwitterSubscribeRepository
     }
 
     public async Task<List<TwitterSubscribeEntity>> GetAllAsync(
-        bool tracking = false, CancellationToken cancellationToken = default)
+        bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
             false => await _dbCtx.TwitterSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .ToListAsync(cancellationToken),
+                .ToListAsync(ct),
             true => await _dbCtx.TwitterSubscribeEntity
                 .Include(e => e.QQChannels)
-                .ToListAsync(cancellationToken)
+                .ToListAsync(ct)
         };
     }
 
     public async Task<TwitterSubscribeEntity> GetAsync(
-        string screenName, bool tracking = false, CancellationToken cancellationToken = default)
+        string screenName, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -37,16 +37,16 @@ public class TwitterSubscribeRepository
                 .TwitterSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .FirstAsync(t => t.ScreenName == screenName, cancellationToken),
+                .FirstAsync(t => t.ScreenName == screenName, ct),
             true => await _dbCtx
                 .TwitterSubscribeEntity
                 .Include(e => e.QQChannels)
-                .FirstAsync(t => t.ScreenName == screenName, cancellationToken)
+                .FirstAsync(t => t.ScreenName == screenName, ct)
         };
     }
 
     public async Task<TwitterSubscribeEntity?> GetOrDefaultAsync(
-        string screenName, bool tracking = false, CancellationToken cancellationToken = default)
+        string screenName, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -54,22 +54,22 @@ public class TwitterSubscribeRepository
                 .TwitterSubscribeEntity
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
-                .FirstOrDefaultAsync(t => t.ScreenName == screenName, cancellationToken),
+                .FirstOrDefaultAsync(t => t.ScreenName == screenName, ct),
             true => await _dbCtx
                 .TwitterSubscribeEntity
                 .Include(e => e.QQChannels)
-                .FirstOrDefaultAsync(t => t.ScreenName == screenName, cancellationToken)
+                .FirstOrDefaultAsync(t => t.ScreenName == screenName, ct)
         };
     }
 
-    public async Task AddAsync(TwitterSubscribeEntity entity, CancellationToken cancellationToken = default)
+    public async Task AddAsync(TwitterSubscribeEntity entity, CancellationToken ct = default)
     {
-        await _dbCtx.TwitterSubscribeEntity.AddAsync(entity, cancellationToken);
+        await _dbCtx.TwitterSubscribeEntity.AddAsync(entity, ct);
     }
 
-    public async Task<TwitterSubscribeEntity> DeleteAsync(string screenName, CancellationToken cancellationToken = default)
+    public async Task<TwitterSubscribeEntity> DeleteAsync(string screenName, CancellationToken ct = default)
     {
-        TwitterSubscribeEntity? record = await GetAsync(screenName, true, cancellationToken);
+        TwitterSubscribeEntity? record = await GetAsync(screenName, true, ct);
         _dbCtx.TwitterSubscribeEntity.Remove(record);
         return record;
     }
@@ -84,7 +84,7 @@ public class TwitterSubscribeConfigRepository
     }
 
     public async Task<List<TwitterSubscribeConfigEntity>> GetAllAsync(
-        string screenName, bool tracking = false, CancellationToken cancellationToken = default)
+        string screenName, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -94,13 +94,13 @@ public class TwitterSubscribeConfigRepository
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(t => t.Subscribe.ScreenName == screenName)
-                .ToListAsync(cancellationToken),
+                .ToListAsync(ct),
             true => await _dbCtx
                 .TwitterSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(t => t.Subscribe.ScreenName == screenName)
-                .ToListAsync(cancellationToken)
+                .ToListAsync(ct)
         };
     }
 
@@ -108,7 +108,7 @@ public class TwitterSubscribeConfigRepository
         string qqChannelId,
         string screenName,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -118,13 +118,13 @@ public class TwitterSubscribeConfigRepository
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(
-                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, cancellationToken),
+                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, ct),
             true => await _dbCtx
                 .TwitterSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(
-                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, cancellationToken)
+                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, ct)
         };
     }
 
@@ -132,7 +132,7 @@ public class TwitterSubscribeConfigRepository
         string qqChannelId,
         string screenName,
         bool tracking = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -142,13 +142,13 @@ public class TwitterSubscribeConfigRepository
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(
-                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, cancellationToken),
+                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, ct),
             true => await _dbCtx
                 .TwitterSubscribeConfigEntity
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(
-                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, cancellationToken)
+                    t => t.QQChannel.ChannelId == qqChannelId && t.Subscribe.ScreenName == screenName, ct)
         };
     }
 
@@ -156,13 +156,13 @@ public class TwitterSubscribeConfigRepository
         QQChannelSubscribeEntity qqChannel,
         TwitterSubscribeEntity subscribe,
         SubscribeConfigType? configs,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         TwitterSubscribeConfigEntity record;
 
         try
         {
-            record = await GetAsync(qqChannel.ChannelId, subscribe.ScreenName, true, cancellationToken);
+            record = await GetAsync(qqChannel.ChannelId, subscribe.ScreenName, true, ct);
         }
         catch (InvalidOperationException)
         {
@@ -170,7 +170,7 @@ public class TwitterSubscribeConfigRepository
             if (configs is not null)
                 CommonUtil.UpdateProperties(record, configs);
 
-            await _dbCtx.TwitterSubscribeConfigEntity.AddAsync(record, cancellationToken);
+            await _dbCtx.TwitterSubscribeConfigEntity.AddAsync(record, ct);
 
             return record;
         }
@@ -180,9 +180,9 @@ public class TwitterSubscribeConfigRepository
     }
 
     public async Task<TwitterSubscribeConfigEntity> DeleteAsync(
-        string qqChannelId, string screenName, CancellationToken cancellationToken = default)
+        string qqChannelId, string screenName, CancellationToken ct = default)
     {
-        TwitterSubscribeConfigEntity record = await GetAsync(qqChannelId, screenName, true, cancellationToken);
+        TwitterSubscribeConfigEntity record = await GetAsync(qqChannelId, screenName, true, ct);
         _dbCtx.TwitterSubscribeConfigEntity.Remove(record);
         return record;
     }

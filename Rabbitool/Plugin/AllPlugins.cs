@@ -20,7 +20,7 @@ public class AllPlugins
     private readonly Configs _configs;
 
     private readonly CancellationTokenSource _tokenSource;
-    private readonly CancellationToken _cancellationToken;
+    private readonly CancellationToken _ct;
     private readonly IHost _host;
 
     private Dictionary<string, bool> _pluginSwitches;
@@ -40,12 +40,12 @@ public class AllPlugins
         PluginSwitchEvent.SwitchTwitterPluginEvent += HandleTwitterPluginSwitchEvent;
         PluginSwitchEvent.SwitchYoutubePluginEvent += HandleYoutubePluginSwitchEvent;
         PluginSwitchEvent.SwitchMailPluginEvent += HandleMailPluginSwitchEvent;
-        PluginSwitchEvent.GetPluginSwitchesEvent += HandleGetPluginSwitchesEvent;
+        PluginSwitchEvent.GetAllPluginStatusEvent += HandleGetPluginSwitchesEvent;
 
         SubscribeCommandResponder.Init(_qbSvc, _dbPath, _userAgent);
 
         _tokenSource = new CancellationTokenSource();
-        _cancellationToken = _tokenSource.Token;
+        _ct = _tokenSource.Token;
         _host = Host.CreateDefaultBuilder().ConfigureServices(services => services.AddScheduler()).Build();
     }
 
@@ -68,14 +68,14 @@ public class AllPlugins
     {
         _pluginSwitches["bilibili"] = true;
         BilibiliPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
-        await plugin.RefreshCookiesAsync(_cancellationToken);
+        await plugin.RefreshCookiesAsync(_ct);
 
         _host.Services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () =>
                 {
                     if (_pluginSwitches["bilibili"])
-                        await plugin.CheckAllAsync(_cancellationToken);
+                        await plugin.CheckAllAsync(_ct);
                 })
                 .EverySeconds(_configs.Interval.BilibiliPlugin)
                 .PreventOverlapping("BilibiliPlugin"))
@@ -98,7 +98,7 @@ public class AllPlugins
                 .ScheduleAsync(async () =>
                 {
                     if (_pluginSwitches["twitter"])
-                        await plugin.CheckAllAsync(_cancellationToken);
+                        await plugin.CheckAllAsync(_ct);
                 })
                 .EverySeconds(_configs.Interval.TwitterPlugin)
                 .PreventOverlapping("TwitterPlugin"))
@@ -114,7 +114,7 @@ public class AllPlugins
                 .ScheduleAsync(async () =>
                 {
                     if (_pluginSwitches["youtube"])
-                        await plugin.CheckAllAsync(_cancellationToken);
+                        await plugin.CheckAllAsync(_ct);
                 })
                 .EverySeconds(_configs.Interval.YoutubePlugin)
                 .PreventOverlapping("YoutubePlugin"))
@@ -130,7 +130,7 @@ public class AllPlugins
                 .ScheduleAsync(async () =>
                 {
                     if (_pluginSwitches["mail"])
-                        await plugin.CheckAllAsync(_cancellationToken);
+                        await plugin.CheckAllAsync(_ct);
                 })
                 .EverySeconds(_configs.Interval.MailPlugin)
                 .PreventOverlapping("MailPlugin"))

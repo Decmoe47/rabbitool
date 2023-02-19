@@ -24,10 +24,10 @@ public class BilibiliSubscribeCommandHandler
     {
     }
 
-    public override async Task<(string name, string? errCommandMsg)> CheckId(
-        string uid, CancellationToken cancellationToken = default)
+    public override async Task<(string name, string? errMsg)> CheckId(
+        string uid, CancellationToken ct = default)
     {
-        _limiter.Wait(cancellationToken: cancellationToken);
+        _limiter.Wait(ct: ct);
 
         if (!uint.TryParse(uid, out _))
         {
@@ -47,7 +47,7 @@ public class BilibiliSubscribeCommandHandler
                 .SetQueryParam("mid", uid)
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", _userAgent)
-                .GetStringAsync(cancellationToken);
+                .GetStringAsync(ct);
 
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 

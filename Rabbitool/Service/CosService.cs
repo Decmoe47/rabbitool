@@ -25,26 +25,22 @@ public class CosService
         _baseUrl = $"https://{bucket}.cos.{region}.myqcloud.com";
     }
 
-    public async Task<string> UploadImageAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<string> UploadImageAsync(string url, CancellationToken ct = default)
     {
-        string format = "";
         string filename = url.Split("/").Last();
-
-        Match match = Regex.Match(filename, @"(?<=format=).+?(?=&)");
-        if (match.Success)
-            format = match.Groups[0].Value;
 
         if (filename.IndexOf("?") is int j and not -1)
             filename = filename[..j];
 
-        if (format != "")
-            filename += "." + format;
+        Match match = Regex.Match(filename, @"(?<=format=).+?(?=&)");
+        if (match.Success)
+            filename += "." + match.Groups[0].Value;
 
-        byte[] resp = await url.WithTimeout(60).GetBytesAsync(cancellationToken);
+        byte[] resp = await url.WithTimeout(60).GetBytesAsync(ct);
         return Upload(filename, resp, "/data/images/");
     }
 
-    public async Task<string> UploadVideoAsync(string url, DateTime pubTime, CancellationToken cancellationToken = default)
+    public async Task<string> UploadVideoAsync(string url, DateTime pubTime, CancellationToken ct = default)
     {
         Directory.CreateDirectory("./tmp");
 
@@ -66,25 +62,21 @@ public class CosService
         };
 
         p.Start();
-        string error = await p.StandardError.ReadToEndAsync();
-        await p.WaitForExitAsync(cancellationToken);
+        string error = await p.StandardError.ReadToEndAsync(ct);
+        await p.WaitForExitAsync(ct);
         if (error is not "")
             throw new CosFileUploadException($"Failed to download the video!\nUrl: {url}\nErrMsg: {error}");
 
-        using FileStream file = File.OpenRead(filePath);
-        return Upload(fileName, file, "/data/videos/");
+        return Upload(fileName, filePath, "/data/videos/");
     }
 
-    public string Upload(string fileName, FileStream file, string pathInCos)
+    public string Upload(string fileName, string filePath, string pathInCos)
     {
+        using FileStream file = File.OpenRead(filePath);
         try
         {
             PutObjectRequest request = new(_bucket, pathInCos + fileName, file, 0, file.Length);
-            request.SetCosProgressCallback(
-                (long completed, long total) =>
-                    Console.WriteLine(string.Format("progress = {0:##.##}%", completed * 100.0 / total)));
             PutObjectResult result = _client.PutObject(request);
-
             return _baseUrl + pathInCos + fileName;
         }
         finally
@@ -96,11 +88,7 @@ public class CosService
     public string Upload(string fileName, byte[] file, string pathInCos)
     {
         PutObjectRequest request = new(_bucket, pathInCos + fileName, file);
-        request.SetCosProgressCallback(
-            (long completed, long total) =>
-                Console.WriteLine(string.Format("progress = {0:##.##}%", completed * 100.0 / total)));
-        PutObjectResult result = _client.PutObject(request);
-
+        _ = _client.PutObject(request);
         return _baseUrl + pathInCos + fileName;
     }
 }

@@ -47,56 +47,56 @@ public static class SubscribeCommandResponder
     }
 
     public static async Task<string> RespondToAddOrUpdateSubscribeCommandAsync(
-        List<string> command, Message message, CancellationToken cancellation = default)
+        List<string> cmd, Message msg, CancellationToken ct = default)
     {
-        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.AddOrUpdate, cancellation);
+        return await RespondToSubscribeCommandAsync(cmd, msg, SubscribeCommandType.AddOrUpdate, ct);
     }
 
     public static async Task<string> RespondToDeleteSubscribeCommandAsync(
-        List<string> command, Message message, CancellationToken cancellation = default)
+        List<string> cmd, Message msg, CancellationToken ct = default)
     {
-        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.Delete, cancellation);
+        return await RespondToSubscribeCommandAsync(cmd, msg, SubscribeCommandType.Delete, ct);
     }
 
     public static async Task<string> RespondToListSubscribeCommandAsync(
-        List<string> command, Message message, CancellationToken cancellation = default)
+        List<string> cmd, Message msg, CancellationToken ct = default)
     {
-        return await RespondToSubscribeCommandAsync(command, message, SubscribeCommandType.List, cancellation);
+        return await RespondToSubscribeCommandAsync(cmd, msg, SubscribeCommandType.List, ct);
     }
 
     private static async Task<string> RespondToSubscribeCommandAsync(
-        List<string> command, Message message, SubscribeCommandType commandType, CancellationToken cancellationToken = default)
+        List<string> cmd, Message msg, SubscribeCommandType cmdType, CancellationToken ct = default)
     {
-        if (commandType == SubscribeCommandType.List)
+        if (cmdType == SubscribeCommandType.List)
         {
-            if (command.Count < 2)
+            if (cmd.Count < 2)
                 return "错误：参数不足！";
         }
-        else if (command.Count < 3)
+        else if (cmd.Count < 3)
         {
             return "错误：参数不足！";
         }
 
-        if (!SupportedPlatforms.Contains(command[1]))
+        if (!SupportedPlatforms.Contains(cmd[1]))
             return $"错误：不支持的订阅平台！\n当前支持的订阅平台：{string.Join(" ", SupportedPlatforms)}";
 
         List<string> configs = new();
         SubscribeConfigType configDict = new();
-        string guildName = (await _qbSvc.GetGuidAsync(message.GuildId)).Name;
+        string guildName = (await _qbSvc.GetGuidAsync(msg.GuildId, ct)).Name;
         string channelName;
-        string channelId = message.ChannelId;
+        string channelId = msg.ChannelId;
         string? subscribeId = null;
 
-        if (commandType == SubscribeCommandType.List)
+        if (cmdType == SubscribeCommandType.List)
         {
-            if (command.Count == 3 && command[2].Contains('='))
-                configs = command.GetRange(2, command.Count - 2);
+            if (cmd.Count == 3 && cmd[2].Contains('='))
+                configs = cmd.GetRange(2, cmd.Count - 2);
         }
         else
         {
-            subscribeId = command[2];
-            if (command.Count >= 4 && command[3].Contains('='))
-                configs = command.GetRange(3, command.Count - 3);
+            subscribeId = cmd[2];
+            if (cmd.Count >= 4 && cmd[3].Contains('='))
+                configs = cmd.GetRange(3, cmd.Count - 3);
         }
 
         foreach (string config in configs)
@@ -108,7 +108,7 @@ public static class SubscribeCommandResponder
 
         if (configDict.TryGetValue("channel", out dynamic? v) && v is string)
         {
-            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, message.GuildId, cancellationToken);
+            Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, msg.GuildId, ct);
             if (channel is null)
                 return $"错误：不存在名为 {v} 的子频道！";
             channelId = channel.Id;
@@ -116,40 +116,40 @@ public static class SubscribeCommandResponder
         }
         else
         {
-            Channel channel = await _qbSvc.GetChannelAsync(channelId, cancellationToken);
+            Channel channel = await _qbSvc.GetChannelAsync(channelId, ct);
             channelName = channel.Name;
         }
 
         SubscribeCommandDTO subscribe = new()
         {
-            Command = command[0],
-            Platform = command[1],
+            Command = cmd[0],
+            Platform = cmd[1],
             SubscribeId = subscribeId,
             QQChannel = new SubscribeCommandQQChannelDTO()
             {
                 GuildName = guildName,
-                GuildId = message.GuildId,
+                GuildId = msg.GuildId,
                 Id = channelId,
                 Name = channelName
             },
             Configs = configDict.Count != 0 ? configDict : null
         };
 
-        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform, cancellationToken);
+        ISubscribeCommandHandler handler = GetSubscribeCommandHandler(subscribe.Platform, ct);
 
-        switch (commandType)
+        switch (cmdType)
         {
             case SubscribeCommandType.AddOrUpdate:
-                return await handler.Add(subscribe, cancellationToken);
+                return await handler.Add(subscribe, ct);
 
             case SubscribeCommandType.Delete:
-                return await handler.Delete(subscribe, cancellationToken);
+                return await handler.Delete(subscribe, ct);
 
             case SubscribeCommandType.List:
-                return await handler.List(subscribe, cancellationToken);
+                return await handler.List(subscribe, ct);
 
             default:
-                Log.Error("Not supported subscribe command type {type}", commandType);
+                Log.Error("Not supported subscribe command type {type}", cmdType);
                 return "错误：处理指令时发生内部错误！";
         }
     }
@@ -178,7 +178,7 @@ public static class SubscribeCommandResponder
     /// <returns></returns>
     /// <exception cref="UninitializedException"></exception>
     /// <exception cref="NotSupportedException"></exception>
-    private static ISubscribeCommandHandler GetSubscribeCommandHandler(string platform, CancellationToken cancellationToken)
+    private static ISubscribeCommandHandler GetSubscribeCommandHandler(string platform, CancellationToken ct)
     {
         if (_qbSvc == null || _userAgent == null)
         {
@@ -237,7 +237,7 @@ public static class SubscribeCommandResponder
                 throw new NotSupportedException($"Not supported platform {platform}");
         };
 
-        _qbSvc.RegisterBotDeletedEvent(handler.BotDeletedHandlerAsync, cancellationToken);
+        _qbSvc.RegisterBotDeletedEvent(handler.BotDeletedHandlerAsync, ct);
         return handler;
     }
 }

@@ -5,5 +5,5 @@ namespace Rabbitool.Repository;
 public interface IRepository<TEntity> : IAsyncDisposable
     where TEntity : IEntity
 {
-    Task<int> SaveAsync(CancellationToken cancellationToken = default);
+    Task<int> SaveAsync(CancellationToken ct = default);
 }

@@ -28,14 +28,14 @@ public class BilibiliPlugin : BasePlugin
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }
 
-    public async Task RefreshCookiesAsync(CancellationToken cancellationToken = default)
+    public async Task RefreshCookiesAsync(CancellationToken ct = default)
     {
-        await _svc.RefreshCookiesAsync(cancellationToken);
+        await _svc.RefreshCookiesAsync(ct);
     }
 
-    public async Task CheckAllAsync(CancellationToken cancellationToken = default)
+    public async Task CheckAllAsync(CancellationToken ct = default)
     {
-        List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, cancellationToken);
+        List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
             Log.Debug("There isn't any bilibili subscribe yet!");
@@ -45,17 +45,17 @@ public class BilibiliPlugin : BasePlugin
         List<Task> tasks = new();
         foreach (BilibiliSubscribeEntity record in records)
         {
-            tasks.Add(CheckDynamicAsync(record, cancellationToken));
-            tasks.Add(CheckLiveAsync(record, cancellationToken));
+            tasks.Add(CheckDynamicAsync(record, ct));
+            tasks.Add(CheckLiveAsync(record, ct));
         }
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckDynamicAsync(BilibiliSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task CheckDynamicAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
-            BaseDynamicDTO? dy = await _svc.GetLatestDynamicAsync(record.Uid, cancellationToken: cancellationToken);
+            BaseDynamicDTO? dy = await _svc.GetLatestDynamicAsync(record.Uid, ct: ct);
             if (dy is null)
                 return;
 
@@ -67,7 +67,7 @@ public class BilibiliPlugin : BasePlugin
 
             async Task FnAsync(BaseDynamicDTO dy)
             {
-                bool pushed = await PushDynamicMsgAsync(dy, record, cancellationToken);
+                bool pushed = await PushDynamicMsgAsync(dy, record, ct);
                 if (pushed)
                 {
                     Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
@@ -76,7 +76,7 @@ public class BilibiliPlugin : BasePlugin
 
                 record.LastDynamicTime = dy.DynamicUploadTime;
                 record.LastDynamicType = dy.DynamicType;
-                await _repo.SaveAsync(cancellationToken);
+                await _repo.SaveAsync(ct);
                 Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
                     dy.Uname, dy.Uid);
             }
@@ -121,7 +121,7 @@ public class BilibiliPlugin : BasePlugin
     }
 
     private async Task<bool> PushDynamicMsgAsync(
-        BaseDynamicDTO dy, BilibiliSubscribeEntity record, CancellationToken cancellationToken = default)
+        BaseDynamicDTO dy, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
         List<string> redirectImgUrls = new();
@@ -134,7 +134,7 @@ public class BilibiliPlugin : BasePlugin
         bool pushed = false;
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Uid, cancellationToken: cancellationToken);
+            record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
@@ -149,7 +149,7 @@ public class BilibiliPlugin : BasePlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls, cancellationToken));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls, ct));
             pushed = true;
         }
 
@@ -388,13 +388,13 @@ public class BilibiliPlugin : BasePlugin
         return (title, text, imgUrls);
     }
 
-    private async Task CheckLiveAsync(BilibiliSubscribeEntity record, CancellationToken cancellationToken = default)
+    private async Task CheckLiveAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
-            Live? live = await _svc.GetLiveAsync(record.Uid, cancellationToken: cancellationToken);
+            Live? live = await _svc.GetLiveAsync(record.Uid, ct: ct);
             if (live is null)
                 return;
 
@@ -408,7 +408,7 @@ public class BilibiliPlugin : BasePlugin
                 }
                 else
                 {
-                    bool pushed = await PushLiveMsgAsync(live, record, liveStatus, cancellationToken);
+                    bool pushed = await PushLiveMsgAsync(live, record, liveStatus, ct);
                     if (pushed)
                     {
                         Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
@@ -417,7 +417,7 @@ public class BilibiliPlugin : BasePlugin
                 }
 
                 record.LastLiveStatus = live.LiveStatus;
-                await _repo.SaveAsync(cancellationToken);
+                await _repo.SaveAsync(ct);
                 Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
                     live.Uname, live.Uid);
             }
@@ -452,7 +452,7 @@ public class BilibiliPlugin : BasePlugin
     }
 
     private async Task<bool> PushLiveMsgAsync(
-        Live live, BilibiliSubscribeEntity record, LiveStatusEnum liveStatus, CancellationToken cancellationToken = default)
+        Live live, BilibiliSubscribeEntity record, LiveStatusEnum liveStatus, CancellationToken ct = default)
     {
         (string title, string text) = LiveToStr(live);
         List<string>? redirectCoverUrl = live.CoverUrl is string and not ""
@@ -461,7 +461,7 @@ public class BilibiliPlugin : BasePlugin
         bool pushed = false;
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Uid, cancellationToken: cancellationToken);
+            record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
@@ -476,9 +476,9 @@ public class BilibiliPlugin : BasePlugin
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
             if (redirectCoverUrl is null)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, cancellationToken));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, ct));
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, cancellationToken));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, ct));
 
             pushed = true;
         }

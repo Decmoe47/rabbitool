@@ -12,9 +12,9 @@ public class QQBotPlugin
         _svc = svc;
     }
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    public async Task RunAsync(CancellationToken ct = default)
     {
-        _svc.RegisterAtMessageEvent(CommandResponder.GenerateReplyMsgAsync, cancellationToken);
+        _svc.RegisterAtMessageEvent(CommandResponder.GenerateReplyMsgAsync, ct);
         await _svc.RunAsync();
     }
 }

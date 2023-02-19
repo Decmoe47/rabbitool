@@ -40,19 +40,19 @@ public class TwitterService
         _usingApiV2 = true;
     }
 
-    public async Task<Tweet> GetLatestTweetAsync(string screenName, CancellationToken cancellationToken = default)
+    public async Task<Tweet> GetLatestTweetAsync(string screenName, CancellationToken ct = default)
     {
         return _usingApiV2
-            ? await GetLatestTweetByApiV2Async(screenName, cancellationToken)
-            : await GetLatestTweetByApi1_1Async(screenName, cancellationToken);
+            ? await GetLatestTweetByApiV2Async(screenName, ct)
+            : await GetLatestTweetByApi1_1Async(screenName, ct);
     }
 
     /// <summary>
     /// 无需官方开发者账号。如果有x-csrf-token和cookie的话还能看得到r18推文
     /// </summary>
-    private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken cancellationToken = default)
+    private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken ct = default)
     {
-        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
+        _tweetApiLimiter.Wait(ct: ct);
 
         Dictionary<string, string> headers = new()
         {
@@ -72,7 +72,7 @@ public class TwitterService
                 { "include_rts", "true" },
                 { "count", "5" },
             })
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JArray body = JArray.Parse(resp);
         JObject tweet = (JObject)body[0];
 
@@ -174,11 +174,11 @@ public class TwitterService
         return (text, imgUrls.Count != 0 ? imgUrls : null, hasVideo);
     }
 
-    private async Task<Tweet> GetLatestTweetByApiV2Async(string screenName, CancellationToken cancellationToken = default)
+    private async Task<Tweet> GetLatestTweetByApiV2Async(string screenName, CancellationToken ct = default)
     {
-        (string userId, _) = await GetUserIdAsync(screenName, cancellationToken);
+        (string userId, _) = await GetUserIdAsync(screenName, ct);
 
-        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
+        _tweetApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
@@ -191,7 +191,7 @@ public class TwitterService
                 { "media.fields", "preview_image_url,type,url" },
                 { "max_results", "5" }
             })
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         JObject tweet = (JObject)body["data"]![0]!;
@@ -201,7 +201,7 @@ public class TwitterService
         List<string>? imgUrls = null;
         bool hasVideo = false;
         if ((JArray?)tweet["entities"]?["urls"] is JArray media)
-            (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, id, cancellationToken);
+            (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, id, ct);
 
         TweetTypeEnum tweetType = TweetTypeEnum.Common;
         Tweet? origin = null;
@@ -215,7 +215,7 @@ public class TwitterService
                 _ => throw new NotSupportedException($"Unknown origin type {originType}!\nTweet: {tweet}"),
             };
 
-            origin = await GetOriginTweetByApiV2Async(body, originId, cancellationToken);
+            origin = await GetOriginTweetByApiV2Async(body, originId, ct);
             text = text.Replace(origin.Url, "");
         }
 
@@ -235,7 +235,7 @@ public class TwitterService
     }
 
     private async Task<(string text, List<string>? imgUrls, bool hasVideo)> GetMediaByApiV2Async(
-        JObject body, JArray media, string text, string tweetId, CancellationToken cancellationToken)
+        JObject body, JArray media, string text, string tweetId, CancellationToken ct)
     {
         bool hasVideo = false;
         List<string> imgUrls = new();
@@ -253,13 +253,13 @@ public class TwitterService
             {
                 if (mediaKey?.StartsWith("3_") is true)
                 {
-                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, cancellationToken));
+                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, ct));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("7_") is true)
                 {
                     hasVideo = true;
-                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, cancellationToken));
+                    imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, ct));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
                 else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
@@ -279,7 +279,7 @@ public class TwitterService
     }
 
     private async Task<string> GetImageOrVideoThumbnailUrlAsync(
-        JObject body, string mediaKey, string tweetId, CancellationToken cancellationToken)
+        JObject body, string mediaKey, string tweetId, CancellationToken ct)
     {
         foreach (JToken medium in (JArray)body["includes"]!["media"]!)
         {
@@ -294,7 +294,7 @@ public class TwitterService
             }
         }
 
-        _tweetApiLimiter.Wait(cancellationToken: cancellationToken);
+        _tweetApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/tweets/{tweetId}"
             .WithTimeout(10)
             .WithOAuthBearerToken(_apiV2Token)
@@ -305,14 +305,14 @@ public class TwitterService
                 { "user.fields", "username,name" },
                 { "media.fields", "preview_image_url,type,url" },
             })
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject json = JObject.Parse(resp);
         JObject img = (JObject)json["includes"]!["media"]!.First(m => (string)m["media_key"]! == mediaKey);
         return string.Join(".", ((string)img["url"]!).Split('.')[..^1]) + "?format=jpg&name=large";
     }
 
     private async Task<Tweet> GetOriginTweetByApiV2Async(
-        JObject body, string originId, CancellationToken cancellationToken = default)
+        JObject body, string originId, CancellationToken ct = default)
     {
         JArray origins = (JArray)body["includes"]!["tweets"]!;
         foreach (JToken origin in origins)
@@ -320,13 +320,13 @@ public class TwitterService
             if ((string?)origin["id"] == originId)
             {
                 (string author, string screenName) = await GetUserNameAsync(
-                    (string)origin["author_id"]!, cancellationToken);
+                    (string)origin["author_id"]!, ct);
                 string text = (string)origin["text"]!;
 
                 List<string>? imgUrls = null;
                 bool hasVideo = false;
                 if ((JArray?)origin["entities"]?["urls"] is JArray media)
-                    (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, originId, cancellationToken);
+                    (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, originId, ct);
 
                 return new()
                 {
@@ -347,26 +347,26 @@ public class TwitterService
     }
 
     private async Task<(string userId, string name)> GetUserIdAsync(
-        string screenName, CancellationToken cancellationToken = default)
+        string screenName, CancellationToken ct = default)
     {
-        _userApiLimiter.Wait(cancellationToken: cancellationToken);
+        _userApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         return ((string)body["data"]!["id"]!, (string)body["data"]!["name"]!);
     }
 
     private async Task<(string name, string screenName)> GetUserNameAsync(
-        string userId, CancellationToken cancellationToken = default)
+        string userId, CancellationToken ct = default)
     {
-        _userApiLimiter.Wait(cancellationToken: cancellationToken);
+        _userApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_apiV2Token}")
-            .GetStringAsync(cancellationToken);
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         return ((string)body["data"]!["name"]!, (string)body["data"]!["username"]!);

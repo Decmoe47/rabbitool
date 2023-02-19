@@ -10,7 +10,7 @@ public class PluginSwitchEvent
 
     public delegate void SwitchMailPluginDelegate(bool status);
 
-    public delegate Dictionary<string, bool> GetPluginSwitchesDelegate();
+    public delegate Dictionary<string, bool> GetAllPluginStatusDelegate();
 
     public static event SwitchBilibiliPluginDelegate? SwitchBilibiliPluginEvent;
 
@@ -20,32 +20,32 @@ public class PluginSwitchEvent
 
     public static event SwitchMailPluginDelegate? SwitchMailPluginEvent;
 
-    public static event GetPluginSwitchesDelegate? GetPluginSwitchesEvent;
+    public static event GetAllPluginStatusDelegate? GetAllPluginStatusEvent;
 
-    public static Dictionary<string, bool>? GetPluginsSwitches()
+    public static Dictionary<string, bool>? GetAllPluginsStatus()
     {
-        return GetPluginSwitchesEvent is not null ? GetPluginSwitchesEvent() : null;
+        return GetAllPluginStatusEvent is not null ? GetAllPluginStatusEvent() : null;
     }
 
-    public static void OnBilibiliPluginSwitched(bool status)
+    public static void OnBilibiliPluginSwitching(bool status)
     {
         if (SwitchBilibiliPluginEvent is not null)
             SwitchBilibiliPluginEvent(status);
     }
 
-    public static void OnYoutubePluginSwitched(bool status)
+    public static void OnYoutubePluginSwitching(bool status)
     {
         if (SwitchYoutubePluginEvent is not null)
             SwitchYoutubePluginEvent(status);
     }
 
-    public static void OnTwitterPluginSwitched(bool status)
+    public static void OnTwitterPluginSwitching(bool status)
     {
         if (SwitchTwitterPluginEvent is not null)
             SwitchTwitterPluginEvent(status);
     }
 
-    public static void OnMailPluginSwitched(bool status)
+    public static void OnMailPluginSwitching(bool status)
     {
         if (SwitchMailPluginEvent is not null)
             SwitchMailPluginEvent(status);

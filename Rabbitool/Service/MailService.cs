@@ -28,36 +28,36 @@ public class MailService : IDisposable
         MailBox = mailbox;
     }
 
-    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+    public async Task DisconnectAsync(CancellationToken ct = default)
     {
         if (_folder is not null)
-            await _folder.CloseAsync(cancellationToken: cancellationToken);
-        await _client.DisconnectAsync(true, cancellationToken);
+            await _folder.CloseAsync(cancellationToken: ct);
+        await _client.DisconnectAsync(true, ct);
     }
 
-    public async Task<Mail> GetLatestMailAsync(CancellationToken cancellationToken = default)
+    public async Task<Mail> GetLatestMailAsync(CancellationToken ct = default)
     {
         if (!_client.IsConnected)
-            await _client.ConnectAsync(Host, _port, _usingSsl, cancellationToken);
+            await _client.ConnectAsync(Host, _port, _usingSsl, ct);
 
         if (!_client.IsAuthenticated)
         {
-            await _client.AuthenticateAsync(Username, _password, cancellationToken);
+            await _client.AuthenticateAsync(Username, _password, ct);
             ImapImplementation clientImpl = new()
             {
                 Name = "rabbitool",
                 Version = "1.0"
             };
-            await _client.IdentifyAsync(clientImpl, cancellationToken);
+            await _client.IdentifyAsync(clientImpl, ct);
         }
 
         if (_folder == null || !_folder.IsOpen)
         {
-            _folder = await _client.GetFolderAsync(MailBox, cancellationToken);
-            await _folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
+            _folder = await _client.GetFolderAsync(MailBox, ct);
+            await _folder.OpenAsync(FolderAccess.ReadOnly, ct);
         }
 
-        MimeMessage msg = await _folder.GetMessageAsync(_folder.Count - 1, cancellationToken);
+        MimeMessage msg = await _folder.GetMessageAsync(_folder.Count - 1, ct);
 
         List<AddressInfo> from = new();
         List<AddressInfo> to = new();
