@@ -35,7 +35,7 @@ public class MailService : IDisposable
         await _client.DisconnectAsync(true, ct);
     }
 
-    public async Task<Mail> GetLatestMailAsync(CancellationToken ct = default)
+    public async Task<MailDTO> GetLatestMailAsync(CancellationToken ct = default)
     {
         if (!_client.IsConnected)
             await _client.ConnectAsync(Host, _port, _usingSsl, ct);

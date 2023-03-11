@@ -19,7 +19,7 @@ public class Configs
     public Proxy? Proxy { get; set; }
 
     [Required]
-    public Log Log { get; set; } = null!;
+    public LogInfo Log { get; set; } = null!;
 
     [Required]
     public Interval Interval { get; set; } = null!;
@@ -34,7 +34,7 @@ public class Configs
     [Required]
     public Youtube Youtube { get; set; } = null!;
 
-    public ErrorNotifier? ErrorNotifier { get; set; }
+    public Notifier? ErrorNotifier { get; set; }
     public Twitter? Twitter { get; set; } = null!;
 
     public static Configs Load(string path)

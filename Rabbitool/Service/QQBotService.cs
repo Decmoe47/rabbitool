@@ -326,7 +326,7 @@ public class QQBotService
                 if (line.StartsWith("@isURL#"))
                 {
                     string url = line.Replace("@isURL#", "");
-                    paras[^1].Elems?.Add(new Elem()
+                    paras[^1].Elems?.Add(new ElemDTO()
                     {
                         Url = new UrlElem() { Url = url, Desc = url },
                         Type = ElemTypeEnum.Url
@@ -336,9 +336,9 @@ public class QQBotService
                 {
                     paras.Add(new Paragraph()
                     {
-                        Elems = new List<Elem>()
+                        Elems = new List<ElemDTO>()
                         {
-                            new Elem()
+                            new ElemDTO()
                             {
                                 Url = new UrlElem() { Url = line, Desc = line },
                                 Type = ElemTypeEnum.Url
@@ -352,9 +352,9 @@ public class QQBotService
             {
                 paras.Add(new Paragraph()
                 {
-                    Elems = new List<Elem>()
+                    Elems = new List<ElemDTO>()
                     {
-                        new Elem()
+                        new ElemDTO()
                         {
                             Text = new TextElem() {Text = line },
                             Type = ElemTypeEnum.Text,
@@ -368,9 +368,9 @@ public class QQBotService
         // 空白行
         for (int i = 0; i < paras.Count; i++)
         {
-            if (paras[i].Elems is List<Elem> elems)
+            if (paras[i].Elems is List<ElemDTO> elems)
             {
-                foreach (Elem elem in elems)
+                foreach (ElemDTO elem in elems)
                 {
                     if (elem.Text?.Text is "")
                     {
@@ -389,12 +389,12 @@ public class QQBotService
     public static async Task<List<Paragraph>> ImagesToParagraphsAsync(
         List<string> urls, CosService cosSvc, CancellationToken ct = default)
     {
-        List<Elem> imgElems = new(urls.Count);
+        List<ElemDTO> imgElems = new(urls.Count);
 
         foreach (string url in urls)
         {
             string uploadedUrl = await cosSvc.UploadImageAsync(url, ct);
-            imgElems.Add(new Elem()
+            imgElems.Add(new ElemDTO()
             {
                 Image = new ImageElem() { ThirdUrl = uploadedUrl },
                 Type = ElemTypeEnum.Image
@@ -420,9 +420,9 @@ public class QQBotService
         {
             new Paragraph()
             {
-                Elems = new List<Elem>()
+                Elems = new List<ElemDTO>()
                 {
-                    new Elem()
+                    new ElemDTO()
                     {
                         Text = new TextElem() { Text = $"视频：{url}" },
                         Type = ElemTypeEnum.Text,
@@ -432,9 +432,9 @@ public class QQBotService
             },
             new Paragraph()
             {
-                Elems = new List<Elem>()
+                Elems = new List<ElemDTO>()
                 {
-                    new Elem()
+                    new ElemDTO()
                     {
                         Video = new VideoElem() { ThirdUrl = url },
                         Type = ElemTypeEnum.Video

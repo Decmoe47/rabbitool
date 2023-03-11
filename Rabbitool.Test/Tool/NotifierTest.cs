@@ -1,21 +1,23 @@
 ﻿using Rabbitool.Config;
-using Log = Serilog.Log;
 
 namespace Rabbitool.Common.Tool.Test;
 
-public class LogConfigTest
+public class ErrorNotifierTest
 {
-    public LogConfigTest()
+    private readonly Notifier _notifier;
+
+    public ErrorNotifierTest()
     {
         Configs configs = Configs.Load("configs.yml");
         ErrorNotifierOptions opts = configs.ErrorNotifier!.ToOptions();
-        opts.IntervalMinutes = 60;
-        opts.AllowedAmount = 25;
-        LogConfig.Register(opts);
+        opts.IntervalMinutes = 1;
+        opts.AllowedAmount = 6;
+
+        _notifier = new Notifier(opts);
     }
 
     [Fact()]
-    public void LogToEmailShouldReceivedTest()
+    public async Task SendAsyncTestShouldReceivedAsync()
     {
         try
         {
@@ -23,13 +25,13 @@ public class LogConfigTest
         }
         catch (ArgumentException ex)
         {
-            for (int i = 0; i < 26; i++)
-                Log.Error(ex, ex.Message);
+            for (int i = 0; i < 6; i++)
+                await _notifier.SendAsync(ex);
         }
     }
 
     [Fact()]
-    public void LogToEmailShouldNotReceivedTest()
+    public async Task SendAsyncTestShouldNotReceivedAsync()
     {
         try
         {
@@ -37,8 +39,8 @@ public class LogConfigTest
         }
         catch (ArgumentException ex)
         {
-            for (int i = 0; i < 24; i++)
-                Log.Error(ex, ex.Message);
+            for (int i = 0; i < 5; i++)
+                await _notifier.SendAsync(ex);
         }
     }
 }

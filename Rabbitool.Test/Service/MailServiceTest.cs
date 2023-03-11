@@ -25,7 +25,7 @@ public class MailServiceTest : IDisposable
     [Fact()]
     public async Task GetLatestMailAsyncTestAsync()
     {
-        Mail mail = await _svc.GetLatestMailAsync();
+        MailDTO mail = await _svc.GetLatestMailAsync();
         _output.WriteLine(mail.Text);
         Assert.True(mail.Text != "");
     }

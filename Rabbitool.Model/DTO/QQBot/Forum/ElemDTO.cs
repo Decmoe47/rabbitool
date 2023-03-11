@@ -2,19 +2,19 @@
 
 namespace Rabbitool.Model.DTO.QQBot;
 
-public class Elem
+public class ElemDTO
 {
     [JsonProperty("text", NullValueHandling = NullValueHandling.Ignore)]
-    public TextElem? Text { get; set; }
+    public TextElemDTO? Text { get; set; }
 
     [JsonProperty("image", NullValueHandling = NullValueHandling.Ignore)]
-    public ImageElem? Image { get; set; }
+    public ImageElemDTO? Image { get; set; }
 
     [JsonProperty("video", NullValueHandling = NullValueHandling.Ignore)]
-    public VideoElem? Video { get; set; }
+    public VideoElemDTO? Video { get; set; }
 
     [JsonProperty("url", NullValueHandling = NullValueHandling.Ignore)]
-    public UrlElem? Url { get; set; }
+    public UrlElemDTO? Url { get; set; }
 
     [JsonProperty("type")]
     public ElemTypeEnum Type { get; set; }

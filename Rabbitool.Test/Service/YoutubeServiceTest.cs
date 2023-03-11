@@ -22,7 +22,7 @@ public class YoutubeServiceTest
     [InlineData("UCkIimWZ9gBJRamKF0rmPU8w")]
     public async Task GetLatestVideoOrLiveAsyncTestAsync(string channelId)
     {
-        await _svc.GetLatestTwoVideoOrLiveAsync(channelId);
+        await _svc.GetLatestVideoOrLiveAsync(channelId);
         Assert.True(true);
     }
 }

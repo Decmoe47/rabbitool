@@ -146,7 +146,7 @@ public class TwitterPlugin : BasePlugin
         Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken ct = default)
     {
         (string title, string text) = await TweetToStrAsync(tweet, ct);
-        RichText richText = await TweetToRichTextAsync(tweet, text, ct);
+        RichTextDTO richText = await TweetToRichTextAsync(tweet, text, ct);
         List<string> imgUrls = await GetTweetImgUrlsAsync(tweet, ct);
 
         List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
@@ -261,45 +261,33 @@ public class TwitterPlugin : BasePlugin
     private async Task<List<string>> GetTweetImgUrlsAsync(Tweet tweet, CancellationToken ct = default)
     {
         List<string> result = new();
+        List<string> imgUrls = new();
 
         if (tweet.ImageUrls is not null)
-        {
-            foreach (string url in tweet.ImageUrls)
-            {
-                try
-                {
-                    result.Add(await _cosSvc.UploadImageAsync(url, ct));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "");
-                    continue;
-                }
-            }
-        }
+            imgUrls = tweet.ImageUrls;
         else if (tweet.Origin?.ImageUrls is not null)
+            imgUrls = tweet.Origin.ImageUrls;
+
+        foreach (string url in imgUrls)
         {
-            foreach (string url in tweet.Origin.ImageUrls)
+            try
             {
-                try
-                {
-                    result.Add(await _cosSvc.UploadImageAsync(url, ct));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "");
-                    continue;
-                }
+                result.Add(await _cosSvc.UploadImageAsync(url, ct));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "");
+                continue;
             }
         }
 
         return result;
     }
 
-    private async Task<RichText> TweetToRichTextAsync(
+    private async Task<RichTextDTO> TweetToRichTextAsync(
         Tweet tweet, string text, CancellationToken ct = default)
     {
-        RichText result = QQBotService.TextToRichText(text);
+        RichTextDTO result = QQBotService.TextToRichText(text);
 
         if (tweet.ImageUrls is not null)
         {

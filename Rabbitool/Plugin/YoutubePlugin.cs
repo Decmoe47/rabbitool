@@ -52,7 +52,7 @@ public class YoutubePlugin : BasePlugin
     {
         try
         {
-            YoutubeItem item = await _svc.GetLatestTwoVideoOrLiveAsync(
+            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(
                 record.ChannelId, ct: ct);
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
@@ -261,8 +261,8 @@ public class YoutubePlugin : BasePlugin
         if (live.Type == YoutubeTypeEnum.Live)
         {
             string actualStartTime = TimeZoneInfo
-            .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
-            .ToString("yyyy-MM-dd HH:mm:ss zzz");
+                .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
+                .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $"""
                 直播标题：{live.Title}
@@ -274,8 +274,8 @@ public class YoutubePlugin : BasePlugin
         else
         {
             string scheduledStartTime = TimeZoneInfo
-            .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
-            .ToString("yyyy-MM-dd HH:mm:ss zzz");
+                .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
+                .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $"""
                 直播标题：{live.Title}
@@ -286,16 +286,16 @@ public class YoutubePlugin : BasePlugin
         }
     }
 
-    private string VideoToStr(YoutubeVideo item)
+    private string VideoToStr(YoutubeVideo video)
     {
         string pubTimeStr = TimeZoneInfo
-            .ConvertTimeFromUtc(item.PubTime, TimeUtil.CST)
+            .ConvertTimeFromUtc(video.PubTime, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         return $"""
-            视频标题：{item.Title}
+            视频标题：{video.Title}
             视频发布时间：{pubTimeStr}
-            视频链接：{item.Url.AddRedirectToUrls(_redirectUrl)}
+            视频链接：{video.Url.AddRedirectToUrls(_redirectUrl)}
             视频封面：
             """;
     }

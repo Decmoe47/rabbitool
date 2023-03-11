@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Model.DTO.QQBot;
 
-public class TextElem
+public class TextElemDTO
 {
     [JsonProperty("text")]
     public string Text { get; set; } = string.Empty;

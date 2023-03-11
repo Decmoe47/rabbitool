@@ -52,9 +52,9 @@ public class AllPlugins
     public async Task RunAsync()
     {
         if (_configs.ErrorNotifier is not null)
-            LogConfig.Register(_configs.ErrorNotifier.ToOptions(), _configs.Log.ConsoleLevel, _configs.Log.FileLevel);
+            LogConfiger.Register(_configs.ErrorNotifier.ToOptions(), _configs.Log.ConsoleLevel, _configs.Log.FileLevel);
         else
-            LogConfig.Register(_configs.Log.ConsoleLevel, _configs.Log.FileLevel);
+            LogConfiger.Register(_configs.Log.ConsoleLevel, _configs.Log.FileLevel);
 
         Console.CancelKeyPress += (sender, e) => _tokenSource.Cancel();
 

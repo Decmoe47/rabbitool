@@ -28,4 +28,18 @@ public static class CommonUtil
     {
         return Regex.IsMatch(text, @"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?");
     }
+
+    public static List<T> CombineLists<T>(List<T> lst1, List<T> lst2, List<T>? lst3 = null, List<T>? lst4 = null, List<T>? lst5 = null, List<T>? lst6 = null)
+    {
+        IEnumerable<T> lst = lst1.Concat(lst2);
+        if (lst3 is not null)
+            lst = lst.Concat(lst3);
+        if (lst4 is not null)
+            lst = lst.Concat(lst4);
+        if (lst5 is not null)
+            lst = lst.Concat(lst5);
+        if (lst6 is not null)
+            lst = lst.Concat(lst6);
+        return lst.ToList();
+    }
 }

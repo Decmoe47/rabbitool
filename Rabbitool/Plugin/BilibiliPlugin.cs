@@ -13,7 +13,7 @@ public class BilibiliPlugin : BasePlugin
     private readonly BilibiliSubscribeRepository _repo;
     private readonly BilibiliSubscribeConfigRepository _configRepo;
 
-    private Dictionary<uint, Dictionary<DateTime, BaseDynamicDTO>> _storedDynamics = new();
+    private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamicDTO>> _storedDynamics = new();
 
     public BilibiliPlugin(
         QQBotService qbSvc,
@@ -146,7 +146,7 @@ public class BilibiliPlugin : BasePlugin
 
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.DynamicPush is false) continue;
-            if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush)
+            if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush is false)
                 continue;
 
             tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls, ct));
@@ -475,10 +475,7 @@ public class BilibiliPlugin : BasePlugin
             if (config.LivePush is false) continue;
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
-            if (redirectCoverUrl is null)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, ct));
-            else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, ct));
 
             pushed = true;
         }

@@ -20,7 +20,7 @@ public class YoutubeService
         });
     }
 
-    public async Task<YoutubeItem> GetLatestTwoVideoOrLiveAsync(
+    public async Task<YoutubeItem> GetLatestVideoOrLiveAsync(
         string channelId, CancellationToken ct = default)
     {
         // https://developers.google.com/youtube/v3/docs/channels

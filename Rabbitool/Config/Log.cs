@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Config;
 
-public class Log
+public class LogInfo
 {
     [Required]
     public string ConsoleLevel { get; set; } = null!;

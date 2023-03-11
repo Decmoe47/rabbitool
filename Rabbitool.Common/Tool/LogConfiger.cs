@@ -3,7 +3,7 @@ using Serilog.Events;
 
 namespace Rabbitool.Common.Tool;
 
-public static class LogConfig
+public static class LogConfiger
 {
     public static void Register(string consoleMinLevel = "verbose", string fileMinLevel = "verbose")
     {

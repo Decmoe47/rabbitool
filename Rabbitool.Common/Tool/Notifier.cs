@@ -8,7 +8,7 @@ using Serilog.Events;
 
 namespace Rabbitool.Common.Tool;
 
-public class ErrorNotifier : ILogEventSink, IDisposable
+public class Notifier : ILogEventSink, IDisposable
 {
     private readonly SmtpClient _client;
 
@@ -26,7 +26,7 @@ public class ErrorNotifier : ILogEventSink, IDisposable
 
     private readonly IFormatProvider? _formatProvider;
 
-    public ErrorNotifier(ErrorNotifierOptions opts, IFormatProvider? formatProvider = null)
+    public Notifier(ErrorNotifierOptions opts, IFormatProvider? formatProvider = null)
     {
         _client = new SmtpClient();
         _errorCounters = new List<ErrorCounter>();
@@ -178,6 +178,6 @@ public static class ErrorNotifierExtension
         ErrorNotifierOptions errorNotifierOptions,
         IFormatProvider? formatProvider = null)
     {
-        return loggerConfiguration.Sink(new ErrorNotifier(errorNotifierOptions, formatProvider));
+        return loggerConfiguration.Sink(new Notifier(errorNotifierOptions, formatProvider));
     }
 }

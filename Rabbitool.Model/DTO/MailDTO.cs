@@ -1,6 +1,6 @@
 ﻿namespace Rabbitool.Model.DTO.Mail;
 
-public class Mail
+public class MailDTO
 {
     public List<AddressInfo> From { get; set; } = new List<AddressInfo>();
     public List<AddressInfo> To { get; set; } = new List<AddressInfo>();

@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Model.DTO.QQBot;
 
-public class ImageElem
+public class ImageElemDTO
 {
     [JsonProperty("third_url")]
     public string ThirdUrl { get; set; } = string.Empty;

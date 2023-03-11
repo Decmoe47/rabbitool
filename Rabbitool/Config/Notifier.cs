@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Config;
 
-public class ErrorNotifier
+public class Notifier
 {
     [Required]
     public string SenderHost { get; set; } = null!;

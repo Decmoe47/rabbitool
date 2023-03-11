@@ -223,7 +223,7 @@ public class TwitterService
         {
             Id = id,
             Type = tweetType,
-            Url = $"https://twitter.com/{screenName}/status/{(string)tweet["id"]!}",
+            Url = $"https://twitter.com/{screenName}/status/{id}",
             PubTime = ((DateTime)tweet["created_at"]!).ToUniversalTime(),
             Author = (string)body["includes"]!["users"]![0]!["name"]!,
             AuthorScreenName = screenName,

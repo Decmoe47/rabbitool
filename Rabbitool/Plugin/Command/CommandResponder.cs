@@ -1,4 +1,5 @@
 ﻿using QQChannelFramework.Models.MessageModels;
+using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Plugin.Command.Subscribe;
 using Serilog;
@@ -7,8 +8,6 @@ namespace Rabbitool.Plugin.Command;
 
 public static class CommandResponder
 {
-    private static readonly List<CommandInfo> _commands = SubscribeCommandResponder.AllSubscribeCommands;
-
     private static readonly List<CommandInfo> _baseCommands = new()
     {
         new CommandInfo
@@ -27,7 +26,9 @@ public static class CommandResponder
         }
     };
 
-    private static readonly List<CommandInfo> _allCommands = _baseCommands.Concat(_commands).ToList();
+    private static readonly List<CommandInfo> _allCommands = CommonUtil.CombineLists(
+        _baseCommands,
+        SubscribeCommandResponder.AllSubscribeCommands);
 
     public static async Task<string> GenerateReplyMsgAsync(Message msg, CancellationToken ct = default)
     {
@@ -55,7 +56,7 @@ public static class CommandResponder
         List<string> cmd, Message msg, CancellationToken ct)
     {
         string commands = "";
-        foreach (CommandInfo v in _commands)
+        foreach (CommandInfo v in _allCommands)
             commands += string.Join(" ", v.Format) + "\n";
         return $"支持的命令：\n{commands}\n详细设置请前往项目主页。";
     }

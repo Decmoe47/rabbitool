@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Model.DTO.QQBot;
 
-public class ParagraphProps
+public class ParagraphPropsDTO
 {
     [JsonProperty("alignment")]
     public AlignmentEnum Alignment { get; set; }

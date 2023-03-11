@@ -16,7 +16,7 @@ public class MailPlugin : BasePlugin
     private readonly MailSubscribeRepository _repo;
     private readonly MailSubscribeConfigRepository _configRepo;
 
-    private Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
+    private Dictionary<string, Dictionary<DateTime, MailDTO>> _storedMails = new();
 
     /// <summary>
     /// 会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent"/>
@@ -68,14 +68,14 @@ public class MailPlugin : BasePlugin
     {
         try
         {
-            Mail mail = await svc.GetLatestMailAsync(ct);
+            MailDTO mail = await svc.GetLatestMailAsync(ct);
             if (mail.Time <= record.LastMailTime)
             {
                 Log.Debug("No new mail from the mail user {username}", record.Username);
                 return;
             }
 
-            async Task FnAsync(Mail mail)
+            async Task FnAsync(MailDTO mail)
             {
                 bool pushed = await PushMsgAsync(mail, record, ct);
                 if (pushed)
@@ -90,7 +90,7 @@ public class MailPlugin : BasePlugin
             if (now.Hour >= 0 && now.Hour <= 5)
             {
                 if (!_storedMails.ContainsKey(record.Username))
-                    _storedMails[record.Username] = new Dictionary<DateTime, Mail>();
+                    _storedMails[record.Username] = new Dictionary<DateTime, MailDTO>();
                 if (!_storedMails[record.Username].ContainsKey(mail.Time))
                     _storedMails[record.Username][mail.Time] = mail;
 
@@ -99,7 +99,7 @@ public class MailPlugin : BasePlugin
                 return;
             }
 
-            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, Mail>? storedMails) && storedMails != null && storedMails.Count != 0)
+            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, MailDTO>? storedMails) && storedMails != null && storedMails.Count != 0)
             {
                 List<DateTime> times = storedMails.Keys.ToList();
                 times.Sort();
@@ -122,7 +122,7 @@ public class MailPlugin : BasePlugin
         }
     }
 
-    private async Task<bool> PushMsgAsync(Mail mail, MailSubscribeEntity record, CancellationToken ct = default)
+    private async Task<bool> PushMsgAsync(MailDTO mail, MailSubscribeEntity record, CancellationToken ct = default)
     {
         (string title, string text, string detailText) = MailToStr(mail);
 
@@ -143,7 +143,7 @@ public class MailPlugin : BasePlugin
             MailSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.PushToThread)
             {
-                Model.DTO.QQBot.RichText richText = config.Detail
+                Model.DTO.QQBot.RichTextDTO richText = config.Detail
                     ? QQBotService.TextToRichText(detailText)
                     : QQBotService.TextToRichText(text);
                 tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), ct));
@@ -163,7 +163,7 @@ public class MailPlugin : BasePlugin
         return pushed;
     }
 
-    private (string title, string text, string detailText) MailToStr(Mail mail)
+    private (string title, string text, string detailText) MailToStr(MailDTO mail)
     {
         string from = "";
         string to = "";
