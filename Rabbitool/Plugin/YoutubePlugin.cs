@@ -52,8 +52,7 @@ public class YoutubePlugin : BasePlugin
     {
         try
         {
-            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(
-                record.ChannelId, ct: ct);
+            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(record.ChannelId, ct: ct);
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
@@ -69,7 +68,8 @@ public class YoutubePlugin : BasePlugin
 
                         await PushUpcomingLiveAsync(live, record, ct);
                     }
-                    else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
+                    else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId
+                        && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
                     {
                         await PushLiveAndUpdateDatabaseAsync(live, record, ct: ct);
                     }
@@ -190,7 +190,8 @@ public class YoutubePlugin : BasePlugin
         }
     }
 
-    private async Task PushVideoAndUpdateDatabaseAsync(YoutubeVideo video, YoutubeSubscribeEntity record, CancellationToken ct)
+    private async Task PushVideoAndUpdateDatabaseAsync(
+        YoutubeVideo video, YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         bool pushed = await PushMsgAsync(video, record, ct);
         if (pushed)
@@ -245,12 +246,13 @@ public class YoutubePlugin : BasePlugin
         return pushed;
     }
 
-    private (string title, string text, string imgUrl) ItemToStr<T>(T item)
-        where T : YoutubeItem
+    private (string title, string text, string imgUrl) ItemToStr<T>(T item) where T : YoutubeItem
     {
         return item switch
         {
-            YoutubeLive live => (live.Type is YoutubeTypeEnum.Live ? $"【油管开播】来自 {live.Author}" : $"【油管预定开播】来自 {live.Author}", LiveToStr(live), live.ThumbnailUrl),
+            YoutubeLive live => (live.Type is YoutubeTypeEnum.Live
+                ? $"【油管开播】来自 {live.Author}"
+                : $"【油管预定开播】来自 {live.Author}", LiveToStr(live), live.ThumbnailUrl),
             YoutubeVideo video => ($"【新油管视频】来自 {video.Author}", VideoToStr(video), video.ThumbnailUrl),
             _ => throw new NotSupportedException($"Not supported item type {item.GetType().Name}")
         };

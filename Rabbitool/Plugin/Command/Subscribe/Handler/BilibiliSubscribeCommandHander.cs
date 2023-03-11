@@ -24,8 +24,7 @@ public class BilibiliSubscribeCommandHandler
     {
     }
 
-    public override async Task<(string name, string? errMsg)> CheckId(
-        string uid, CancellationToken ct = default)
+    public override async Task<(string name, string? errMsg)> CheckId(string uid, CancellationToken ct = default)
     {
         _limiter.Wait(ct: ct);
 

@@ -54,7 +54,8 @@ public class MailPlugin : BasePlugin
             MailService? svc = _services.FirstOrDefault(s => s.Username == record.Address);
             if (svc is null)
             {
-                svc = new MailService(record.Host, record.Port, record.Ssl, record.Username, record.Password, record.Mailbox);
+                svc = new MailService(
+                    record.Host, record.Port, record.Ssl, record.Username, record.Password, record.Mailbox);
                 _services.Add(svc);
             }
 
@@ -63,8 +64,7 @@ public class MailPlugin : BasePlugin
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(
-        MailService svc, MailSubscribeEntity record, CancellationToken ct = default)
+    private async Task CheckAsync(MailService svc, MailSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
@@ -99,7 +99,8 @@ public class MailPlugin : BasePlugin
                 return;
             }
 
-            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, MailDTO>? storedMails) && storedMails != null && storedMails.Count != 0)
+            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, MailDTO>? storedMails)
+                && storedMails != null && storedMails.Count != 0)
             {
                 List<DateTime> times = storedMails.Keys.ToList();
                 times.Sort();
@@ -126,8 +127,7 @@ public class MailPlugin : BasePlugin
     {
         (string title, string text, string detailText) = MailToStr(mail);
 
-        List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Address, ct: ct);
+        List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Address, ct: ct);
 
         bool pushed = false;
         List<Task> tasks = new();

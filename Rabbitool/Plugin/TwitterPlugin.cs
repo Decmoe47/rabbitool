@@ -18,44 +18,14 @@ public class TwitterPlugin : BasePlugin
     private Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
 
     public TwitterPlugin(
+        string token,
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
         string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
-        _svc = new TwitterService(userAgent);
-
-        SubscribeDbContext dbCtx = new(_dbPath);
-        _repo = new TwitterSubscribeRepository(dbCtx);
-        _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
-    }
-
-    public TwitterPlugin(
-        string apiV2Token,
-        QQBotService qbSvc,
-        CosService cosSvc,
-        string dbPath,
-        string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
-    {
-        _svc = new TwitterService(userAgent, apiV2Token);
-
-        SubscribeDbContext dbCtx = new(_dbPath);
-        _repo = new TwitterSubscribeRepository(dbCtx);
-        _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
-    }
-
-    public TwitterPlugin(
-        string xCsrfToken,
-        string cookie,
-        QQBotService qbSvc,
-        CosService cosSvc,
-        string dbPath,
-        string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
-    {
-        _svc = new TwitterService(userAgent, xCsrfToken, cookie);
+        _svc = new TwitterService(token);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new TwitterSubscribeRepository(dbCtx);
@@ -118,7 +88,8 @@ public class TwitterPlugin : BasePlugin
                 return;
             }
 
-            if (_storedTweets.TryGetValue(tweet.AuthorScreenName, out Dictionary<DateTime, Tweet>? storedTweets) && storedTweets != null && storedTweets.Count != 0)
+            if (_storedTweets.TryGetValue(tweet.AuthorScreenName, out Dictionary<DateTime, Tweet>? storedTweets)
+                && storedTweets != null && storedTweets.Count != 0)
             {
                 List<DateTime> pubTimes = storedTweets.Keys.ToList();
                 pubTimes.Sort();
@@ -142,15 +113,13 @@ public class TwitterPlugin : BasePlugin
         }
     }
 
-    private async Task<bool> PushTweetAsync(
-        Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken ct = default)
+    private async Task<bool> PushTweetAsync(Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken ct = default)
     {
         (string title, string text) = await TweetToStrAsync(tweet, ct);
         RichTextDTO richText = await TweetToRichTextAsync(tweet, text, ct);
         List<string> imgUrls = await GetTweetImgUrlsAsync(tweet, ct);
 
-        List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            subscribe.ScreenName, ct: ct);
+        List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(subscribe.ScreenName, ct: ct);
 
         bool pushed = false;
         List<Task> tasks = new();
@@ -184,8 +153,7 @@ public class TwitterPlugin : BasePlugin
         return pushed;
     }
 
-    private async Task<(string title, string text)> TweetToStrAsync(
-        Tweet tweet, CancellationToken ct = default)
+    private async Task<(string title, string text)> TweetToStrAsync(Tweet tweet, CancellationToken ct = default)
     {
         string title;
         string text;
@@ -284,8 +252,7 @@ public class TwitterPlugin : BasePlugin
         return result;
     }
 
-    private async Task<RichTextDTO> TweetToRichTextAsync(
-        Tweet tweet, string text, CancellationToken ct = default)
+    private async Task<RichTextDTO> TweetToRichTextAsync(Tweet tweet, string text, CancellationToken ct = default)
     {
         RichTextDTO result = QQBotService.TextToRichText(text);
 

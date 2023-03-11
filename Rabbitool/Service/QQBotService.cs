@@ -301,9 +301,9 @@ public class QQBotService
         }
     }
 
-    public static RichText TextToRichText(string text)
+    public static RichTextDTO TextToRichText(string text)
     {
-        List<Paragraph> paras = new();
+        List<ParagraphDTO> paras = new();
 
         text = text.Replace("\r", "");
         List<string> textList = text.Split("\n").ToList();
@@ -328,39 +328,39 @@ public class QQBotService
                     string url = line.Replace("@isURL#", "");
                     paras[^1].Elems?.Add(new ElemDTO()
                     {
-                        Url = new UrlElem() { Url = url, Desc = url },
+                        Url = new UrlElemDTO() { Url = url, Desc = url },
                         Type = ElemTypeEnum.Url
                     });
                 }
                 else
                 {
-                    paras.Add(new Paragraph()
+                    paras.Add(new ParagraphDTO()
                     {
                         Elems = new List<ElemDTO>()
                         {
                             new ElemDTO()
                             {
-                                Url = new UrlElem() { Url = line, Desc = line },
+                                Url = new UrlElemDTO() { Url = line, Desc = line },
                                 Type = ElemTypeEnum.Url
                             }
                         },
-                        Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
+                        Props = new ParagraphPropsDTO() { Alignment = AlignmentEnum.Left }
                     });
                 }
             }
             else
             {
-                paras.Add(new Paragraph()
+                paras.Add(new ParagraphDTO()
                 {
                     Elems = new List<ElemDTO>()
                     {
                         new ElemDTO()
                         {
-                            Text = new TextElem() {Text = line },
+                            Text = new TextElemDTO() {Text = line },
                             Type = ElemTypeEnum.Text,
                         }
                     },
-                    Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
+                    Props = new ParagraphPropsDTO() { Alignment = AlignmentEnum.Left }
                 });
             }
         }
@@ -374,19 +374,19 @@ public class QQBotService
                 {
                     if (elem.Text?.Text is "")
                     {
-                        paras[i] = new Paragraph()
+                        paras[i] = new ParagraphDTO()
                         {
-                            Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
+                            Props = new ParagraphPropsDTO() { Alignment = AlignmentEnum.Left }
                         };
                     }
                 }
             }
         }
 
-        return new RichText() { Paragraphs = paras };
+        return new RichTextDTO() { Paragraphs = paras };
     }
 
-    public static async Task<List<Paragraph>> ImagesToParagraphsAsync(
+    public static async Task<List<ParagraphDTO>> ImagesToParagraphsAsync(
         List<string> urls, CosService cosSvc, CancellationToken ct = default)
     {
         List<ElemDTO> imgElems = new(urls.Count);
@@ -396,47 +396,47 @@ public class QQBotService
             string uploadedUrl = await cosSvc.UploadImageAsync(url, ct);
             imgElems.Add(new ElemDTO()
             {
-                Image = new ImageElem() { ThirdUrl = uploadedUrl },
+                Image = new ImageElemDTO() { ThirdUrl = uploadedUrl },
                 Type = ElemTypeEnum.Image
             });
         }
 
         return new()
         {
-            new Paragraph()
+            new ParagraphDTO()
             {
                 Elems = imgElems,
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Middle }
+                Props = new ParagraphPropsDTO() { Alignment = AlignmentEnum.Middle }
             }
         };
     }
 
-    public static async Task<List<Paragraph>> VideoToParagraphsAsync(
+    public static async Task<List<ParagraphDTO>> VideoToParagraphsAsync(
         string tweetUrl, DateTime pubTime, CosService cosSvc, CancellationToken ct = default)
     {
         string url = await cosSvc.UploadVideoAsync(tweetUrl, pubTime, ct);
 
         return new()
         {
-            new Paragraph()
+            new ParagraphDTO()
             {
                 Elems = new List<ElemDTO>()
                 {
                     new ElemDTO()
                     {
-                        Text = new TextElem() { Text = $"视频：{url}" },
+                        Text = new TextElemDTO() { Text = $"视频：{url}" },
                         Type = ElemTypeEnum.Text,
                     }
                 },
-                Props = new ParagraphProps() { Alignment = AlignmentEnum.Left }
+                Props = new ParagraphPropsDTO() { Alignment = AlignmentEnum.Left }
             },
-            new Paragraph()
+            new ParagraphDTO()
             {
                 Elems = new List<ElemDTO>()
                 {
                     new ElemDTO()
                     {
-                        Video = new VideoElem() { ThirdUrl = url },
+                        Video = new VideoElemDTO() { ThirdUrl = url },
                         Type = ElemTypeEnum.Video
                     }
                 }

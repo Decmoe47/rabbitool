@@ -62,7 +62,9 @@ public class SubscribeDbContext : DbContext
         ValueComparer<DateTime> comparerForDateTime = new(
             (c1, c2) => CompareDateTime(c1, c2),
             c => c.GetHashCode(),
-            c => DateTime.ParseExact(c.ToString("yyyy-MM-ddTHH:mm:sszzz"), "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime());
+            c => DateTime
+                .ParseExact(c.ToString("yyyy-MM-ddTHH:mm:sszzz"), "yyyy-MM-ddTHH:mm:sszzz", null)
+                .ToUniversalTime());
 
         // conversions
         modelBuilder.Entity<YoutubeSubscribeEntity>()

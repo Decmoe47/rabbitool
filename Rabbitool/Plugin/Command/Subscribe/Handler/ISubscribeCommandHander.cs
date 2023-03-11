@@ -13,5 +13,5 @@ internal interface ISubscribeCommandHandler
 
     Task<(string name, string? errMsg)> CheckId(string id, CancellationToken ct = default);
 
-    Task BotDeletedHandlerAsync(WsGuild guild, CancellationToken ct);
+    Task BotDeletedHandlerAsync(WsGuild guild, CancellationToken ct = default);
 }

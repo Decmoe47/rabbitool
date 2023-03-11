@@ -27,8 +27,10 @@ public class AllPlugins
 
     public AllPlugins(Configs configs)
     {
-        _qbSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, configs.QQBot.IsSandBox, configs.QQBot.SandboxGuildName);
-        _cosSvc = new CosService(configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);
+        _qbSvc = new QQBotService(
+            configs.QQBot.AppId, configs.QQBot.Token, configs.QQBot.IsSandBox, configs.QQBot.SandboxGuildName);
+        _cosSvc = new CosService(
+            configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);
         _redirectUrl = configs.RedirectUrl;
         _userAgent = configs.UserAgent;
         _dbPath = configs.DbPath;
@@ -85,13 +87,7 @@ public class AllPlugins
     public void InitTwitterPlugin()
     {
         _pluginSwitches["twitter"] = true;
-        TwitterPlugin plugin;
-        if (_configs.Twitter?.ApiV2Token is string apiV2Token)
-            plugin = new(apiV2Token, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
-        else if (_configs.Twitter?.XCsrfToken != null && _configs.Twitter?.Cookie != null)
-            plugin = new(_configs.Twitter.XCsrfToken, _configs.Twitter.Cookie, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
-        else
-            plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
+        TwitterPlugin plugin = new(_configs.Twitter!.Token, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
 
         _host.Services.UseScheduler(scheduler =>
             scheduler

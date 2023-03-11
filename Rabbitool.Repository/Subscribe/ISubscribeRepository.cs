@@ -23,13 +23,10 @@ public interface ISubscribeConfigRepository<TSubscribe, TConfig> : IRepository<T
 {
     Task<List<TConfig>> GetAllAsync(string id, bool tracking = false, CancellationToken ct = default);
 
-    Task<TConfig> GetAsync(
-        string qqChannelId, string id, bool tracking = false, CancellationToken ct = default
-    );
+    Task<TConfig> GetAsync(string qqChannelId, string id, bool tracking = false, CancellationToken ct = default);
 
     Task<TConfig?> GetOrDefaultAsync(
-        string qqChannelId, string id, bool tracking = false, CancellationToken ct = default
-    );
+        string qqChannelId, string id, bool tracking = false, CancellationToken ct = default);
 
     Task<TConfig> DeleteAsync(string qqChannelId, string id, CancellationToken ct = default);
 

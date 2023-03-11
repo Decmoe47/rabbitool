@@ -12,8 +12,7 @@ public class YoutubeSubscribeRepository
     {
     }
 
-    public async Task<List<YoutubeSubscribeEntity>> GetAllAsync(
-        bool tracking = false, CancellationToken ct = default)
+    public async Task<List<YoutubeSubscribeEntity>> GetAllAsync(bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {

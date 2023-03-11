@@ -12,9 +12,7 @@ public class QQChannelSubscribeRepository
     }
 
     public async Task<List<QQChannelSubscribeEntity>> GetAllAsync(
-        string guildId,
-        bool tracking = false,
-        CancellationToken ct = default)
+        string guildId, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {
@@ -39,9 +37,7 @@ public class QQChannelSubscribeRepository
     }
 
     public async Task<QQChannelSubscribeEntity> GetAsync(
-       string channelId,
-       bool tracking = false,
-       CancellationToken ct = default)
+       string channelId, bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
         {

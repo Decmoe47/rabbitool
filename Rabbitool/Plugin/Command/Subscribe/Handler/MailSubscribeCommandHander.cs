@@ -23,8 +23,7 @@ public class MailSubscribeCommandHandler
 
 #pragma warning disable CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
 
-    public override async Task<(string name, string? errMsg)> CheckId(
-        string address, CancellationToken ct = default)
+    public override async Task<(string name, string? errMsg)> CheckId(string address, CancellationToken ct = default)
     {
         return Regex.IsMatch(address, @"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$")
             ? (address, null)

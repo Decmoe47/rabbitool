@@ -10,178 +10,23 @@ namespace Rabbitool.Service;
 
 public class TwitterService
 {
-    private readonly string _apiV1_1Auth = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
-    private readonly string? _apiV2Token;
-    private readonly string? _cookie;
+    private readonly string _token;
     private readonly LimiterUtil _tweetApiLimiter = LimiterCollection.TwitterTweetApiLimiter;
     private readonly LimiterUtil _userApiLimiter = LimiterCollection.TwitterUserApiLimiter;
-    private readonly string _userAgent;
-    private readonly bool _usingApiV2;
-    private readonly string? _xCsrfToken;
 
-    public TwitterService(string userAgent)
+    public TwitterService(string token)
     {
-        _userAgent = userAgent;
-        _usingApiV2 = false;
-    }
-
-    public TwitterService(string userAgent, string xCsrfToken, string cookie)
-    {
-        _userAgent = userAgent;
-        _xCsrfToken = xCsrfToken;
-        _cookie = cookie;
-        _usingApiV2 = false;
-    }
-
-    public TwitterService(string userAgent, string apiV2Token)
-    {
-        _userAgent = userAgent;
-        _apiV2Token = apiV2Token;
-        _usingApiV2 = true;
+        _token = token;
     }
 
     public async Task<Tweet> GetLatestTweetAsync(string screenName, CancellationToken ct = default)
-    {
-        return _usingApiV2
-            ? await GetLatestTweetByApiV2Async(screenName, ct)
-            : await GetLatestTweetByApi1_1Async(screenName, ct);
-    }
-
-    /// <summary>
-    /// 无需官方开发者账号。如果有x-csrf-token和cookie的话还能看得到r18推文
-    /// </summary>
-    private async Task<Tweet> GetLatestTweetByApi1_1Async(string screenName, CancellationToken ct = default)
-    {
-        _tweetApiLimiter.Wait(ct: ct);
-
-        Dictionary<string, string> headers = new()
-        {
-            { "Authorization", _apiV1_1Auth },
-            { "User-Agent", _userAgent },
-        };
-        if (_xCsrfToken is not null) headers.Add("x-csrf-token", _xCsrfToken);
-        if (_cookie is not null) headers.Add("Cookie", _cookie);
-
-        string resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
-            .WithTimeout(10)
-            .WithHeaders(headers)
-            .SetQueryParams(new Dictionary<string, string>()
-            {
-                { "screen_name", screenName },
-                { "exclude_replies", "false" },
-                { "include_rts", "true" },
-                { "count", "5" },
-            })
-            .GetStringAsync(ct);
-        JArray body = JArray.Parse(resp);
-        JObject tweet = (JObject)body[0];
-
-        Tweet? origin = null;
-        List<string>? imgUrls = null;
-        bool hasVideo = false;
-        string text = (string)tweet["text"]!;
-        TweetTypeEnum tweetType = TweetTypeEnum.Common;
-
-        if ((JArray?)tweet["extended_entities"]?["media"] is JArray media)
-            (text, imgUrls, hasVideo) = GetMediaByApi1_1(media, text);
-
-        if ((JObject?)tweet["quoted_status"] is JObject quotedStatus)
-        {
-            origin = GetOriginTweetByApi1_1(quotedStatus);
-            tweetType = TweetTypeEnum.Quote;
-        }
-        else if ((JObject?)tweet["retweeted_status"] is JObject retweetedStatus)
-        {
-            origin = GetOriginTweetByApi1_1(retweetedStatus);
-            tweetType = TweetTypeEnum.RT;
-        }
-
-        return new()
-        {
-            Id = (string)tweet["id_str"]!,
-            Type = tweetType,
-            Author = (string)tweet["user"]!["name"]!,
-            AuthorScreenName = screenName,
-            Text = text,
-            ImageUrls = imgUrls,
-            HasVideo = hasVideo,
-            Url = $"https://twitter.com/{screenName}/status/{(string)tweet["id_str"]!}",
-            PubTime = DateTime
-                .ParseExact((string)tweet["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", null)
-                .ToUniversalTime(),
-            Origin = origin,
-        };
-    }
-
-    private static Tweet GetOriginTweetByApi1_1(JObject origin)
-    {
-        List<string>? imgUrls = null;
-        bool hasVideo = false;
-        string text = (string)origin["text"]!;
-
-        if ((JArray?)origin["extended_entities"]?["media"] is JArray media)
-            (text, imgUrls, hasVideo) = GetMediaByApi1_1(media, text);
-
-        return new()
-        {
-            Id = (string)origin["id_str"]!,
-            Type = TweetTypeEnum.Common,
-            Author = (string)origin["user"]!["name"]!,
-            AuthorScreenName = (string)origin["user"]!["screen_name"]!,
-            Text = text,
-            ImageUrls = imgUrls,
-            HasVideo = hasVideo,
-            PubTime = DateTime
-                .ParseExact((string)origin["created_at"]!, "ddd MMM dd HH:mm:ss zz00 yyyy", null)
-                .ToUniversalTime(),
-            Url = $"https://twitter.com/{(string)origin["user"]!["screen_name"]!}/status/{(string)origin["id_str"]!}",
-        };
-    }
-
-    private static (string text, List<string>? imgUrls, bool hasVideo) GetMediaByApi1_1(JArray media, string text)
-    {
-        var imgUrls = new List<string>();
-        bool hasVideo = false;
-
-        foreach (JToken medium in media)
-        {
-            try
-            {
-                string mediumType = (string)medium["type"]!;
-                switch (mediumType)
-                {
-                    case "photo":
-                        text = text.Replace((string)medium["url"]!, "");
-                        imgUrls.Add((string)medium["media_url_https"]!);
-                        break;
-
-                    case "video":
-                        text = text.Replace((string)medium["url"]!, "");
-                        hasVideo = true;
-                        break;
-
-                    default:
-                        throw new NotSupportedException($"Unknown media type {mediumType}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, $"Failed to get the media!\nBody: {media}"); ;
-                continue;
-            }
-        }
-
-        return (text, imgUrls.Count != 0 ? imgUrls : null, hasVideo);
-    }
-
-    private async Task<Tweet> GetLatestTweetByApiV2Async(string screenName, CancellationToken ct = default)
     {
         (string userId, _) = await GetUserIdAsync(screenName, ct);
 
         _tweetApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithTimeout(10)
-            .WithOAuthBearerToken(_apiV2Token)
+            .WithOAuthBearerToken(_token)
             .SetQueryParams(new Dictionary<string, string>()
             {
                 { "exclude", "replies" },
@@ -201,7 +46,7 @@ public class TwitterService
         List<string>? imgUrls = null;
         bool hasVideo = false;
         if ((JArray?)tweet["entities"]?["urls"] is JArray media)
-            (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, id, ct);
+            (text, imgUrls, hasVideo) = await GetMediaiAsync(body, media, text, id, ct);
 
         TweetTypeEnum tweetType = TweetTypeEnum.Common;
         Tweet? origin = null;
@@ -215,7 +60,7 @@ public class TwitterService
                 _ => throw new NotSupportedException($"Unknown origin type {originType}!\nTweet: {tweet}"),
             };
 
-            origin = await GetOriginTweetByApiV2Async(body, originId, ct);
+            origin = await GetOriginTweetAsync(body, originId, ct);
             text = text.Replace(origin.Url, "");
         }
 
@@ -234,7 +79,7 @@ public class TwitterService
         };
     }
 
-    private async Task<(string text, List<string>? imgUrls, bool hasVideo)> GetMediaByApiV2Async(
+    private async Task<(string text, List<string>? imgUrls, bool hasVideo)> GetMediaiAsync(
         JObject body, JArray media, string text, string tweetId, CancellationToken ct)
     {
         bool hasVideo = false;
@@ -297,7 +142,7 @@ public class TwitterService
         _tweetApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/tweets/{tweetId}"
             .WithTimeout(10)
-            .WithOAuthBearerToken(_apiV2Token)
+            .WithOAuthBearerToken(_token)
             .SetQueryParams(new Dictionary<string, string>()
             {
                 { "tweet.fields", "author_id,created_at,entities,in_reply_to_user_id,referenced_tweets,text" },
@@ -311,7 +156,7 @@ public class TwitterService
         return string.Join(".", ((string)img["url"]!).Split('.')[..^1]) + "?format=jpg&name=large";
     }
 
-    private async Task<Tweet> GetOriginTweetByApiV2Async(
+    private async Task<Tweet> GetOriginTweetAsync(
         JObject body, string originId, CancellationToken ct = default)
     {
         JArray origins = (JArray)body["includes"]!["tweets"]!;
@@ -326,7 +171,7 @@ public class TwitterService
                 List<string>? imgUrls = null;
                 bool hasVideo = false;
                 if ((JArray?)origin["entities"]?["urls"] is JArray media)
-                    (text, imgUrls, hasVideo) = await GetMediaByApiV2Async(body, media, text, originId, ct);
+                    (text, imgUrls, hasVideo) = await GetMediaiAsync(body, media, text, originId, ct);
 
                 return new()
                 {
@@ -346,26 +191,24 @@ public class TwitterService
         throw new NotFoundException($"Couldn't find the origin tweet!(originID: {originId})");
     }
 
-    private async Task<(string userId, string name)> GetUserIdAsync(
-        string screenName, CancellationToken ct = default)
+    private async Task<(string userId, string name)> GetUserIdAsync(string screenName, CancellationToken ct = default)
     {
         _userApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithTimeout(10)
-            .WithHeader("Authorization", $"Bearer {_apiV2Token}")
+            .WithHeader("Authorization", $"Bearer {_token}")
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 
         return ((string)body["data"]!["id"]!, (string)body["data"]!["name"]!);
     }
 
-    private async Task<(string name, string screenName)> GetUserNameAsync(
-        string userId, CancellationToken ct = default)
+    private async Task<(string name, string screenName)> GetUserNameAsync(string userId, CancellationToken ct = default)
     {
         _userApiLimiter.Wait(ct: ct);
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithTimeout(10)
-            .WithHeader("Authorization", $"Bearer {_apiV2Token}")
+            .WithHeader("Authorization", $"Bearer {_token}")
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 

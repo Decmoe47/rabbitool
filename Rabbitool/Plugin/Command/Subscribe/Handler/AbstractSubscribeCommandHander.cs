@@ -62,8 +62,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         await _dbCtx.SaveChangesAsync(ct);
     }
 
-    public abstract Task<(string name, string? errMsg)> CheckId(
-        string id, CancellationToken ct = default);
+    public abstract Task<(string name, string? errMsg)> CheckId(string id, CancellationToken ct = default);
 
     public virtual async Task<string> Add(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
@@ -177,9 +176,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             : await ListSubscribeInChannelAsync(cmd, subscribes, logInfo, ct);
     }
 
-    private async Task<string> ListAllSubscribesInGuildAsync(
-        SubscribeCommandDTO cmd,
-        CancellationToken ct = default)
+    private async Task<string> ListAllSubscribesInGuildAsync(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
         List<QQChannelSubscribeEntity> allChannels = await _qsRepo.GetAllAsync(
             cmd.QQChannel.GuildId, ct: ct);
@@ -193,8 +190,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             if (subscribes is null || subscribes.Count == 0)
                 continue;
 
-            tasks.Add(ListAllSubscribesInChannelAsync(
-                channel.ChannelId, channel.ChannelName, subscribes, ct));
+            tasks.Add(ListAllSubscribesInChannelAsync(channel.ChannelId, channel.ChannelName, subscribes, ct));
         }
 
         if (tasks.Count == 0)
@@ -214,8 +210,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         foreach (TSubscribe subscribe in subscribes)
         {
             result += "- " + subscribe.GetInfo("，");
-            TConfig? config = await _configRepo.GetOrDefaultAsync(
-                channelId, subscribe.GetId(), ct: ct);
+            TConfig? config = await _configRepo.GetOrDefaultAsync(channelId, subscribe.GetId(), ct: ct);
             if (config is not null)
                 result += "；配置：" + config.GetConfigs("，");
             result += "\n";

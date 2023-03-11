@@ -133,8 +133,7 @@ public class BilibiliPlugin : BasePlugin
 
         bool pushed = false;
         List<Task> tasks = new();
-        List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Uid, ct: ct);
+        List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
@@ -418,8 +417,7 @@ public class BilibiliPlugin : BasePlugin
 
                 record.LastLiveStatus = live.LiveStatus;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
-                    live.Uname, live.Uid);
+                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.", live.Uname, live.Uid);
             }
 
             if (record.LastLiveStatus != LiveStatusEnum.Streaming)
@@ -446,8 +444,7 @@ public class BilibiliPlugin : BasePlugin
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push live message!\nUid: {uid}\nUname: {uname}",
-                record.Uid, record.Uname);
+            Log.Error(ex, "Failed to push live message!\nUid: {uid}\nUname: {uname}", record.Uid, record.Uname);
         }
     }
 
@@ -460,8 +457,7 @@ public class BilibiliPlugin : BasePlugin
 
         bool pushed = false;
         List<Task> tasks = new();
-        List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            record.Uid, ct: ct);
+        List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
@@ -476,7 +472,6 @@ public class BilibiliPlugin : BasePlugin
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
             tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, ct));
-
             pushed = true;
         }
 
@@ -491,13 +486,10 @@ public class BilibiliPlugin : BasePlugin
         if (live.LiveStatus == LiveStatusEnum.Streaming
             && live.LiveStartTime is not null)
         {
-            DateTime liveStartTime = TimeZoneInfo
-                .ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST);
-
             title = "【b站开播】来自 " + live.Uname;
             text = $"""
                 直播标题：{live.Title}
-                开播时间：{liveStartTime:yyyy-MM-dd HH:mm:ss zzz}
+                开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
                 直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}
                 """;
             if (live.CoverUrl is string and not "")
@@ -505,11 +497,9 @@ public class BilibiliPlugin : BasePlugin
         }
         else
         {
-            DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-
             title = "【b站下播】来自 " + live.Uname;
             text = $"""
-                下播时间：{now:yyyy-MM-dd HH:mm:ss zzz}
+                下播时间：{TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
                 直播间链接：{PluginHelper.AddRedirectToUrls("https://live.bilibili.com/" + live.RoomId, _redirectUrl)}
                 """;
         }
