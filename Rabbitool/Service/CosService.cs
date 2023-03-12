@@ -27,16 +27,17 @@ public class CosService
 
     public async Task<string> UploadImageAsync(string url, CancellationToken ct = default)
     {
-        string filename = url.Split("/").Last();
+        string partOfUrl = url.Split("/").Last();
+        string filename = DateTime.Now.ToString();
 
-        if (filename.IndexOf("?") is int j and not -1)
-            filename = filename[..j];
+        if (partOfUrl.IndexOf("?") is int j and not -1)
+            filename = partOfUrl[..j];
 
-        Match match = Regex.Match(filename, @"(?<=format=).+?(?=&)");
+        Match match = Regex.Match(partOfUrl, @"(?<=format=).+?(?=&)");
         if (match.Success)
             filename += "." + match.Groups[0].Value;
 
-        byte[] resp = await url.WithTimeout(60).GetBytesAsync(ct);
+        byte[] resp = await url.WithTimeout(30).GetBytesAsync(ct);
         return Upload(filename, resp, "/data/images/");
     }
 

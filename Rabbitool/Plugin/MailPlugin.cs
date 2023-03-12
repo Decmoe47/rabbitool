@@ -146,15 +146,16 @@ public class MailPlugin : BasePlugin
                 Model.DTO.QQBot.RichTextDTO richText = config.Detail
                     ? QQBotService.TextToRichText(detailText)
                     : QQBotService.TextToRichText(text);
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), ct));
+                tasks.Add(_qbSvc.PostThreadAsync(
+                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct));
                 pushed = true;
                 continue;
             }
 
             if (config.Detail)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{detailText}", ct));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}", ct));
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", ct));
+                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct));
 
             pushed = true;
         }

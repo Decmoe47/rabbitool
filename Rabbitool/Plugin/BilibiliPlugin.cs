@@ -148,7 +148,8 @@ public class BilibiliPlugin : BasePlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush is false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectImgUrls, ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, redirectImgUrls, ct));
             pushed = true;
         }
 
@@ -471,7 +472,8 @@ public class BilibiliPlugin : BasePlugin
             if (config.LivePush is false) continue;
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, title + "\n\n" + text, redirectCoverUrl, ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, redirectCoverUrl, ct));
             pushed = true;
         }
 

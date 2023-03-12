@@ -34,7 +34,7 @@ public class Configs
     [Required]
     public Youtube Youtube { get; set; } = null!;
 
-    public Notifier? ErrorNotifier { get; set; }
+    public Notifier? Notifier { get; set; }
     public Twitter? Twitter { get; set; } = null!;
 
     public static Configs Load(string path)

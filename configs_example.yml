@@ -11,11 +11,11 @@ log:
 
 interval: # 均为int，单位为秒
   bilibiliPlugin: 10 # 尽量不要设太快，因为并不知道b站api的qps是多少
-  youtubePlugin: 10	# 再快也会受限于rate limiter，大约96秒一次查询
+  youtubePlugin: 10 # 再快也会受限于rate limiter，大约96秒一次查询
   twitterPlugin: 10 # 再快也会受限于rate limiter，大约27秒一次查询
   mailPlugin: 10 # 尽量不要设太快，因为并不知道你的邮箱的qps是多少
 
-errorNotifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
+notifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
   senderHost: # string
   senderPort: # int
   usingSsl: false # bool
@@ -38,6 +38,4 @@ cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同�
 youtube:
   apiKey: # string，官方api，参见官方说明
 twitter: # （可选）
-  x_csrf_token: # string，和cookie一起填
-  cookie: # string，和x_csrf_token一起填
-  apiV2Token: # string，填了这个会优先选择v2 api
+  token: # string，v2 api

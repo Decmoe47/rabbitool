@@ -106,7 +106,7 @@ public static class SubscribeCommandResponder
                 configDict.Add(kv[0], ParseValue(kv[0], kv[1]));
         }
 
-        if (configDict.TryGetValue("channel", out dynamic? v) && v is string)
+        if (configDict.TryGetValue("channel", out dynamic? v) && v is string && cmdType != SubscribeCommandType.Delete)
         {
             Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, msg.GuildId, ct);
             if (channel is null)

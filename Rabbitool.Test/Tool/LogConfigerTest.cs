@@ -8,7 +8,7 @@ public class LogConfigTest
     public LogConfigTest()
     {
         Configs configs = Configs.Load("configs.yml");
-        ErrorNotifierOptions opts = configs.ErrorNotifier!.ToOptions();
+        ErrorNotifierOptions opts = configs.Notifier!.ToOptions();
         opts.IntervalMinutes = 60;
         opts.AllowedAmount = 25;
         LogConfiger.Register(opts);

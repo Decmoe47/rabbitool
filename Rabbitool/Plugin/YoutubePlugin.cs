@@ -238,7 +238,7 @@ public class YoutubePlugin : BasePlugin
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", uploadedImgUrl, ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", uploadedImgUrl, ct));
             pushed = true;
         }
 

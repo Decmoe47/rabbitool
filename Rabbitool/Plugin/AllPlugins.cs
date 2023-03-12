@@ -53,8 +53,8 @@ public class AllPlugins
 
     public async Task RunAsync()
     {
-        if (_configs.ErrorNotifier is not null)
-            LogConfiger.Register(_configs.ErrorNotifier.ToOptions(), _configs.Log.ConsoleLevel, _configs.Log.FileLevel);
+        if (_configs.Notifier is not null)
+            LogConfiger.Register(_configs.Notifier.ToOptions(), _configs.Log.ConsoleLevel, _configs.Log.FileLevel);
         else
             LogConfiger.Register(_configs.Log.ConsoleLevel, _configs.Log.FileLevel);
 

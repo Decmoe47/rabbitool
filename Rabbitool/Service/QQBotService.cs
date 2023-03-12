@@ -17,6 +17,8 @@ namespace Rabbitool.Service;
 
 public class QQBotService
 {
+    public bool IsOnline = false;
+
     private readonly QQChannelApi _qqApi;
     private readonly ChannelBot _qqBot;
     private readonly LimiterUtil _limiter;
@@ -50,6 +52,7 @@ public class QQBotService
         RegisterMessageAuditEvent();
 
         await _qqBot.OnlineAsync();
+        IsOnline = true;
 
         Guild guild = await GetGuildByNameAsync(_sandboxGuildName);
         _sandboxGuildId = guild.Id;
@@ -67,7 +70,7 @@ public class QQBotService
             // 在沙箱频道里@bot，正式环境里的bot不会响应
             if (!_isSandbox && message.GuildId == _sandboxGuildId)
                 return;
-            if (!message.Content.Contains("<@" + _botId + ">"))
+            if (!message.Content.Contains("<@!" + _botId + ">"))
                 return;
             Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
@@ -75,8 +78,10 @@ public class QQBotService
             string text = await fn(message, ct);
             try
             {
+                Channel channel = await GetChannelAsync(message.ChannelId);
                 await PostMessageAsync(
                     channelId: message.ChannelId,
+                    channelName: channel.Name,
                     text: text,
                     referenceMessageId: message.Id,
                     ct: ct);
@@ -119,9 +124,26 @@ public class QQBotService
 
     private void RegisterBasicEvents()
     {
-        _qqBot.OnConnected += () => Log.Information("QQBot connected!");
-        _qqBot.OnError += (ex) => Log.Error(ex, "QQBot error: {message}", ex.Message);
-        _qqBot.OnClose += () => Log.Warning("QQBot connect closed!");
+        _qqBot.OnConnected += () =>
+        {
+            IsOnline = true;
+            Log.Information("QQBot connected!");
+        };
+        _qqBot.OnError += async (ex) =>
+        {
+            IsOnline = false;
+            Log.Error(ex, "QQBot error: {message}", ex.Message);
+            if (ex.Message.Contains("websocket link does not exist"))
+            {
+                await _qqBot.OfflineAsync();
+                await _qqBot.OnlineAsync();
+            }
+        };
+        _qqBot.OnClose += () =>
+        {
+            IsOnline = false;
+            Log.Warning("QQBot connect closed!");
+        };
     }
 
     private async Task<string> GetBotIdAsync()
@@ -194,6 +216,7 @@ public class QQBotService
 
     public async Task<Message?> PostMessageAsync(
         string channelId,
+        string channelName,
         string? text = null,
         string? imgUrl = null,
         JObject? embed = null,
@@ -209,8 +232,8 @@ public class QQBotService
 
         try
         {
-            Log.Information("Posting QQ channel message...\nChannelId: {channelId}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}",
-                channelId, imgUrl ?? "", referenceMessageId ?? "", passiveReference, text ?? "");
+            Log.Information("Posting QQ channel message...\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}",
+                channelName, imgUrl ?? "", referenceMessageId ?? "", passiveReference, text ?? "");
             return await _qqApi
                 .GetMessageApi()
                 .SendMessageAsync(
@@ -232,48 +255,48 @@ public class QQBotService
             else
             {
                 throw new QQBotApiException(
-                    $"Post message failed!\nChannelId: {channelId}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}", ex);
+                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}", ex);
             }
         }
     }
 
-    public async Task<Message?> PushCommonMsgAsync(string channelId, string text, CancellationToken ct = default)
+    public async Task<Message?> PushCommonMsgAsync(string channelId, string channelName, string text, CancellationToken ct = default)
     {
-        return await PostMessageAsync(channelId, text, ct: ct);
+        return await PostMessageAsync(channelId, channelName, text, ct: ct);
     }
 
     public async Task<Message?> PushCommonMsgAsync(
-        string channelId, string text, string imgUrl, CancellationToken ct = default)
+        string channelId, string channelName, string text, string imgUrl, CancellationToken ct = default)
     {
-        return await PostMessageAsync(channelId, text, imgUrl, ct: ct);
+        return await PostMessageAsync(channelId, channelName, text, imgUrl, ct: ct);
     }
 
     public async Task<Message?> PushCommonMsgAsync(
-        string channelId, string text, List<string>? imgUrls, CancellationToken ct = default)
+        string channelId, string channelName, string text, List<string>? imgUrls, CancellationToken ct = default)
     {
         if (imgUrls is null)
-            return await PostMessageAsync(channelId, text, ct: ct);
+            return await PostMessageAsync(channelId, channelName, text, ct: ct);
 
         switch (imgUrls.Count)
         {
             case 0:
-                return await PostMessageAsync(channelId, text, ct: ct);
+                return await PostMessageAsync(channelId, channelName, text, ct: ct);
 
             case 1:
-                return await PostMessageAsync(channelId, text, imgUrls[0], ct: ct);
+                return await PostMessageAsync(channelId, channelName, text, imgUrls[0], ct: ct);
 
             default:
-                Message? msg = await PostMessageAsync(channelId, text, imgUrls[0], ct: ct);
+                Message? msg = await PostMessageAsync(channelId, channelName, text, imgUrls[0], ct: ct);
                 List<Task<Message?>> tasks = new();
                 foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
-                    tasks.Add(PostMessageAsync(channelId, imgUrl: imgUrl, ct: ct));
+                    tasks.Add(PostMessageAsync(channelId, channelName, imgUrl: imgUrl, ct: ct));
                 await Task.WhenAll(tasks);
                 return msg;
         }
     }
 
     public async Task<(string, DateTime)?> PostThreadAsync(
-        string channelId, string title, string text, CancellationToken ct = default)
+        string channelId, string channelName, string title, string text, CancellationToken ct = default)
     {
         if (!_isSandbox && channelId == _sandboxGuildId)
             return null;
@@ -281,8 +304,8 @@ public class QQBotService
         _limiter.Wait(ct: ct);
         try
         {
-            Log.Information("Posting QQ channel thread...\nChannelId: {channelId}\nTitle: {title}\nText: {text}",
-                channelId, title, text);
+            Log.Information("Posting QQ channel thread...\nChannelName: {channelName}\nTitle: {title}\nText: {text}",
+                channelName, title, text);
             return await _qqApi
                 .GetForumApi()
                 .Publish(title, channelId, new ThreadRichTextContent() { Content = text });
@@ -296,7 +319,7 @@ public class QQBotService
             }
             else
             {
-                throw new QQBotApiException($"Post Thread Failed!\nChannelId: {channelId}\nTitle: {title}\nText: {text}", ex);
+                throw new QQBotApiException($"Post Thread Failed!\nChannelName: {channelName}\nTitle: {title}\nText: {text}", ex);
             }
         }
     }

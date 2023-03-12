@@ -140,12 +140,14 @@ public class TwitterPlugin : BasePlugin
             }
             if (config.PushToThread)
             {
-                tasks.Add(_qbSvc.PostThreadAsync(channel.ChannelId, title, JsonConvert.SerializeObject(richText), ct));
+                tasks.Add(_qbSvc.PostThreadAsync(
+                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct));
                 pushed = true;
                 continue;
             }
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, $"{title}\n\n{text}", imgUrls, ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct));
             pushed = true;
         }
 
