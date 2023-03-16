@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
 using COSXML;
 using COSXML.Auth;
 using COSXML.Model.Object;
@@ -28,14 +27,13 @@ public class CosService
     public async Task<string> UploadImageAsync(string url, CancellationToken ct = default)
     {
         string partOfUrl = url.Split("/").Last();
-        string filename = DateTime.Now.ToString();
+        string filename = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
         if (partOfUrl.IndexOf("?") is int j and not -1)
             filename = partOfUrl[..j];
 
-        Match match = Regex.Match(partOfUrl, @"(?<=format=).+?(?=&)");
-        if (match.Success)
-            filename += "." + match.Groups[0].Value;
+        if (!filename.EndsWith(".jpg") && !filename.EndsWith(".png"))
+            filename += ".jpg";
 
         byte[] resp = await url.WithTimeout(30).GetBytesAsync(ct);
         return Upload(filename, resp, "/data/images/");

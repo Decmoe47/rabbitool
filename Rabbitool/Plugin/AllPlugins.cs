@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Rabbitool.Common.Tool;
 using Rabbitool.Config;
-using Rabbitool.Event;
 using Rabbitool.Plugin.Command.Subscribe;
 using Rabbitool.Service;
 using Log = Serilog.Log;
@@ -23,8 +22,6 @@ public class AllPlugins
     private readonly CancellationToken _ct;
     private readonly IHost _host;
 
-    private Dictionary<string, bool> _pluginSwitches;
-
     public AllPlugins(Configs configs)
     {
         _qbSvc = new QQBotService(
@@ -36,13 +33,6 @@ public class AllPlugins
         _dbPath = configs.DbPath;
 
         _configs = configs;
-
-        _pluginSwitches = new Dictionary<string, bool>();
-        PluginSwitchEvent.SwitchBilibiliPluginEvent += HandleBilibiliPluginSwitchEvent;
-        PluginSwitchEvent.SwitchTwitterPluginEvent += HandleTwitterPluginSwitchEvent;
-        PluginSwitchEvent.SwitchYoutubePluginEvent += HandleYoutubePluginSwitchEvent;
-        PluginSwitchEvent.SwitchMailPluginEvent += HandleMailPluginSwitchEvent;
-        PluginSwitchEvent.GetAllPluginStatusEvent += HandleGetPluginSwitchesEvent;
 
         SubscribeCommandResponder.Init(_qbSvc, _dbPath, _userAgent);
 
@@ -68,17 +58,12 @@ public class AllPlugins
 
     public async Task InitBilibiliPluginAsync()
     {
-        _pluginSwitches["bilibili"] = true;
         BilibiliPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         await plugin.RefreshCookiesAsync(_ct);
 
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () =>
-                {
-                    if (_pluginSwitches["bilibili"])
-                        await plugin.CheckAllAsync(_ct);
-                })
+                .ScheduleAsync(async () => await plugin.CheckAllAsync(_ct))
                 .EverySeconds(_configs.Interval.BilibiliPlugin)
                 .PreventOverlapping("BilibiliPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
@@ -86,16 +71,11 @@ public class AllPlugins
 
     public void InitTwitterPlugin()
     {
-        _pluginSwitches["twitter"] = true;
         TwitterPlugin plugin = new(_configs.Twitter!.Token, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
 
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () =>
-                {
-                    if (_pluginSwitches["twitter"])
-                        await plugin.CheckAllAsync(_ct);
-                })
+                .ScheduleAsync(async () => await plugin.CheckAllAsync(_ct))
                 .EverySeconds(_configs.Interval.TwitterPlugin)
                 .PreventOverlapping("TwitterPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from twitter plugin: {msg}", ex.Message));
@@ -103,15 +83,10 @@ public class AllPlugins
 
     public void InitYoutubePlugin()
     {
-        _pluginSwitches["youtube"] = true;
         YoutubePlugin plugin = new(_configs.Youtube.ApiKey, _qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () =>
-                {
-                    if (_pluginSwitches["youtube"])
-                        await plugin.CheckAllAsync(_ct);
-                })
+                .ScheduleAsync(async () => await plugin.CheckAllAsync(_ct))
                 .EverySeconds(_configs.Interval.YoutubePlugin)
                 .PreventOverlapping("YoutubePlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
@@ -119,42 +94,12 @@ public class AllPlugins
 
     public void InitMailPlugin()
     {
-        _pluginSwitches["mail"] = true;
         MailPlugin plugin = new(_qbSvc, _cosSvc, _dbPath, _redirectUrl, _userAgent);
         _host.Services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () =>
-                {
-                    if (_pluginSwitches["mail"])
-                        await plugin.CheckAllAsync(_ct);
-                })
+                .ScheduleAsync(async () => await plugin.CheckAllAsync(_ct))
                 .EverySeconds(_configs.Interval.MailPlugin)
                 .PreventOverlapping("MailPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
-    }
-
-    private void HandleBilibiliPluginSwitchEvent(bool status)
-    {
-        _pluginSwitches["bilibili"] = status;
-    }
-
-    private void HandleYoutubePluginSwitchEvent(bool status)
-    {
-        _pluginSwitches["youtube"] = status;
-    }
-
-    private void HandleTwitterPluginSwitchEvent(bool status)
-    {
-        _pluginSwitches["twitter"] = status;
-    }
-
-    private void HandleMailPluginSwitchEvent(bool status)
-    {
-        _pluginSwitches["mail"] = status;
-    }
-
-    private Dictionary<string, bool> HandleGetPluginSwitchesEvent()
-    {
-        return _pluginSwitches;
     }
 }
