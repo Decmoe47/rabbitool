@@ -36,13 +36,13 @@ public class MailSubscribeCommandHandler
     {
         if (cmd.SubscribeId is null)
             return $"请输入 {cmd.Platform} 对应的id！";
-        (string username, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errCommandMsg is not null)
-            return errCommandMsg;
+        (string address, string? errMsg) = await CheckId(cmd.SubscribeId, ct);
+        if (errMsg is not null)
+            return errMsg;
 
         if (cmd.Configs is null)
             return "错误：需指定邮箱地址！";
-        if (!cmd.Configs.TryGetValue("address", out string? address) || address is null)
+        if (!cmd.Configs.TryGetValue("username", out string? username) || username is null)
             return "错误：需指定邮箱地址！";
         if (!cmd.Configs.TryGetValue("password", out string? password) || password is null)
             return "错误：需指定邮箱密码！";
@@ -56,14 +56,14 @@ public class MailSubscribeCommandHandler
         MailSubscribeEntity? record = await _repo.GetOrDefaultAsync(address, ct: ct);
         if (record is null)
         {
-            cmd.Configs.TryGetValue("mailbox", out dynamic? mailbox);
-            cmd.Configs.TryGetValue("ssl", out dynamic? ssl);
+            cmd.Configs.TryGetValue("mailbox", out string? mailbox);
+            cmd.Configs.TryGetValue("ssl", out bool? ssl);
             record = new MailSubscribeEntity(
                 username: username,
                 address: address,
-                password: cmd.Configs["password"],
-                host: cmd.Configs["host"],
-                port: cmd.Configs["port"],
+                password: password,
+                host: host,
+                port: (int)port,
                 mailbox: mailbox ?? "INBOX",
                 ssl: ssl ?? false
             );
@@ -71,7 +71,7 @@ public class MailSubscribeCommandHandler
 
             flag = false;
         }
-        else if (record.ContainsQQChannel(cmd.QQChannel.Id))
+        else if (record.QQChannels.Find(q => q.ChannelId == cmd.QQChannel.Id) != null)
         {
             flag = false;
         }
@@ -90,7 +90,7 @@ public class MailSubscribeCommandHandler
         if (added && !flag)
         {
             MailSubscribeEvent.OnMailSubscribeAdded(
-                record.Host, record.Port, record.Ssl, address, record.Password, record.Mailbox);
+                record.Host, record.Port, record.Ssl, record.Address, record.Password, record.Mailbox);
             return $"成功：已添加订阅到 {cmd.QQChannel.Name} 子频道！";
         }
         else
@@ -99,24 +99,24 @@ public class MailSubscribeCommandHandler
         }
     }
 
-    public override async Task<string> Delete(SubscribeCommandDTO command, CancellationToken ct = default)
+    public override async Task<string> Delete(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
-        if (command.SubscribeId is null)
-            return $"请输入 {command.Platform} 对应的id！";
+        if (cmd.SubscribeId is null)
+            return $"请输入 {cmd.Platform} 对应的id！";
 
-        (_, string? errCommandMsg) = await CheckId(command.SubscribeId, ct);
+        (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
         if (errCommandMsg is not null)
             return errCommandMsg;
 
         try
         {
             QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(
-                command.QQChannel.Id, command.SubscribeId, e => e.MailSubscribes, ct);
+                cmd.QQChannel.Id, cmd.SubscribeId, e => e.MailSubscribes, ct);
             if (record.SubscribesAreAllEmpty())
                 _qsRepo.Delete(record);
 
-            await _repo.DeleteAsync(command.SubscribeId, ct);
-            await _configRepo.DeleteAsync(command.QQChannel.Id, command.SubscribeId, ct);
+            await _repo.DeleteAsync(cmd.SubscribeId, ct);
+            await _configRepo.DeleteAsync(cmd.QQChannel.Id, cmd.SubscribeId, ct);
 
             await _dbCtx.SaveChangesAsync(ct);
         }
@@ -125,15 +125,15 @@ public class MailSubscribeCommandHandler
             Log.Error(iex, "The subscribe doesn't exist!\nInfo: {info}", new Dictionary<string, string>
             {
                 { "type", nameof(MailSubscribeEntity) },
-                { "subscribeId", command.SubscribeId },
-                { "channelId", command.QQChannel.Id },
-                { "channelName", command.QQChannel.Name }
+                { "subscribeId", cmd.SubscribeId },
+                { "channelId", cmd.QQChannel.Id },
+                { "channelName", cmd.QQChannel.Name }
             });
             return "错误：不存在该订阅！";
         }
 
-        await MailSubscribeEvent.OnMailSubscribeDeletedAsync(command.SubscribeId, ct);
+        await MailSubscribeEvent.OnMailSubscribeDeletedAsync(cmd.SubscribeId, ct);
 
-        return $"成功：已删除在 {command.QQChannel.Name} 子频道中的此订阅！";
+        return $"成功：已删除在 {cmd.QQChannel.Name} 子频道中的此订阅！";
     }
 }
