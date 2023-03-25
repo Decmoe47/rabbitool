@@ -14,13 +14,13 @@ public static class MailSubscribeEvent
     public static void OnMailSubscribeAdded(
         string host, int port, bool usingSsl, string address, string password, string mailbox = "INBOX")
     {
-        if (AddMailSubscribeEvent is not null)
+        if (AddMailSubscribeEvent != null)
             AddMailSubscribeEvent(host, port, usingSsl, address, password, mailbox);
     }
 
     public static async Task OnMailSubscribeDeletedAsync(string address, CancellationToken ct = default)
     {
-        if (DeleteMailSubscribeEvent is not null)
+        if (DeleteMailSubscribeEvent != null)
             await DeleteMailSubscribeEvent(address, ct);
     }
 }

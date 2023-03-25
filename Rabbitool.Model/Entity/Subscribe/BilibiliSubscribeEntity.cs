@@ -17,6 +17,9 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
 
+    [NotMapped]
+    public string PropName { get; set; } = "BilibiliSubscribes";
+
     public BilibiliSubscribeEntity(uint uid, string uname)
     {
         Uid = uid;
@@ -33,18 +36,6 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public string GetId()
     {
         return Uid.ToString();
-    }
-
-    public bool ContainsQQChannel(string channelId)
-    {
-        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
-    }
-
-    public void RemoveQQChannel(string channelId)
-    {
-        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
-        if (channel != null)
-            QQChannels.Remove(channel);
     }
 }
 

@@ -52,7 +52,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             {
                 foreach (TSubscribe subscribe in subscribes)
                 {
-                    subscribe.RemoveQQChannel(channel.ChannelId);
+                    subscribe.QQChannels.RemoveAll(q => q.ChannelId == channel.ChannelId);
                     await _configRepo.DeleteAsync(channel.ChannelId, subscribe.GetId(), ct);
                 }
             }
@@ -66,23 +66,23 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
     public virtual async Task<string> Add(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
-        if (cmd.SubscribeId is null)
+        if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
         (string name, string? errMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errMsg is not null)
+        if (errMsg != null)
             return errMsg;
 
         bool flag = true;
         TSubscribe? record = await _repo.GetOrDefaultAsync(cmd.SubscribeId, true, ct);
-        if (record is null)
+        if (record == null)
         {
             record = SubscribeEntityHelper.NewSubscribeEntity<TSubscribe>(cmd.SubscribeId, name);
             await _repo.AddAsync(record, ct);
 
             flag = false;
         }
-        else if (record.ContainsQQChannel(cmd.QQChannel.Id))
+        else if (record.QQChannels.Exists(q => q.ChannelId == cmd.QQChannel.Id))
         {
             flag = false;
         }
@@ -105,17 +105,17 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
     public virtual async Task<string> Delete(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
-        if (cmd.SubscribeId is null)
+        if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
         (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errCommandMsg is not null)
+        if (errCommandMsg != null)
             return errCommandMsg;
 
         try
         {
-            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(
-                cmd.QQChannel.Id, cmd.SubscribeId, typeof(TSubscribe).Name.Replace("Entity", "s"), ct);
+            TSubscribe subscribe = await _repo.GetAsync(cmd.SubscribeId, true, ct);
+            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
             if (record.SubscribesAreAllEmpty())
                 _qsRepo.Delete(record);
 
@@ -152,25 +152,25 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             { "channelName", cmd.QQChannel.Name }
         };
 
-        if (cmd.Configs is not null && cmd.Configs.TryGetValue("allChannels", out bool? allChannels) && allChannels is true)
+        if (cmd.Configs != null && cmd.Configs.TryGetValue("allChannels", out bool? allChannels) && allChannels is true)
             return await ListAllSubscribesInGuildAsync(cmd, ct);
 
         QQChannelSubscribeEntity? record = await _qsRepo.GetOrDefaultAsync(
             cmd.QQChannel.Id, subscribeType, ct: ct);
-        if (record is null)
+        if (record == null)
         {
             Log.Warning("The channel subscribe hasn't any {subscribeType}.\nInfo: {info}", subscribeType, logInfo);
             return $"错误：{cmd.QQChannel.Name} 子频道未有 {subscribeName} 的任何订阅！";
         }
 
         List<TSubscribe>? subscribes = record.GetSubscribeProp<TSubscribe>();
-        if (subscribes is null || subscribes.Count == 0)
+        if (subscribes == null || subscribes.Count == 0)
         {
             Log.Warning("The channel subscribe hasn't any {subscirbeType}.\nInfo: {info}", subscribeType, logInfo);
             return $"错误：{cmd.QQChannel.Name} 子频道未有 {subscribeName} 的任何订阅！";
         }
 
-        return cmd.SubscribeId is null
+        return cmd.SubscribeId == null
             ? await ListAllSubscribesInChannelAsync(
                 cmd.QQChannel.Id, cmd.QQChannel.Name, subscribes, ct)
             : await ListSubscribeInChannelAsync(cmd, subscribes, logInfo, ct);
@@ -187,7 +187,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         foreach (QQChannelSubscribeEntity channel in allChannels)
         {
             List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
-            if (subscribes is null || subscribes.Count == 0)
+            if (subscribes == null || subscribes.Count == 0)
                 continue;
 
             tasks.Add(ListAllSubscribesInChannelAsync(channel.ChannelId, channel.ChannelName, subscribes, ct));
@@ -211,7 +211,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         {
             result += "- " + subscribe.GetInfo("，");
             TConfig? config = await _configRepo.GetOrDefaultAsync(channelId, subscribe.GetId(), ct: ct);
-            if (config is not null)
+            if (config != null)
                 result += "；配置：" + config.GetConfigs("，");
             result += "\n";
         }
@@ -231,11 +231,11 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         CancellationToken ct = default)
     {
         (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId!, ct);
-        if (errCommandMsg is not null)
+        if (errCommandMsg != null)
             return errCommandMsg;
 
         TSubscribe? subscribe = subscribes.Find(s => s.GetId() == cmd.SubscribeId); ;
-        if (subscribe is null)
+        if (subscribe == null)
         {
             Log.Warning("The subscribe which id is {subscribeId} doesn't exist in the channel subscribe!\nInfo: {info}",
                 cmd.SubscribeId, cmd.QQChannel.Id, logInfo);
@@ -244,7 +244,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
         TConfig? config = await _configRepo.GetOrDefaultAsync(
                 cmd.QQChannel.Id, cmd.SubscribeId!, ct: ct);
-        string result = config is null
+        string result = config == null
             ? subscribe.GetInfo("，")
             : subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n";
 

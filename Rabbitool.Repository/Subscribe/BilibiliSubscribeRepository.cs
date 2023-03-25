@@ -188,14 +188,14 @@ public class BilibiliSubscribeConfigRepository
         catch (InvalidOperationException)
         {
             record = new BilibiliSubscribeConfigEntity(qqChannel, subscribe);
-            if (configs is not null)
+            if (configs != null)
                 CommonUtil.UpdateProperties(record, configs);
 
             await _dbCtx.BibiliSubscribeConfigEntity.AddAsync(record, ct);
 
             return record;
         }
-        if (configs is not null)
+        if (configs != null)
             CommonUtil.UpdateProperties(record, configs);
         return record;
     }

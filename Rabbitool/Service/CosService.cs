@@ -63,7 +63,7 @@ public class CosService
         p.Start();
         string error = await p.StandardError.ReadToEndAsync(ct);
         await p.WaitForExitAsync(ct);
-        if (error is not "")
+        if (error != "")
             throw new CosFileUploadException($"Failed to download the video!\nUrl: {url}\nErrMsg: {error}");
 
         return Upload(fileName, filePath, "/data/videos/");

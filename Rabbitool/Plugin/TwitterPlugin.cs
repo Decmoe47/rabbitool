@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Coravel;
+using Newtonsoft.Json;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.QQBot;
 using Rabbitool.Model.DTO.Twitter;
@@ -9,8 +10,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class TwitterPlugin : BasePlugin
+public class TwitterPlugin : BasePlugin, IPlugin
 {
+    private readonly int _interval;
+
     private readonly TwitterService _svc;
     private readonly TwitterSubscribeRepository _repo;
     private readonly TwitterSubscribeConfigRepository _configRepo;
@@ -23,13 +26,25 @@ public class TwitterPlugin : BasePlugin
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string userAgent,
+        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
         _svc = new TwitterService(token);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new TwitterSubscribeRepository(dbCtx);
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
+        this._interval = interval;
+    }
+
+    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        services.UseScheduler(scheduler =>
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync(ct))
+                .EverySeconds(_interval)
+                .PreventOverlapping("TwitterPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from twitter plugin: {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
@@ -133,9 +148,9 @@ public class TwitterPlugin : BasePlugin
             }
 
             TwitterSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (tweet.Origin is not null)
+            if (tweet.Origin != null)
             {
-                if (config.QuotePush is false) continue;
+                if (config.QuotePush == false) continue;
                 if (tweet.Type == TweetTypeEnum.RT && !config.RtPush) continue;
             }
             if (config.PushToThread)
@@ -163,7 +178,7 @@ public class TwitterPlugin : BasePlugin
             .ConvertTimeFromUtc(tweet.PubTime, TimeUtil.CST)
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-        if (tweet.Origin is null)
+        if (tweet.Origin == null)
         {
             title = $"【新推文】来自 {tweet.Author}";
             text = $"""
@@ -233,9 +248,9 @@ public class TwitterPlugin : BasePlugin
         List<string> result = new();
         List<string> imgUrls = new();
 
-        if (tweet.ImageUrls is not null)
+        if (tweet.ImageUrls != null)
             imgUrls = tweet.ImageUrls;
-        else if (tweet.Origin?.ImageUrls is not null)
+        else if (tweet.Origin?.ImageUrls != null)
             imgUrls = tweet.Origin.ImageUrls;
 
         foreach (string url in imgUrls)
@@ -258,12 +273,12 @@ public class TwitterPlugin : BasePlugin
     {
         RichTextDTO result = QQBotService.TextToRichText(text);
 
-        if (tweet.ImageUrls is not null)
+        if (tweet.ImageUrls != null)
         {
             result.Paragraphs.AddRange(
                 await QQBotService.ImagesToParagraphsAsync(tweet.ImageUrls, _cosSvc, ct));
         }
-        else if (tweet.Origin?.ImageUrls is not null)
+        else if (tweet.Origin?.ImageUrls != null)
         {
             result.Paragraphs.AddRange(
                 await QQBotService.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, _cosSvc, ct));
@@ -274,7 +289,7 @@ public class TwitterPlugin : BasePlugin
             result.Paragraphs.AddRange(
                 await QQBotService.VideoToParagraphsAsync(tweet.Url, tweet.PubTime, _cosSvc, ct));
         }
-        else if (tweet.Origin?.HasVideo is true)
+        else if (tweet.Origin?.HasVideo == true)
         {
             result.Paragraphs.AddRange(
                 await QQBotService.VideoToParagraphsAsync(tweet.Origin.Url, tweet.Origin.PubTime, _cosSvc, ct));

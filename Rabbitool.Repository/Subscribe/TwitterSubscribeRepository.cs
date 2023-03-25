@@ -166,14 +166,14 @@ public class TwitterSubscribeConfigRepository
         catch (InvalidOperationException)
         {
             record = new TwitterSubscribeConfigEntity(qqChannel, subscribe);
-            if (configs is not null)
+            if (configs != null)
                 CommonUtil.UpdateProperties(record, configs);
 
             await _dbCtx.TwitterSubscribeConfigEntity.AddAsync(record, ct);
 
             return record;
         }
-        if (configs is not null)
+        if (configs != null)
             CommonUtil.UpdateProperties(record, configs);
         return record;
     }

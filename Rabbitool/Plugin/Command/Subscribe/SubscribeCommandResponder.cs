@@ -109,7 +109,7 @@ public static class SubscribeCommandResponder
         if (configDict.TryGetValue("channel", out dynamic? v) && v is string && cmdType != SubscribeCommandType.Delete)
         {
             Channel? channel = await _qbSvc.GetChannelByNameOrDefaultAsync(v, msg.GuildId, ct);
-            if (channel is null)
+            if (channel == null)
                 return $"错误：不存在名为 {v} 的子频道！";
             channelId = channel.Id;
             channelName = channel.Name;
@@ -188,53 +188,37 @@ public static class SubscribeCommandResponder
 
         SubscribeDbContext dbCtx = new(_dbPath);
         QQChannelSubscribeRepository qsRepo = new(dbCtx);
-
-        ISubscribeCommandHandler handler;
-
-        switch (platform)
+        ISubscribeCommandHandler handler = platform switch
         {
-            case "b站":
-                handler = new BilibiliSubscribeCommandHandler(
-                    _qbSvc,
-                    _userAgent,
-                    dbCtx,
-                    qsRepo,
-                    new BilibiliSubscribeRepository(dbCtx),
-                    new BilibiliSubscribeConfigRepository(dbCtx));
-                break;
-
-            case "推特":
-                handler = new TwitterSubscribeCommandHandler(
+            "b站" => new BilibiliSubscribeCommandHandler(
+                        _qbSvc,
+                        _userAgent,
+                        dbCtx,
+                        qsRepo,
+                        new BilibiliSubscribeRepository(dbCtx),
+                        new BilibiliSubscribeConfigRepository(dbCtx)),
+            "推特" => new TwitterSubscribeCommandHandler(
                         _qbSvc,
                         _userAgent,
                         dbCtx,
                         qsRepo,
                         new TwitterSubscribeRepository(dbCtx),
-                        new TwitterSubscribeConfigRepository(dbCtx));
-                break;
-
-            case "油管":
-                handler = new YoutubeSubscribeCommandHandler(
+                        new TwitterSubscribeConfigRepository(dbCtx)),
+            "油管" => new YoutubeSubscribeCommandHandler(
                         _qbSvc,
                         _userAgent,
                         dbCtx,
                         qsRepo,
                         new YoutubeSubscribeRepository(dbCtx),
-                        new YoutubeSubscribeConfigRepository(dbCtx));
-                break;
-
-            case "邮箱":
-                handler = new MailSubscribeCommandHandler(
+                        new YoutubeSubscribeConfigRepository(dbCtx)),
+            "邮箱" => new MailSubscribeCommandHandler(
                         _qbSvc,
                         _userAgent,
                         dbCtx,
                         qsRepo,
                         new MailSubscribeRepository(dbCtx),
-                        new MailSubscribeConfigRepository(dbCtx));
-                break;
-
-            default:
-                throw new NotSupportedException($"Not supported platform {platform}");
+                        new MailSubscribeConfigRepository(dbCtx)),
+            _ => throw new NotSupportedException($"Not supported platform {platform}"),
         };
 
         _qbSvc.RegisterBotDeletedEvent(handler.BotDeletedHandlerAsync, ct);

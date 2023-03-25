@@ -274,7 +274,7 @@ public class QQBotService
     public async Task<Message?> PushCommonMsgAsync(
         string channelId, string channelName, string text, List<string>? imgUrls, CancellationToken ct = default)
     {
-        if (imgUrls is null)
+        if (imgUrls == null)
             return await PostMessageAsync(channelId, channelName, text, ct: ct);
 
         switch (imgUrls.Count)
@@ -395,7 +395,7 @@ public class QQBotService
             {
                 foreach (ElemDTO elem in elems)
                 {
-                    if (elem.Text?.Text is "")
+                    if (elem.Text?.Text == "")
                     {
                         paras[i] = new ParagraphDTO()
                         {

@@ -30,7 +30,7 @@ public class MailService : IDisposable
 
     public async Task DisconnectAsync(CancellationToken ct = default)
     {
-        if (_folder is not null)
+        if (_folder != null)
             await _folder.CloseAsync(cancellationToken: ct);
         await _client.DisconnectAsync(true, ct);
     }

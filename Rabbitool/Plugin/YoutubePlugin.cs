@@ -1,4 +1,5 @@
-﻿using Rabbitool.Common.Util;
+﻿using Coravel;
+using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Youtube;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -7,8 +8,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class YoutubePlugin : BasePlugin
+public class YoutubePlugin : BasePlugin, IPlugin
 {
+    private readonly int _interval;
+
     private readonly YoutubeService _svc;
     private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
@@ -21,13 +24,25 @@ public class YoutubePlugin : BasePlugin
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string userAgent,
+        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
         _svc = new YoutubeService(apiKey);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
+        _interval = interval;
+    }
+
+    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        services.UseScheduler(scheduler =>
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync(ct))
+                .EverySeconds(_interval)
+                .PreventOverlapping("YoutubePlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
@@ -250,7 +265,7 @@ public class YoutubePlugin : BasePlugin
     {
         return item switch
         {
-            YoutubeLive live => (live.Type is YoutubeTypeEnum.Live
+            YoutubeLive live => (live.Type == YoutubeTypeEnum.Live
                 ? $"【油管开播】来自 {live.Author}"
                 : $"【油管预定开播】来自 {live.Author}", LiveToStr(live), live.ThumbnailUrl),
             YoutubeVideo video => ($"【新油管视频】来自 {video.Author}", VideoToStr(video), video.ThumbnailUrl),

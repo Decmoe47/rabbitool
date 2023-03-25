@@ -21,8 +21,6 @@ public class MailSubscribeCommandHandler
     {
     }
 
-#pragma warning disable CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
-
     public override async Task<(string name, string? errMsg)> CheckId(string address, CancellationToken ct = default)
     {
         return Regex.IsMatch(address, @"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$")
@@ -30,31 +28,29 @@ public class MailSubscribeCommandHandler
             : ("", "错误：不合法的邮箱地址！");
     }
 
-#pragma warning restore CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
-
     public override async Task<string> Add(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
-        if (cmd.SubscribeId is null)
+        if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
         (string address, string? errMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errMsg is not null)
+        if (errMsg != null)
             return errMsg;
 
-        if (cmd.Configs is null)
+        if (cmd.Configs == null)
             return "错误：需指定邮箱地址！";
-        if (!cmd.Configs.TryGetValue("username", out string? username) || username is null)
+        if (!cmd.Configs.TryGetValue("username", out string? username) || username == null)
             return "错误：需指定邮箱地址！";
-        if (!cmd.Configs.TryGetValue("password", out string? password) || password is null)
+        if (!cmd.Configs.TryGetValue("password", out string? password) || password == null)
             return "错误：需指定邮箱密码！";
-        if (!cmd.Configs.TryGetValue("host", out string? host) || host is null)
+        if (!cmd.Configs.TryGetValue("host", out string? host) || host == null)
             return "错误：需指定host！";
-        if (!cmd.Configs.TryGetValue("port", out int? port) || port is null)
+        if (!cmd.Configs.TryGetValue("port", out int? port) || port == null)
             return "错误：需指定port！";
 
         bool flag = true;
 
         MailSubscribeEntity? record = await _repo.GetOrDefaultAsync(address, ct: ct);
-        if (record is null)
+        if (record == null)
         {
             cmd.Configs.TryGetValue("mailbox", out string? mailbox);
             cmd.Configs.TryGetValue("ssl", out bool? ssl);
@@ -101,17 +97,17 @@ public class MailSubscribeCommandHandler
 
     public override async Task<string> Delete(SubscribeCommandDTO cmd, CancellationToken ct = default)
     {
-        if (cmd.SubscribeId is null)
+        if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
         (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errCommandMsg is not null)
+        if (errCommandMsg != null)
             return errCommandMsg;
 
         try
         {
-            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(
-                cmd.QQChannel.Id, cmd.SubscribeId, e => e.MailSubscribes, ct);
+            MailSubscribeEntity subscribe = await _repo.GetAsync(cmd.SubscribeId, true, ct);
+            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
             if (record.SubscribesAreAllEmpty())
                 _qsRepo.Delete(record);
 

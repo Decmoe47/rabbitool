@@ -136,7 +136,7 @@ public class BilibiliService
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 
         JToken? dy = body["data"]?["cards"]?[0];
-        if (dy is null)
+        if (dy == null)
         {
             Log.Debug("The {uid} is invaild or the user hasn't any dynamic yet!", uid);
             return null;
@@ -174,7 +174,7 @@ public class BilibiliService
 
     private static ReserveDTO? GetReserve(JToken dy)
     {
-        if ((int?)dy["display"]?["origin"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] is 6)
+        if ((int?)dy["display"]?["origin"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] == 6)
         {
             return new ReserveDTO()
             {
@@ -184,7 +184,7 @@ public class BilibiliService
                     .UtcDateTime
             };
         }
-        else if ((int?)dy["display"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] is 6)
+        else if ((int?)dy["display"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] == 6)
         {
             return new ReserveDTO()
             {
@@ -217,7 +217,7 @@ public class BilibiliService
         {
             Uid = (uint)dy["desc"]!["uid"]!,
             Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
-            DynamicType = imgUrls is null ? DynamicTypeEnum.TextOnly : DynamicTypeEnum.WithImage,
+            DynamicType = imgUrls == null ? DynamicTypeEnum.TextOnly : DynamicTypeEnum.WithImage,
             DynamicId = (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime,
@@ -268,7 +268,7 @@ public class BilibiliService
         DynamicTypeEnum dynamicType = IsPureForwardDynamic(dynamicText)
             ? DynamicTypeEnum.PureForward : DynamicTypeEnum.Forward;
 
-        if ((string?)dy["card"]!["item"]!["tips"] is "源动态已被作者删除")
+        if ((string?)dy["card"]!["item"]!["tips"] == "源动态已被作者删除")
         {
             return new ForwardDynamicDTO()
             {
@@ -311,7 +311,7 @@ public class BilibiliService
                 {
                     Uid = originUid,
                     Uname = originUname,
-                    DynamicType = imgUrls is null ? DynamicTypeEnum.TextOnly : DynamicTypeEnum.WithImage,
+                    DynamicType = imgUrls == null ? DynamicTypeEnum.TextOnly : DynamicTypeEnum.WithImage,
                     DynamicId = originDynamicId,
                     DynamicUrl = originDynamicUrl,
                     DynamicUploadTime = originDynamicUploadTime,
@@ -401,7 +401,7 @@ public class BilibiliService
             .WithHeader("User-Agent", _userAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
-        if ((int?)body["code"] is int code && code is not 0)
+        if ((int?)body["code"] is int code && code != 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);
 
         return (string)body["data"]!["name"]!;
@@ -409,6 +409,6 @@ public class BilibiliService
 
     private static bool IsPureForwardDynamic(string dynamicText)
     {
-        return dynamicText is "转发动态" || dynamicText.Split("//")[0].StartsWith("@");
+        return dynamicText == "转发动态" || dynamicText.Split("//")[0].StartsWith("@");
     }
 }

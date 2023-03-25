@@ -19,6 +19,9 @@ public class YoutubeSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
 
+    [NotMapped]
+    public string PropName { get; set; } = "YoutubeSubscribes";
+
     public YoutubeSubscribeEntity(string channelId, string name)
     {
         Name = name;
@@ -35,18 +38,6 @@ public class YoutubeSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public string GetId()
     {
         return ChannelId;
-    }
-
-    public bool ContainsQQChannel(string channelId)
-    {
-        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
-    }
-
-    public void RemoveQQChannel(string channelId)
-    {
-        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
-        if (channel != null)
-            QQChannels.Remove(channel);
     }
 }
 

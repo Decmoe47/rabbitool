@@ -12,6 +12,9 @@ public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
 
+    [NotMapped]
+    public string PropName { get; set; } = "TwitterSubscribes";
+
     public TwitterSubscribeEntity(string screenName, string name)
     {
         Name = name;
@@ -28,18 +31,6 @@ public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public string GetId()
     {
         return ScreenName;
-    }
-
-    public bool ContainsQQChannel(string channelId)
-    {
-        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
-    }
-
-    public void RemoveQQChannel(string channelId)
-    {
-        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
-        if (channel != null)
-            QQChannels.Remove(channel);
     }
 }
 

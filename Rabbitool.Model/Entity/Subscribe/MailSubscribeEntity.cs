@@ -17,6 +17,9 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
 
+    [NotMapped]
+    public string PropName { get; set; } = "MailSubscribes";
+
     public MailSubscribeEntity(
         string username, string address, string password, string host, int port, string mailbox = "INBOX", bool ssl = false)
     {
@@ -44,18 +47,6 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public string GetId()
     {
         return Username;
-    }
-
-    public bool ContainsQQChannel(string channelId)
-    {
-        return QQChannels.Find(x => x.ChannelId == channelId) is not null;
-    }
-
-    public void RemoveQQChannel(string channelId)
-    {
-        QQChannelSubscribeEntity? channel = QQChannels.Find(x => x.ChannelId == channelId);
-        if (channel != null)
-            QQChannels.Remove(channel);
     }
 }
 

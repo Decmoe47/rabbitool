@@ -6,7 +6,7 @@ public static class Extension
 {
     public static string AddRedirectToUrls(this string text, string redirect)
     {
-        if (text is "")
+        if (text == "")
         {
             text = "（无文本）";
         }

@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
@@ -37,33 +36,8 @@ public class QQChannelSubscribeRepository
     }
 
     public async Task<QQChannelSubscribeEntity> GetAsync(
-       string channelId, bool tracking = false, CancellationToken ct = default)
-    {
-        return tracking switch
-        {
-            false => await _dbCtx
-                .QQChannelSubscribeEntity
-                .AsNoTracking()
-                .Include(e => e.BilibiliSubscribes)
-                .Include(e => e.YoutubeSubscribes)
-                .Include(e => e.TwitterSubscribes)
-                .Include(e => e.MailSubscribes)
-                .Where(q => q.ChannelId == channelId)
-                .FirstAsync(ct),
-            true => await _dbCtx
-                .QQChannelSubscribeEntity
-                .Include(e => e.BilibiliSubscribes)
-                .Include(e => e.YoutubeSubscribes)
-                .Include(e => e.TwitterSubscribes)
-                .Include(e => e.MailSubscribes)
-                .Where(q => q.ChannelId == channelId)
-                .FirstAsync(ct)
-        };
-    }
-
-    public async Task<QQChannelSubscribeEntity> GetAsync<TProperty>(
         string channelId,
-        Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
+        string propName,
         bool tracking = false,
         CancellationToken ct = default)
     {
@@ -72,64 +46,20 @@ public class QQChannelSubscribeRepository
             false => await _dbCtx
                 .QQChannelSubscribeEntity
                 .AsNoTracking()
-                .Include(subscribeProp)
+                .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
-                .Include(subscribeProp)
+                .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstAsync(ct)
-        };
-    }
-
-    public async Task<QQChannelSubscribeEntity> GetAsync(
-        string channelId,
-        string subscribeProp,
-        bool tracking = false,
-        CancellationToken ct = default)
-    {
-        return tracking switch
-        {
-            false => await _dbCtx
-                .QQChannelSubscribeEntity
-                .AsNoTracking()
-                .Include(subscribeProp)
-                .Where(q => q.ChannelId == channelId)
-                .FirstAsync(ct),
-            true => await _dbCtx
-                .QQChannelSubscribeEntity
-                .Include(subscribeProp)
-                .Where(q => q.ChannelId == channelId)
-                .FirstAsync(ct)
-        };
-    }
-
-    public async Task<QQChannelSubscribeEntity?> GetOrDefaultAsync<TProperty>(
-        string channelId,
-        Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
-        bool tracking = false,
-        CancellationToken ct = default)
-    {
-        return tracking switch
-        {
-            false => await _dbCtx
-                .QQChannelSubscribeEntity
-                .AsNoTracking()
-                .Include(subscribeProp)
-                .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(ct),
-            true => await _dbCtx
-                .QQChannelSubscribeEntity
-                .Include(subscribeProp)
-                .Where(q => q.ChannelId == channelId)
-                .FirstOrDefaultAsync(ct)
         };
     }
 
     public async Task<QQChannelSubscribeEntity?> GetOrDefaultAsync(
         string channelId,
-        string subscribeProp,
+        string propName,
         bool tracking = false,
         CancellationToken ct = default)
     {
@@ -138,12 +68,12 @@ public class QQChannelSubscribeRepository
             false => await _dbCtx
                 .QQChannelSubscribeEntity
                 .AsNoTracking()
-                .Include(subscribeProp)
+                .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstOrDefaultAsync(ct),
             true => await _dbCtx
                 .QQChannelSubscribeEntity
-                .Include(subscribeProp)
+                .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstOrDefaultAsync(ct)
         };
@@ -161,16 +91,16 @@ public class QQChannelSubscribeRepository
         return record;
     }
 
-    public async Task<QQChannelSubscribeEntity> GetOrCreateAsync<TProperty>(
+    public async Task<QQChannelSubscribeEntity> GetOrCreateAsync(
         string guildId,
         string guildName,
         string channelId,
         string channelName,
-        Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
+        string propName,
         CancellationToken ct = default)
     {
-        QQChannelSubscribeEntity? record = await GetOrDefaultAsync(channelId, subscribeProp, true, ct);
-        if (record is null)
+        QQChannelSubscribeEntity? record = await GetOrDefaultAsync(channelId, propName, true, ct);
+        if (record == null)
         {
             record = new QQChannelSubscribeEntity(guildId, guildName, channelId, channelName);
             await _dbCtx.QQChannelSubscribeEntity.AddAsync(record, ct);
@@ -178,198 +108,36 @@ public class QQChannelSubscribeRepository
         return record;
     }
 
-    public async Task<(QQChannelSubscribeEntity channel, bool added)> AddSubscribeAsync(
+    public async Task<(QQChannelSubscribeEntity channel, bool added)> AddSubscribeAsync<T>(
         string guildId,
         string guildName,
         string channelId,
         string channelName,
-        ISubscribeEntity subscribe,
-        CancellationToken ct = default)
+        T subscribe,
+        CancellationToken ct = default) where T : ISubscribeEntity
     {
-        bool added = true;
-        QQChannelSubscribeEntity record;
-
-        switch (subscribe)
+        bool added = false;
+        QQChannelSubscribeEntity record = await GetOrCreateAsync(
+            guildId, guildName, channelId, channelName, subscribe.PropName, ct);
+        if (!record.ContainsSubscribe(subscribe))
         {
-            case BilibiliSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.BilibiliSubscribes, ct);
-                if (record.BilibiliSubscribes is null)
-                    record.BilibiliSubscribes = new List<BilibiliSubscribeEntity>() { s };
-                else if (record.BilibiliSubscribes.Exists(b => b.Uid == s.Uid))
-                    added = false;
-                else
-                    record.BilibiliSubscribes.Add(s);
-
-                if (!s.QQChannels.Contains(record))
-                    s.QQChannels.Add(record);
-                break;
-
-            case TwitterSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.TwitterSubscribes, ct);
-                if (record.TwitterSubscribes is null)
-                    record.TwitterSubscribes = new List<TwitterSubscribeEntity>() { s };
-                else if (record.TwitterSubscribes.Exists(t => t.ScreenName == s.ScreenName))
-                    added = false;
-                else
-                    record.TwitterSubscribes.Add(s);
-
-                if (!s.QQChannels.Contains(record))
-                    s.QQChannels.Add(record);
-                break;
-
-            case YoutubeSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.YoutubeSubscribes, ct);
-                if (record.YoutubeSubscribes is null)
-                    record.YoutubeSubscribes = new List<YoutubeSubscribeEntity>() { s };
-                else if (record.YoutubeSubscribes.Exists(y => y.ChannelId == s.ChannelId))
-                    added = false;
-                else
-                    record.YoutubeSubscribes.Add(s);
-
-                if (!s.QQChannels.Contains(record))
-                    s.QQChannels.Add(record);
-                break;
-
-            case MailSubscribeEntity s:
-                record = await GetOrCreateAsync(guildId, guildName, channelId, channelName, q => q.MailSubscribes, ct);
-                if (record.MailSubscribes is null)
-                    record.MailSubscribes = new List<MailSubscribeEntity>() { s };
-                else if (record.MailSubscribes.Exists(m => m.Address == s.Address))
-                    added = false;
-                else
-                    record.MailSubscribes.Add(s);
-
-                if (!s.QQChannels.Contains(record))
-                    s.QQChannels.Add(record);
-                break;
-
-            default:
-                throw new ArgumentException($"Unknown subscribe type {subscribe.GetType().Name}!");
+            record.AddSubscribe(subscribe);
+            subscribe.QQChannels.Add(record);
+            added = true;
         }
+
         return (record, added);
     }
 
-    public async Task<QQChannelSubscribeEntity> RemoveSubscribeAsync<TProperty>(
+    public async Task<QQChannelSubscribeEntity> RemoveSubscribeAsync<T>(
         string channelId,
-        string subscribeId,
-        Expression<Func<QQChannelSubscribeEntity, TProperty>> subscribeProp,
-        CancellationToken ct = default)
+        T subscribe,
+        CancellationToken ct = default) where T : ISubscribeEntity
     {
-        QQChannelSubscribeEntity record = await GetAsync(channelId, true, ct);
+        QQChannelSubscribeEntity record = await GetAsync(channelId, subscribe.PropName, true, ct);
+        record.RemoveSubscribe(subscribe);
+        subscribe.QQChannels.RemoveAll(q => q.ChannelId == channelId);
 
-        switch (typeof(TProperty).Name)
-        {
-            case nameof(BilibiliSubscribeEntity):
-                if (record.BilibiliSubscribes!.FindIndex(b => b.Uid == uint.Parse(subscribeId)) is int i and not -1)
-                {
-                    record.BilibiliSubscribes.RemoveAt(i);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the bilibili subscribe (uid: {subscribeId})!");
-                }
-
-                break;
-
-            case nameof(TwitterSubscribeEntity):
-                if (record.TwitterSubscribes!.FindIndex(t => t.ScreenName == subscribeId) is int j and not -1)
-                {
-                    record.TwitterSubscribes.RemoveAt(j);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the twitter subscribe (uid: {subscribeId})!");
-                }
-
-                break;
-
-            case nameof(YoutubeSubscribeEntity):
-                if (record.YoutubeSubscribes!.FindIndex(y => y.ChannelId == subscribeId) is int k and not -1)
-                {
-                    record.YoutubeSubscribes.RemoveAt(k);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the youtube subscribe (uid: {subscribeId})!");
-                }
-                break;
-
-            case nameof(MailSubscribeEntity):
-                if (record.MailSubscribes!.FindIndex(m => m.Address == subscribeId) is int a and not -1)
-                {
-                    record.MailSubscribes.RemoveAt(a);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the mail subscribe (uid: {subscribeId})!");
-                }
-                break;
-        }
-        return record;
-    }
-
-    public async Task<QQChannelSubscribeEntity> RemoveSubscribeAsync(
-        string channelId,
-        string subscribeId,
-        string subscribeProp,
-        CancellationToken ct = default)
-    {
-        QQChannelSubscribeEntity record = await GetAsync(channelId, true, ct);
-
-        switch (subscribeProp)
-        {
-            case nameof(BilibiliSubscribeEntity):
-                if (record.BilibiliSubscribes!.FindIndex(b => b.Uid == uint.Parse(subscribeId)) is int i and not -1)
-                {
-                    record.BilibiliSubscribes.RemoveAt(i);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the bilibili subscribe (uid: {subscribeId})!");
-                }
-                break;
-
-            case nameof(TwitterSubscribeEntity):
-                if (record.TwitterSubscribes!.FindIndex(t => t.ScreenName == subscribeId) is int j and not -1)
-                {
-                    record.TwitterSubscribes.RemoveAt(j);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the twitter subscribe (uid: {subscribeId})!");
-                }
-                break;
-
-            case nameof(YoutubeSubscribeEntity):
-                if (record.YoutubeSubscribes!.FindIndex(y => y.ChannelId == subscribeId) is int k and not -1)
-                {
-                    record.YoutubeSubscribes.RemoveAt(k);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the youtube subscribe (uid: {subscribeId})!");
-                }
-                break;
-
-            case nameof(MailSubscribeEntity):
-                if (record.MailSubscribes!.FindIndex(m => m.Address == subscribeId) is int a and not -1)
-                {
-                    record.MailSubscribes.RemoveAt(a);
-                }
-                else
-                {
-                    throw new DataBaseRecordNotExistException(
-                        $"The QQ channel (channelId: {channelId}) hasn't the mail subscribe (uid: {subscribeId})!");
-                }
-                break;
-        }
         return record;
     }
 

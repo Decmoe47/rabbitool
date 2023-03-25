@@ -2,11 +2,8 @@
 
 namespace Rabbitool.Config;
 
-public class Twitter
+public class Mail
 {
     [Required]
     public int Interval { get; set; }
-
-    [Required]
-    public string Token { get; set; } = null!;
 }

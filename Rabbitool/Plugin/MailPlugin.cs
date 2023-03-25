@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Coravel;
 using Newtonsoft.Json;
 using Rabbitool.Common.Util;
 using Rabbitool.Event;
@@ -10,8 +11,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class MailPlugin : BasePlugin
+public class MailPlugin : BasePlugin, IPlugin
 {
+    private readonly int _interval;
+
     private readonly List<MailService> _services = new();
     private readonly MailSubscribeRepository _repo;
     private readonly MailSubscribeConfigRepository _configRepo;
@@ -28,7 +31,8 @@ public class MailPlugin : BasePlugin
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string userAgent,
+        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new MailSubscribeRepository(dbCtx);
@@ -37,6 +41,17 @@ public class MailPlugin : BasePlugin
         MailSubscribeEvent.AddMailSubscribeEvent += HandleMailSubscribeAddedEvent;
         MailSubscribeEvent.DeleteMailSubscribeEvent += HandleMailSubscribeDeletedEventAsync;
         Console.CancelKeyPress += DisposeAllServices;
+        _interval = interval;
+    }
+
+    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        services.UseScheduler(scheduler =>
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync(ct))
+                .EverySeconds(_interval)
+                .PreventOverlapping("MailPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
@@ -52,7 +67,7 @@ public class MailPlugin : BasePlugin
         foreach (MailSubscribeEntity record in records)
         {
             MailService? svc = _services.FirstOrDefault(s => s.Username == record.Address);
-            if (svc is null)
+            if (svc == null)
             {
                 svc = new MailService(
                     record.Host, record.Port, record.Ssl, record.Username, record.Password, record.Mailbox);
@@ -209,7 +224,7 @@ public class MailPlugin : BasePlugin
     private async Task HandleMailSubscribeDeletedEventAsync(string address, CancellationToken ct)
     {
         MailService? svc = _services.FirstOrDefault(s => s.Username == address);
-        if (svc is not null)
+        if (svc != null)
         {
             try
             {

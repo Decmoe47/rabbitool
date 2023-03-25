@@ -32,7 +32,7 @@ public static class CommandResponder
             cmd = msg.Content.Replace("\xa0", " ").Split(" ", StringSplitOptions.RemoveEmptyEntries)[1..].ToList();
 
             CommandInfo? cmdInfo = _allCommands.Find(c => c.Name == cmd[0]);
-            return cmdInfo is null
+            return cmdInfo == null
                 ? "错误：指令错误！\n输入 /帮助 获取指令列表"
                 : await cmdInfo.Responder(cmd, msg, ct);
         }
@@ -43,8 +43,6 @@ public static class CommandResponder
         }
     }
 
-#pragma warning disable CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
-
     private static async Task<string> RespondToHelpCommandAsync(
         List<string> cmd, Message msg, CancellationToken ct)
     {
@@ -53,6 +51,4 @@ public static class CommandResponder
             commands += string.Join(" ", v.Format) + "\n";
         return $"支持的命令：\n{commands}\n详细设置请前往项目主页。";
     }
-
-#pragma warning restore CS1998 // 异步方法缺少 "await" 运算符，将以同步方式运行
 }

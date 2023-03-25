@@ -1,4 +1,5 @@
-﻿using Rabbitool.Common.Util;
+﻿using Coravel;
+using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Bilibili;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -7,11 +8,12 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class BilibiliPlugin : BasePlugin
+public class BilibiliPlugin : BasePlugin, IPlugin
 {
     private readonly BilibiliService _svc;
     private readonly BilibiliSubscribeRepository _repo;
     private readonly BilibiliSubscribeConfigRepository _configRepo;
+    private readonly int _interval;
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamicDTO>> _storedDynamics = new();
 
@@ -20,12 +22,25 @@ public class BilibiliPlugin : BasePlugin
         CosService cosSvc,
         string dbPath,
         string redirectUrl,
-        string userAgent) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string userAgent,
+        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
     {
         _svc = new BilibiliService(userAgent);
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new BilibiliSubscribeRepository(dbCtx);
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
+        _interval = interval;
+    }
+
+    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        await RefreshCookiesAsync(ct);
+        services.UseScheduler(scheduler =>
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync(ct))
+                .EverySeconds(_interval)
+                .PreventOverlapping("BilibiliPlugin"))
+                .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
     }
 
     public async Task RefreshCookiesAsync(CancellationToken ct = default)
@@ -56,7 +71,7 @@ public class BilibiliPlugin : BasePlugin
         try
         {
             BaseDynamicDTO? dy = await _svc.GetLatestDynamicAsync(record.Uid, ct: ct);
-            if (dy is null)
+            if (dy == null)
                 return;
 
             if (dy.DynamicUploadTime <= record.LastDynamicTime)
@@ -125,7 +140,7 @@ public class BilibiliPlugin : BasePlugin
     {
         (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
         List<string> redirectImgUrls = new();
-        if (imgUrls is not null)
+        if (imgUrls != null)
         {
             foreach (string imgUrl in imgUrls)
                 redirectImgUrls.Add(await _cosSvc.UploadImageAsync(imgUrl));
@@ -136,7 +151,7 @@ public class BilibiliPlugin : BasePlugin
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
+            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -144,8 +159,8 @@ public class BilibiliPlugin : BasePlugin
             }
 
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config.DynamicPush is false) continue;
-            if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush is false)
+            if (config.DynamicPush == false) continue;
+            if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
             tasks.Add(_qbSvc.PushCommonMsgAsync(
@@ -189,7 +204,7 @@ public class BilibiliPlugin : BasePlugin
         string uploadTimeStr = TimeZoneInfo.ConvertTimeFromUtc(
             dy.DynamicUploadTime, TimeUtil.CST).ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-        if (dy.Reserve is null)
+        if (dy.Reserve == null)
         {
             text = $"""
                 {dy.Text.AddRedirectToUrls(_redirectUrl)}
@@ -221,7 +236,7 @@ public class BilibiliPlugin : BasePlugin
     {
         string title = "【新b站视频】来自 " + dy.Uname;
 
-        string dynamicText = dy.DynamicText is "" ? "（无动态文本）" : dy.DynamicText;
+        string dynamicText = dy.DynamicText == "" ? "（无动态文本）" : dy.DynamicText;
         string text = $"""
             【视频标题】
             {dy.VideoTitle}
@@ -278,7 +293,7 @@ public class BilibiliPlugin : BasePlugin
                 string originUploadTimeStr = TimeZoneInfo
                     .ConvertTimeFromUtc(cOrigin.DynamicUploadTime, TimeUtil.CST)
                     .ToString("yyyy-MM-dd HH:mm:ss zzz");
-                if (cOrigin.Reserve is null)
+                if (cOrigin.Reserve == null)
                 {
                     text = $"""
                         {dy.DynamicText.AddRedirectToUrls(_redirectUrl)}
@@ -395,7 +410,7 @@ public class BilibiliPlugin : BasePlugin
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             Live? live = await _svc.GetLiveAsync(record.Uid, ct: ct);
-            if (live is null)
+            if (live == null)
                 return;
 
             async Task FnAsync(Live live, LiveStatusEnum liveStatus)
@@ -461,7 +476,7 @@ public class BilibiliPlugin : BasePlugin
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) is false)
+            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -469,7 +484,7 @@ public class BilibiliPlugin : BasePlugin
             }
 
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (config.LivePush is false) continue;
+            if (config.LivePush == false) continue;
             if (liveStatus == LiveStatusEnum.NoLiveStream && !config.LiveEndingPush) continue;
 
             tasks.Add(_qbSvc.PushCommonMsgAsync(
@@ -486,7 +501,7 @@ public class BilibiliPlugin : BasePlugin
         string title;
         string text;
         if (live.LiveStatus == LiveStatusEnum.Streaming
-            && live.LiveStartTime is not null)
+            && live.LiveStartTime != null)
         {
             title = "【b站开播】来自 " + live.Uname;
             text = $"""

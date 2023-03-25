@@ -5,8 +5,6 @@ namespace Rabbitool.Config;
 
 public class Configs
 {
-    public bool InTestEnvironment { get; set; } = false;
-
     [Required]
     public string RedirectUrl { get; set; } = null!;
 
@@ -16,13 +14,8 @@ public class Configs
     [Required]
     public string DbPath { get; set; } = null!;
 
-    public Proxy? Proxy { get; set; }
-
     [Required]
     public LogInfo Log { get; set; } = null!;
-
-    [Required]
-    public Interval Interval { get; set; } = null!;
 
     [Required]
     public Cos Cos { get; set; } = null!;
@@ -31,11 +24,14 @@ public class Configs
     [YamlMember(Alias = "qqbot")]
     public QQBot QQBot { get; set; } = null!;
 
-    [Required]
-    public Youtube Youtube { get; set; } = null!;
+    public Bilibili? Bilibili { get; set; } = null!;
+    public Youtube? Youtube { get; set; } = null!;
+    public Twitter? Twitter { get; set; } = null!;
+    public Mail? Mail { get; set; } = null!;
 
     public Notifier? Notifier { get; set; }
-    public Twitter? Twitter { get; set; } = null!;
+    public Proxy? Proxy { get; set; }
+    public bool InTestEnvironment { get; set; } = false;
 
     public static Configs Load(string path)
     {

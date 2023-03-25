@@ -91,23 +91,23 @@ public class TwitterService
                 text = text.Replace((string)medium["url"]!, expandUrl);
 
             string? mediaKey = (string?)medium["media_key"];
-            if (mediaKey is null)
+            if (mediaKey == null)
                 continue;
 
             try
             {
-                if (mediaKey?.StartsWith("3_") is true)
+                if (mediaKey?.StartsWith("3_") == true)
                 {
                     imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, ct));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
-                else if (mediaKey?.StartsWith("7_") is true)
+                else if (mediaKey?.StartsWith("7_") == true)
                 {
                     hasVideo = true;
                     imgUrls.Add(await GetImageOrVideoThumbnailUrlAsync(body, mediaKey, tweetId, ct));
                     text = text.Replace((string)medium["expanded_url"]!, "");
                 }
-                else if (mediaKey?.StartsWith("13_") is true)    // 13应该是广告性质的视频
+                else if (mediaKey?.StartsWith("13_") == true)    // 13应该是广告性质的视频
                 {
                     hasVideo = true;
                     text = text.Replace((string)medium["expanded_url"]!, "");

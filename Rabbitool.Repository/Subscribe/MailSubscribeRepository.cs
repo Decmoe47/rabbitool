@@ -172,14 +172,14 @@ public class MailSubscribeConfigRepository
         catch (InvalidOperationException)
         {
             record = new MailSubscribeConfigEntity(qqChannel, subscribe);
-            if (configs is not null)
+            if (configs != null)
                 CommonUtil.UpdateProperties(record, configs);
 
             await _dbCtx.MailSubscribeConfigEntity.AddAsync(record, ct);
 
             return record;
         }
-        if (configs is not null)
+        if (configs != null)
             CommonUtil.UpdateProperties(record, configs);
         return record;
     }
