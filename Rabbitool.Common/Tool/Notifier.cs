@@ -40,7 +40,7 @@ public class Notifier : ILogEventSink, IDisposable
         _username = opts.Username;
         _password = opts.Password;
 
-        _intervalMinutes = opts.IntervalMinutes;
+        _intervalMinutes = opts.Interval;
         _allowedAmount = opts.AllowedAmount;
 
         _formatProvider = formatProvider;
@@ -167,7 +167,7 @@ public class ErrorNotifierOptions
     public string From { get; set; } = null!;
     public string[] To { get; set; } = null!;
 
-    public int IntervalMinutes { get; set; }
+    public int Interval { get; set; }
     public int AllowedAmount { get; set; }
 }
 

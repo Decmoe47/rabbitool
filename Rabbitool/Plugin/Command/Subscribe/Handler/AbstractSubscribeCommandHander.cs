@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using QQChannelFramework.Models.WsModels;
-using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -16,7 +15,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
     where TSubscribeRepo : ISubscribeRepository<TSubscribe>
     where TConfigRepo : ISubscribeConfigRepository<TSubscribe, TConfig>
 {
-    protected readonly LimiterUtil _limiter = default!;
     protected readonly string _userAgent;
     protected readonly QQBotService _qbSvc;
     protected readonly SubscribeDbContext _dbCtx;
@@ -32,8 +30,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         TSubscribeRepo repo,
         TConfigRepo configRepo)
     {
-        if (!(typeof(TSubscribe).Name == nameof(MailSubscribeEntity)))
-            _limiter = LimiterCollection.GetLimiterBySubscribeEntity<TSubscribe>();
         _qbSvc = qbSvc;
         _dbCtx = dbCtx;
         _qsRepo = qsRepo;

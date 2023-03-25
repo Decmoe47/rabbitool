@@ -1,9 +1,9 @@
-﻿using Flurl;
+﻿using System.Threading.RateLimiting;
+using Flurl;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Bilibili;
 using Serilog;
 
@@ -13,7 +13,14 @@ public class BilibiliService
 {
     private readonly string _userAgent;
     private readonly CookieJar _jar;
-    private readonly LimiterUtil _limiter = LimiterCollection.BilibiliLimiter;
+
+    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    {
+        QueueLimit = 1,
+        ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+        TokenLimit = 1,
+        TokensPerPeriod = 1,
+    });     // QPS 1
 
     public BilibiliService(string userAgent)
     {
@@ -31,7 +38,7 @@ public class BilibiliService
 
     public async Task<Live?> GetLiveAsync(uint uid, CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
@@ -121,7 +128,7 @@ public class BilibiliService
         int needTop = 0,
         CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
 
         string resp = await "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
                 .SetQueryParam("offsetDynamic", offsetDynamic)
@@ -392,7 +399,7 @@ public class BilibiliService
 
     private async Task<string> GetUnameAsync(uint uid, CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
 
         string resp = await "https://api.bilibili.com/x/space/acc/info"
             .SetQueryParam("mid", uid)

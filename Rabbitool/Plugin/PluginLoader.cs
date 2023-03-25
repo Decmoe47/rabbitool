@@ -21,17 +21,17 @@ public class PluginLoader
         _plugins.Add(plugin);
     }
 
-    public async Task RunAsync(CancellationTokenSource ctSource)
+    public async Task RunAsync(CancellationTokenSource cts)
     {
-        Console.CancelKeyPress += (sender, e) => ctSource.Cancel();
+        Console.CancelKeyPress += (sender, e) => cts.Cancel();
 
         foreach (IPlugin plugin in _plugins)
         {
-            await plugin.InitAsync(_host.Services, ctSource.Token);
+            await plugin.InitAsync(_host.Services, cts.Token);
             if (plugin is IRunnablePlugin p)
-                await p.RunAsync(ctSource.Token);
+                await p.RunAsync(cts.Token);
         }
 
-        await _host.RunAsync(ctSource.Token);
+        await _host.RunAsync(cts.Token);
     }
 }

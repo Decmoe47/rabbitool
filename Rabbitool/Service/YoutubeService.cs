@@ -1,15 +1,22 @@
-﻿using Google.Apis.Services;
+﻿using System.Threading.RateLimiting;
+using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
-using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Youtube;
 
 namespace Rabbitool.Service;
 
 public class YoutubeService
 {
-    private readonly LimiterUtil _limiter = LimiterCollection.YoutubeApiLimiter;
     private readonly YouTubeService _ytb;
+
+    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    {
+        QueueLimit = 1,
+        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+        TokenLimit = 6,
+        TokensPerPeriod = 6,
+    });     // See https://developers.google.com/youtube/v3/getting-started
 
     public YoutubeService(string apiKey)
     {
@@ -26,21 +33,21 @@ public class YoutubeService
         ChannelsResource.ListRequest channelsReq = _ytb.Channels
             .List(new Google.Apis.Util.Repeatable<string>(new string[1] { "contentDetails" }));
         channelsReq.Id = channelId;
-        _limiter.Wait(3, ct);
+        await _limiter.AcquireAsync(1, ct);
         Channel channel = (await channelsReq.ExecuteAsync(ct)).Items[0];
 
         // https://developers.google.com/youtube/v3/docs/playlistItems
         PlaylistItemsResource.ListRequest playListReq = _ytb.PlaylistItems
             .List(new Google.Apis.Util.Repeatable<string>(new string[1] { "contentDetails" }));
         playListReq.PlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
-        _limiter.Wait(3, ct);
+        await _limiter.AcquireAsync(1, ct);
         PlaylistItem item = (await playListReq.ExecuteAsync(ct)).Items[0];
 
         // https://developers.google.com/youtube/v3/docs/videos
         VideosResource.ListRequest videosReq = _ytb.Videos
             .List(new Google.Apis.Util.Repeatable<string>(new string[2] { "snippet", "liveStreamingDetails" }));
         videosReq.Id = item.ContentDetails.VideoId;
-        _limiter.Wait(5, ct);
+        await _limiter.AcquireAsync(1, ct);
         Video video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
         return CreateDTO(channelId, item.ContentDetails.VideoId, video);
@@ -51,7 +58,7 @@ public class YoutubeService
         VideosResource.ListRequest videosReq = _ytb.Videos
             .List(new Google.Apis.Util.Repeatable<string>(new string[2] { "snippet", "liveStreamingDetails" }));
         videosReq.Id = liveRoomId;
-        _limiter.Wait(5, ct);
+        await _limiter.AcquireAsync(1, ct);
         Video video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
         return video.Snippet.LiveBroadcastContent switch

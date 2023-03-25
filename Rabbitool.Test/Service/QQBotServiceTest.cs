@@ -18,8 +18,8 @@ public class QQBotServiceTest
         _output = output;
         Configs configs = Configs.Load("configs.yml");
 
-        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
-        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
+        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.Http);
+        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.Https);
 
         _sandboxGuildName = configs.QQBot.SandboxGuildName;
         _svc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true, configs.QQBot.SandboxGuildName);

@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Threading.RateLimiting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using QQChannelFramework.Api;
@@ -21,15 +22,21 @@ public class QQBotService
 
     private readonly QQChannelApi _qqApi;
     private readonly ChannelBot _qqBot;
-    private readonly LimiterUtil _limiter;
     private readonly bool _isSandbox;
     private readonly string _sandboxGuildName;
     private string _sandboxGuildId = "";
     private string _botId = "";
 
+    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    {
+        QueueLimit = 1,
+        ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+        TokenLimit = 5,
+        TokensPerPeriod = 5,
+    });     // See https://bot.q.qq.com/wiki/develop/api/openapi/message/post_messages.html
+
     public QQBotService(string appId, string token, bool isSandbox, string sandboxGuildName)
     {
-        _limiter = LimiterCollection.QQBotLimiter;
         _isSandbox = isSandbox;
         _sandboxGuildName = sandboxGuildName;
 
@@ -154,7 +161,7 @@ public class QQBotService
 
     public async Task<List<Guild>> GetAllGuildsAsync(CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
         return await _qqApi.GetUserApi().GetAllJoinedChannelsAsync();
     }
 
@@ -178,13 +185,13 @@ public class QQBotService
 
     public async Task<List<Channel>> GetAllChannelsAsync(string guildId, CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
         return await _qqApi.GetChannelApi().GetChannelsAsync(guildId);
     }
 
     public async Task<Channel> GetChannelAsync(string channelId, CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
         return await _qqApi.GetChannelApi().GetInfoAsync(channelId);
     }
 
@@ -228,7 +235,7 @@ public class QQBotService
         if (!_isSandbox && channelId == _sandboxGuildId)
             return null;
 
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
 
         try
         {
@@ -301,7 +308,7 @@ public class QQBotService
         if (!_isSandbox && channelId == _sandboxGuildId)
             return null;
 
-        _limiter.Wait(ct: ct);
+        await _limiter.AcquireAsync(1, ct);
         try
         {
             Log.Information("Posting QQ channel thread...\nChannelName: {channelName}\nTitle: {title}\nText: {text}",

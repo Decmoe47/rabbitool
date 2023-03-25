@@ -1,8 +1,8 @@
-﻿using Flurl.Http;
+﻿using System.Threading.RateLimiting;
+using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Twitter;
 using Serilog;
 
@@ -11,8 +11,22 @@ namespace Rabbitool.Service;
 public class TwitterService
 {
     private readonly string _token;
-    private readonly LimiterUtil _tweetApiLimiter = LimiterCollection.TwitterTweetApiLimiter;
-    private readonly LimiterUtil _userApiLimiter = LimiterCollection.TwitterUserApiLimiter;
+
+    private readonly RateLimiter _tweetApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    {
+        QueueLimit = 1,
+        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+        TokenLimit = 11,
+        TokensPerPeriod = 11,
+    });     // See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
+
+    private readonly RateLimiter _userApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    {
+        QueueLimit = 1,
+        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+        TokenLimit = 1,
+        TokensPerPeriod = 1,
+    });
 
     public TwitterService(string token)
     {
@@ -23,7 +37,8 @@ public class TwitterService
     {
         (string userId, _) = await GetUserIdAsync(screenName, ct);
 
-        _tweetApiLimiter.Wait(ct: ct);
+        await _tweetApiLimiter.AcquireAsync(1, ct);
+
         string resp = await $"https://api.twitter.com/2/users/{userId}/tweets"
             .WithTimeout(10)
             .WithOAuthBearerToken(_token)
@@ -139,7 +154,8 @@ public class TwitterService
             }
         }
 
-        _tweetApiLimiter.Wait(ct: ct);
+        await _tweetApiLimiter.AcquireAsync(1, ct);
+
         string resp = await $"https://api.twitter.com/2/tweets/{tweetId}"
             .WithTimeout(10)
             .WithOAuthBearerToken(_token)
@@ -193,7 +209,8 @@ public class TwitterService
 
     private async Task<(string userId, string name)> GetUserIdAsync(string screenName, CancellationToken ct = default)
     {
-        _userApiLimiter.Wait(ct: ct);
+        await _userApiLimiter.AcquireAsync(1, ct);
+
         string resp = await $"https://api.twitter.com/2/users/by/username/{screenName}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_token}")
@@ -205,7 +222,7 @@ public class TwitterService
 
     private async Task<(string name, string screenName)> GetUserNameAsync(string userId, CancellationToken ct = default)
     {
-        _userApiLimiter.Wait(ct: ct);
+        await _userApiLimiter.AcquireAsync(1, ct);
         string resp = await $"https://api.twitter.com/2/users/{userId}"
             .WithTimeout(10)
             .WithHeader("Authorization", $"Bearer {_token}")

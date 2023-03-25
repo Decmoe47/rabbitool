@@ -12,8 +12,8 @@ public class CosServiceTest
     {
         Configs configs = Configs.Load("configs.yml");
 
-        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
-        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
+        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.Http);
+        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.Https);
 
         _output = output;
         _svc = new CosService(configs.Cos.BucketName, configs.Cos.Region, configs.Cos.SecretId, configs.Cos.SecretKey);

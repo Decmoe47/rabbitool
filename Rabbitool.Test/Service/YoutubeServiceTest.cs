@@ -10,8 +10,8 @@ public class YoutubeServiceTest
     {
         Configs configs = Configs.Load("configs.yml");
 
-        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.HttpProxy);
-        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.HttpsProxy);
+        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.Http);
+        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.Https);
 
         _svc = new YoutubeService(configs.Youtube!.ApiKey);
     }

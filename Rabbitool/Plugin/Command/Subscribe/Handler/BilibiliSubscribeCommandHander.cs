@@ -26,8 +26,6 @@ public class BilibiliSubscribeCommandHandler
 
     public override async Task<(string name, string? errMsg)> CheckId(string uid, CancellationToken ct = default)
     {
-        _limiter.Wait(ct: ct);
-
         if (!uint.TryParse(uid, out _))
         {
             Log.Warning("The uid {uid} can't be converted to uint!", uid);

@@ -12,8 +12,8 @@ else
 
 if (conf.InTestEnvironment && conf.Proxy != null)
 {
-    System.Environment.SetEnvironmentVariable("http_proxy", conf.Proxy.HttpProxy);
-    System.Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.HttpsProxy);
+    System.Environment.SetEnvironmentVariable("http_proxy", conf.Proxy.Http);
+    System.Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.Https);
 }
 
 QQBotService qbSvc = new(
@@ -44,5 +44,5 @@ if (conf.Mail != null)
         qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl, conf.UserAgent, conf.Mail.Interval));
 }
 
-CancellationTokenSource tokenSource = new();
-await loader.RunAsync(tokenSource);
+CancellationTokenSource cts = new();
+await loader.RunAsync(cts);

@@ -10,7 +10,7 @@ public class ErrorNotifierTest
     {
         Configs configs = Configs.Load("configs.yml");
         ErrorNotifierOptions opts = configs.Notifier!.ToOptions();
-        opts.IntervalMinutes = 1;
+        opts.Interval = 1;
         opts.AllowedAmount = 6;
 
         _notifier = new Notifier(opts);

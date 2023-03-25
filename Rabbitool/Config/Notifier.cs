@@ -5,28 +5,28 @@ namespace Rabbitool.Config;
 public class Notifier
 {
     [Required]
-    public string SenderHost { get; set; } = null!;
+    public string Host { get; set; } = null!;
 
     [Required]
-    public int SenderPort { get; set; }
+    public int Port { get; set; }
 
     [Required]
-    public bool UsingSsl { get; set; }
+    public bool Ssl { get; set; }
 
     [Required]
-    public string SenderUsername { get; set; } = null!;
+    public string Username { get; set; } = null!;
 
     [Required]
-    public string SenderPassword { get; set; } = null!;
+    public string Password { get; set; } = null!;
 
     [Required]
-    public string SenderAddress { get; set; } = null!;
+    public string From { get; set; } = null!;
 
     [Required]
-    public string[] ReceiverAddresses { get; set; } = null!;
+    public string[] To { get; set; } = null!;
 
     [Required]
-    public int IntervalMinutes { get; set; }
+    public int Interval { get; set; }
 
     [Required]
     public int AllowedAmount { get; set; }
@@ -35,14 +35,14 @@ public class Notifier
     {
         return new Common.Tool.ErrorNotifierOptions()
         {
-            Host = SenderHost,
-            Port = SenderPort,
-            Ssl = UsingSsl,
-            Username = SenderUsername,
-            Password = SenderPassword,
-            From = SenderAddress,
-            To = ReceiverAddresses,
-            IntervalMinutes = IntervalMinutes,
+            Host = Host,
+            Port = Port,
+            Ssl = Ssl,
+            Username = Username,
+            Password = Password,
+            From = From,
+            To = To,
+            Interval = Interval,
             AllowedAmount = AllowedAmount
         };
     }

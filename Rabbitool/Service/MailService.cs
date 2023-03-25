@@ -23,7 +23,7 @@ public class MailService : IDisposable
         Host = host;
         _port = port;
         _usingSsl = usingSsl;
-        this.Username = username;
+        Username = username;
         _password = password;
         MailBox = mailbox;
     }

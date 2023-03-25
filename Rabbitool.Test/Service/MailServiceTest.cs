@@ -17,8 +17,8 @@ public class MailServiceTest : IDisposable
             "imap.126.com",
             143,
             false,
-            configs.Notifier!.SenderUsername,
-            configs.Notifier!.SenderPassword);
+            configs.Notifier!.Username,
+            configs.Notifier!.Password);
         _output = output;
     }
 

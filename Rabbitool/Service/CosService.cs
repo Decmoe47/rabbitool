@@ -29,8 +29,8 @@ public class CosService
         string partOfUrl = url.Split("/").Last();
         string filename = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-        if (partOfUrl.IndexOf("?") is int j and not -1)
-            filename = partOfUrl[..j];
+        if (partOfUrl.IndexOf("?") is int i and not -1)
+            filename = partOfUrl[..i];
 
         if (!filename.EndsWith(".jpg") && !filename.EndsWith(".png"))
             filename += ".jpg";
