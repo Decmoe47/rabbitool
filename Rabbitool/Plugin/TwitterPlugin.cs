@@ -151,7 +151,6 @@ public class TwitterPlugin : BasePlugin, IPlugin
             if (tweet.Origin != null)
             {
                 if (config.QuotePush == false) continue;
-                if (tweet.Type == TweetTypeEnum.RT && !config.RtPush) continue;
             }
             if (config.PushToThread)
             {

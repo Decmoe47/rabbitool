@@ -2,7 +2,7 @@
 
 redirectUrl: # string，重定向链接用
 userAgent: # string
-InTestEnvironment: false  # （可选）指明当前是测试环境，默认false
+inTestEnvironment: false  # （可选）指明当前是测试环境，默认false
 proxy: # （可选）代理
   http: # http_proxy
   https:  # https_proxy

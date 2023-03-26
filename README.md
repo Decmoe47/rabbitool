@@ -58,7 +58,6 @@
   - liveEndingPush: `false` （推送下播通知）
 - 推特：
   - quotePush: `true`（推送附带文字的转发推文，即引用推文）
-  - rTPush: `false`（推送无附带文字的转发推文）
   - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
 - 油管：
   - videoPush: `true`（上传视频）
@@ -74,8 +73,6 @@
   - SSL: `false`（修改需取消订阅后重新订阅）
   - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
   - detail: `false` （带from、to、subject、time信息）
-
-> ※当前`pushToThread`有点问题，无法显示在话题子频道中，即使显示了也没有新消息提醒。
 
 ## 查询参数
 

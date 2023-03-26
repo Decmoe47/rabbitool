@@ -11,13 +11,14 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    [Migration("20220910063325_Init_20220910_143300")]
-    partial class Init_20220910_143300
+    [Migration("20230326073951_RemoveTwitterRTPush")]
+    partial class RemoveTwitterRTPush
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.3");
 
             modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
                 {
@@ -218,9 +219,6 @@ namespace Rabbitool.Repository.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("QuotePush")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RtPush")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("SubscribeId")

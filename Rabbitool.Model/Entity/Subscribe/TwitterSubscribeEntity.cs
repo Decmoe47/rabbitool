@@ -38,7 +38,6 @@ public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSubscribeEntity>, ISubscribeConfigEntity
 {
     public bool QuotePush { get; set; } = true;
-    public bool RtPush { get; set; } = false;
     public bool PushToThread { get; set; } = false;
 
     private TwitterSubscribeConfigEntity()
@@ -54,7 +53,6 @@ public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSub
     public string GetConfigs(string separator)
     {
         string result = "quotePush=" + QuotePush.ToString().ToLower() + separator;
-        result += "rtPush=" + RtPush.ToString().ToLower() + separator;
         result += "pushToThread=" + PushToThread.ToString().ToLower();
         return result;
     }
