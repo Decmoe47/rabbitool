@@ -15,11 +15,10 @@ public class TwitterSubscribeCommandHandler
 
     public TwitterSubscribeCommandHandler(
         QQBotService qbSvc,
-        string userAgent,
         SubscribeDbContext dbCtx,
         QQChannelSubscribeRepository qsRepo,
         TwitterSubscribeRepository repo,
-        TwitterSubscribeConfigRepository configRepo) : base(qbSvc, userAgent, dbCtx, qsRepo, repo, configRepo)
+        TwitterSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
     {
     }
 
@@ -29,11 +28,7 @@ public class TwitterSubscribeCommandHandler
         try
         {
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
-            .WithHeaders(new Dictionary<string, string>()
-            {
-                {"Authorization", _apiV1_1Auth},
-                {"User-Agent", _userAgent},
-            })
+            .WithHeader("Authorization", _apiV1_1Auth)
             .SetQueryParams(new Dictionary<string, string>()
             {
                 {"screen_name", screenName},

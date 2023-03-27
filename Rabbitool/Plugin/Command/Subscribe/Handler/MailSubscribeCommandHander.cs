@@ -13,11 +13,10 @@ public class MailSubscribeCommandHandler
 {
     public MailSubscribeCommandHandler(
         QQBotService qbSvc,
-        string userAgent,
         SubscribeDbContext dbCtx,
         QQChannelSubscribeRepository qsRepo,
         MailSubscribeRepository repo,
-        MailSubscribeConfigRepository configRepo) : base(qbSvc, userAgent, dbCtx, qsRepo, repo, configRepo)
+        MailSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
     {
     }
 

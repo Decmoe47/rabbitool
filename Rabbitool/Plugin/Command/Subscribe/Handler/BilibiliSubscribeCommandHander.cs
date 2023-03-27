@@ -5,6 +5,7 @@ using Rabbitool.Common.Extension;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
+using RandomUserAgent;
 using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe;
@@ -16,11 +17,10 @@ public class BilibiliSubscribeCommandHandler
 
     public BilibiliSubscribeCommandHandler(
         QQBotService qbSvc,
-        string userAgent,
         SubscribeDbContext dbCtx,
         QQChannelSubscribeRepository qsRepo,
         BilibiliSubscribeRepository repo,
-        BilibiliSubscribeConfigRepository configRepo) : base(qbSvc, userAgent, dbCtx, qsRepo, repo, configRepo)
+        BilibiliSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
     {
     }
 
@@ -43,7 +43,7 @@ public class BilibiliSubscribeCommandHandler
         string resp = await "https://api.bilibili.com/x/space/acc/info"
                 .SetQueryParam("mid", uid)
                 .WithCookies(_jar)
-                .WithHeader("User-Agent", _userAgent)
+                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
                 .GetStringAsync(ct);
 
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();

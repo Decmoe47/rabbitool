@@ -10,9 +10,9 @@ public class PluginLoader
     private readonly IHost _host;
     private readonly List<IPlugin> _plugins = new();
 
-    public PluginLoader(QQBotService qbSvc, string dbPath, string userAgent)
+    public PluginLoader(QQBotService qbSvc, string dbPath)
     {
-        SubscribeCommandResponder.Init(qbSvc, dbPath, userAgent);
+        SubscribeCommandResponder.Init(qbSvc, dbPath);
         _host = Host.CreateDefaultBuilder().ConfigureServices(services => services.AddScheduler()).Build();
     }
 

@@ -12,8 +12,6 @@ namespace Rabbitool.Plugin;
 
 public class TwitterPlugin : BasePlugin, IPlugin
 {
-    private readonly int _interval;
-
     private readonly TwitterService _svc;
     private readonly TwitterSubscribeRepository _repo;
     private readonly TwitterSubscribeConfigRepository _configRepo;
@@ -25,16 +23,13 @@ public class TwitterPlugin : BasePlugin, IPlugin
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
-        string redirectUrl,
-        string userAgent,
-        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string redirectUrl) : base(qbSvc, cosSvc, dbPath, redirectUrl)
     {
         _svc = new TwitterService(token);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new TwitterSubscribeRepository(dbCtx);
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
-        this._interval = interval;
     }
 
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
@@ -42,7 +37,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
         services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(_interval)
+                .EverySeconds(5)
                 .PreventOverlapping("TwitterPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from twitter plugin: {msg}", ex.Message));
     }

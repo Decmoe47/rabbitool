@@ -9,9 +9,6 @@ public class Configs
     public string RedirectUrl { get; set; } = null!;
 
     [Required]
-    public string UserAgent { get; set; } = null!;
-
-    [Required]
     public string DbPath { get; set; } = null!;
 
     [Required]
@@ -24,10 +21,8 @@ public class Configs
     [YamlMember(Alias = "qqbot")]
     public QQBot QQBot { get; set; } = null!;
 
-    public Bilibili? Bilibili { get; set; } = null!;
     public Youtube? Youtube { get; set; } = null!;
     public Twitter? Twitter { get; set; } = null!;
-    public Mail? Mail { get; set; } = null!;
 
     public Notifier? Notifier { get; set; }
     public Proxy? Proxy { get; set; }

@@ -23,7 +23,7 @@ public class SubscribeCommandResponderTest
 
         Configs configs = Configs.Load("configs.yml");
         _qSvc = new QQBotService(configs.QQBot.AppId, configs.QQBot.Token, true, configs.QQBot.SandboxGuildName);
-        SubscribeCommandResponder.Init(_qSvc, configs.DbPath!, configs.UserAgent);
+        SubscribeCommandResponder.Init(_qSvc, configs.DbPath!);
     }
 
     [Theory()]

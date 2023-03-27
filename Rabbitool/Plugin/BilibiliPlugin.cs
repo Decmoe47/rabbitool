@@ -13,7 +13,6 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     private readonly BilibiliService _svc;
     private readonly BilibiliSubscribeRepository _repo;
     private readonly BilibiliSubscribeConfigRepository _configRepo;
-    private readonly int _interval;
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamicDTO>> _storedDynamics = new();
 
@@ -21,24 +20,25 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
-        string redirectUrl,
-        string userAgent,
-        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string redirectUrl) : base(qbSvc, cosSvc, dbPath, redirectUrl)
     {
-        _svc = new BilibiliService(userAgent);
+        _svc = new BilibiliService();
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new BilibiliSubscribeRepository(dbCtx);
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
-        _interval = interval;
     }
 
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
-        await RefreshCookiesAsync(ct);
+        await RefreshCookiesAsync(ct);  // 反爬对应
         services.UseScheduler(scheduler =>
             scheduler
-                .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(_interval)
+                .ScheduleAsync(async () =>
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(Random.Shared.Next(50))); // 反爬对应
+                    await CheckAllAsync(ct);
+                })
+                .EverySeconds(5)
                 .PreventOverlapping("BilibiliPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
     }

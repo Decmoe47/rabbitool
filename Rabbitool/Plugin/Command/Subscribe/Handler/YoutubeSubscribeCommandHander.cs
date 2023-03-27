@@ -12,11 +12,10 @@ public class YoutubeSubscribeCommandHandler
 {
     public YoutubeSubscribeCommandHandler(
         QQBotService qbSvc,
-        string userAgent,
         SubscribeDbContext dbCtx,
         QQChannelSubscribeRepository qsRepo,
         YoutubeSubscribeRepository repo,
-        YoutubeSubscribeConfigRepository configRepo) : base(qbSvc, userAgent, dbCtx, qsRepo, repo, configRepo)
+        YoutubeSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
     {
     }
 
@@ -25,9 +24,7 @@ public class YoutubeSubscribeCommandHandler
         string resp;
         try
         {
-            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}"
-                .WithHeader("User-Agent", _userAgent)
-                .GetStringAsync();
+            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}".GetStringAsync();
         }
         catch (FlurlHttpException ex)
         {

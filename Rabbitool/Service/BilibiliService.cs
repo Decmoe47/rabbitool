@@ -5,13 +5,13 @@ using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
 using Rabbitool.Model.DTO.Bilibili;
+using RandomUserAgent;
 using Serilog;
 
 namespace Rabbitool.Service;
 
 public class BilibiliService
 {
-    private readonly string _userAgent;
     private readonly CookieJar _jar;
 
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
@@ -22,9 +22,8 @@ public class BilibiliService
         TokensPerPeriod = 1,
     });     // QPS 1
 
-    public BilibiliService(string userAgent)
+    public BilibiliService()
     {
-        _userAgent = userAgent;
         _jar = new CookieJar();
     }
 
@@ -44,7 +43,7 @@ public class BilibiliService
                 .SetQueryParam("mid", uid)
                 .WithTimeout(10)
                 .WithCookies(_jar)
-                .WithHeader("User-Agent", _userAgent)
+                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
                 .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
@@ -64,7 +63,7 @@ public class BilibiliService
             .SetQueryParam("room_id", roomId)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", _userAgent)
+            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
             .GetStringAsync(ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
         if ((int?)body2["code"] is int code2 and not 0)
@@ -136,7 +135,7 @@ public class BilibiliService
                 .SetQueryParam("host_uid", uid)
                 .WithTimeout(10)
                 .WithCookies(_jar)
-                .WithHeader("User-Agent", _userAgent)
+                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
                 .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code and not 0)
@@ -405,7 +404,7 @@ public class BilibiliService
             .SetQueryParam("mid", uid)
             .WithCookies(_jar)
             .WithTimeout(10)
-            .WithHeader("User-Agent", _userAgent)
+            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is int code && code != 0)

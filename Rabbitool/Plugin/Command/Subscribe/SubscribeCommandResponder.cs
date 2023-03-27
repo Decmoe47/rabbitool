@@ -11,7 +11,6 @@ public static class SubscribeCommandResponder
 {
     public static readonly string[] SupportedPlatforms = new string[4] { "b站", "推特", "油管", "邮箱" };
     private static QQBotService _qbSvc = null!;
-    private static string _userAgent = null!;
     private static string _dbPath = null!;
 
     public static readonly List<Rabbitool.Model.DTO.Command.CommandInfo> AllSubscribeCommands = new()
@@ -39,11 +38,10 @@ public static class SubscribeCommandResponder
         }
     };
 
-    public static void Init(QQBotService qbSvc, string dbPath, string userAgent)
+    public static void Init(QQBotService qbSvc, string dbPath)
     {
         _qbSvc = qbSvc;
         _dbPath = dbPath;
-        _userAgent = userAgent;
     }
 
     public static async Task<string> RespondToAddOrUpdateSubscribeCommandAsync(
@@ -180,7 +178,7 @@ public static class SubscribeCommandResponder
     /// <exception cref="NotSupportedException"></exception>
     private static ISubscribeCommandHandler GetSubscribeCommandHandler(string platform, CancellationToken ct)
     {
-        if (_qbSvc == null || _userAgent == null)
+        if (_qbSvc == null)
         {
             throw new UninitializedException(
                 "You must initialize SubscribeCommandResponder first by SubscribeCommandResponder.setting()!");
@@ -192,28 +190,24 @@ public static class SubscribeCommandResponder
         {
             "b站" => new BilibiliSubscribeCommandHandler(
                         _qbSvc,
-                        _userAgent,
                         dbCtx,
                         qsRepo,
                         new BilibiliSubscribeRepository(dbCtx),
                         new BilibiliSubscribeConfigRepository(dbCtx)),
             "推特" => new TwitterSubscribeCommandHandler(
                         _qbSvc,
-                        _userAgent,
                         dbCtx,
                         qsRepo,
                         new TwitterSubscribeRepository(dbCtx),
                         new TwitterSubscribeConfigRepository(dbCtx)),
             "油管" => new YoutubeSubscribeCommandHandler(
                         _qbSvc,
-                        _userAgent,
                         dbCtx,
                         qsRepo,
                         new YoutubeSubscribeRepository(dbCtx),
                         new YoutubeSubscribeConfigRepository(dbCtx)),
             "邮箱" => new MailSubscribeCommandHandler(
                         _qbSvc,
-                        _userAgent,
                         dbCtx,
                         qsRepo,
                         new MailSubscribeRepository(dbCtx),

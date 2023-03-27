@@ -15,7 +15,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
     where TSubscribeRepo : ISubscribeRepository<TSubscribe>
     where TConfigRepo : ISubscribeConfigRepository<TSubscribe, TConfig>
 {
-    protected readonly string _userAgent;
     protected readonly QQBotService _qbSvc;
     protected readonly SubscribeDbContext _dbCtx;
     protected readonly QQChannelSubscribeRepository _qsRepo;
@@ -24,7 +23,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
     public AbstractSubscribeCommandHandler(
         QQBotService qbSvc,
-        string userAgent,
         SubscribeDbContext dbCtx,
         QQChannelSubscribeRepository qsRepo,
         TSubscribeRepo repo,
@@ -33,7 +31,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         _qbSvc = qbSvc;
         _dbCtx = dbCtx;
         _qsRepo = qsRepo;
-        _userAgent = userAgent;
         _repo = repo;
         _configRepo = configRepo;
     }

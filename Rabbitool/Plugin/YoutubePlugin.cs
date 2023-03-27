@@ -10,8 +10,6 @@ namespace Rabbitool.Plugin;
 
 public class YoutubePlugin : BasePlugin, IPlugin
 {
-    private readonly int _interval;
-
     private readonly YoutubeService _svc;
     private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
@@ -23,16 +21,13 @@ public class YoutubePlugin : BasePlugin, IPlugin
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
-        string redirectUrl,
-        string userAgent,
-        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string redirectUrl) : base(qbSvc, cosSvc, dbPath, redirectUrl)
     {
         _svc = new YoutubeService(apiKey);
 
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
-        _interval = interval;
     }
 
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
@@ -40,7 +35,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
         services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(_interval)
+                .EverySeconds(5)
                 .PreventOverlapping("YoutubePlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
     }

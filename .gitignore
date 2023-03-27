@@ -372,3 +372,5 @@ FodyWeavers.xsd
 !configs_example.yml
 
 *.xlsx
+
+.VSCodeCounter/

@@ -13,8 +13,6 @@ namespace Rabbitool.Plugin;
 
 public class MailPlugin : BasePlugin, IPlugin
 {
-    private readonly int _interval;
-
     private readonly List<MailService> _services = new();
     private readonly MailSubscribeRepository _repo;
     private readonly MailSubscribeConfigRepository _configRepo;
@@ -30,9 +28,7 @@ public class MailPlugin : BasePlugin, IPlugin
         QQBotService qbSvc,
         CosService cosSvc,
         string dbPath,
-        string redirectUrl,
-        string userAgent,
-        int interval) : base(qbSvc, cosSvc, dbPath, redirectUrl, userAgent)
+        string redirectUrl) : base(qbSvc, cosSvc, dbPath, redirectUrl)
     {
         SubscribeDbContext dbCtx = new(_dbPath);
         _repo = new MailSubscribeRepository(dbCtx);
@@ -41,7 +37,6 @@ public class MailPlugin : BasePlugin, IPlugin
         MailSubscribeEvent.AddMailSubscribeEvent += HandleMailSubscribeAddedEvent;
         MailSubscribeEvent.DeleteMailSubscribeEvent += HandleMailSubscribeDeletedEventAsync;
         Console.CancelKeyPress += DisposeAllServices;
-        _interval = interval;
     }
 
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
@@ -49,7 +44,7 @@ public class MailPlugin : BasePlugin, IPlugin
         services.UseScheduler(scheduler =>
             scheduler
                 .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(_interval)
+                .EverySeconds(5)
                 .PreventOverlapping("MailPlugin"))
                 .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
     }

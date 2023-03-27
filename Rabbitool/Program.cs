@@ -21,28 +21,14 @@ QQBotService qbSvc = new(
 CosService cosSvc = new(
             conf.Cos.BucketName, conf.Cos.Region, conf.Cos.SecretId, conf.Cos.SecretKey);
 
-PluginLoader loader = new(qbSvc, conf.DbPath, conf.UserAgent);
+PluginLoader loader = new(qbSvc, conf.DbPath);
 loader.Load(new QQBotPlugin(qbSvc));
-if (conf.Bilibili != null)
-{
-    loader.Load(new BilibiliPlugin(
-        qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl, conf.UserAgent, conf.Bilibili.Interval));
-}
+loader.Load(new BilibiliPlugin(qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl));
+loader.Load(new MailPlugin(qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl));
 if (conf.Twitter != null)
-{
-    loader.Load(new TwitterPlugin(
-        conf.Twitter.Token, qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl, conf.UserAgent, conf.Twitter.Interval));
-}
+    loader.Load(new TwitterPlugin(conf.Twitter.Token, qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl));
 if (conf.Youtube != null)
-{
-    loader.Load(new YoutubePlugin(
-        conf.Youtube.ApiKey, qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl, conf.UserAgent, conf.Youtube.Interval));
-}
-if (conf.Mail != null)
-{
-    loader.Load(new MailPlugin(
-        qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl, conf.UserAgent, conf.Mail.Interval));
-}
+    loader.Load(new YoutubePlugin(conf.Youtube.ApiKey, qbSvc, cosSvc, conf.DbPath, conf.RedirectUrl));
 
 CancellationTokenSource cts = new();
 await loader.RunAsync(cts);
