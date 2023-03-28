@@ -44,7 +44,7 @@ public class TwitterService
             .WithOAuthBearerToken(_token)
             .SetQueryParams(new Dictionary<string, string>()
             {
-                { "exclude", "replies" },
+                { "exclude", "retweets,replies" },
                 { "tweet.fields", "author_id,created_at,entities,in_reply_to_user_id,referenced_tweets,text" },
                 { "expansions", "author_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys" },
                 { "user.fields", "username,name" },
