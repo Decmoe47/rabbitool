@@ -1,45 +1,33 @@
 # 以下除非有说明“可选”，否则均为必填
 
+dbPath: "rabbitool.db" # string，目前只支持sqlite3
 redirectUrl: # string，重定向链接用
-userAgent: # string
-inTestEnvironment: false  # （可选）指明当前是测试环境，默认false
-proxy: # （可选）代理
-  http: # http_proxy
-  https:  # https_proxy
 log:
   consoleLevel: "debug" # log输出到控制台的最低级别，可填"verbose", "debug", "info", "warn", "error", "fatal"
   fileLevel: "info" # log输出到文件的最低级别
 
-dbPath: "rabbitool.db" # string，目前只支持sqlite3
-
-bilibili: # （可选）
-  interval: 10	# 尽量不要设太快，因为并不知道b站api的qps是多少
-youtube:  # （可选）
-  apiKey: # string，官方api，参见官方说明
-  interval: 10	# 再快也会受限于rate limiter，大约96秒一次查询
-twitter: # （可选）
-  token: # string，v2 api
-  interval: 10	# 再快也会受限于rate limiter，大约27秒一次查询
-mail:  # （可选）
-  interval: 10	# 尽量不要设太快，因为并不知道你的邮箱的qps是多少
+notifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
+  host: # string
+  port: # int
+  ssl: false # bool
+  userName: # string
+  password: # string
+  from: # string
+  to: # string[]
+  intervalMinutes: 5 # int，重置积攒的重复通知
+  allowedAmount: 25 # int，积攒的重复通知量在规定时间内达到上限后就发送
+oss:  # 阿里云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
+  endpoint: # string
+  accessKeyId: # string
+  accessKeySecret: # string
+  bucketName: # string
 
 qqbot:
   appId: # string
   token: # string
   isSandbox: # bool
   sandboxGuildName: # string
-cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
-  secretId: # string
-  secretKey: # string
-  bucketName: # string
-  region: # string
-notifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
-  host: # string
-  port: # int
-  ssl: false # bool
-  username: # string
-  password: # string
-  from: # string
-  to: # string[]
-  interval: 5 # int，重置积攒的重复通知，单位分钟
-  allowedAmount: 25 # int，积攒的重复通知量在规定时间内达到上限后就发送
+youtube:  # （可选）
+  apiKey: # string，官方api，参见官方说明
+twitter: # （可选）
+  token: # string，v2 api
