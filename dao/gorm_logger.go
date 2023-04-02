@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -44,7 +45,11 @@ func (l *LoggerForGorm) Error(ctx context.Context, s string, v ...any) {
 	}
 
 	if err != nil {
-		log.Error().Stack().Err(err).Msgf("[Gorm] "+s, v...)
+		if strings.Contains(err.Error(), "record not found") {
+			log.Warn().Msgf("[Gorm] "+s, v...)
+		} else {
+			log.Error().Stack().Err(err).Msgf("[Gorm] "+s, v...)
+		}
 	}
 	log.Error().Msgf("[Gorm] "+s, v...)
 }
@@ -63,12 +68,22 @@ func (l *LoggerForGorm) Trace(
 	sql, rows := fc()
 	switch {
 	case err != nil && l.LogLevel >= logger.Error:
-		if rows == -1 {
-			log.Error().Stack().Err(errors.WithStack(err)).Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
+		if strings.Contains(err.Error(), "record not found") {
+			if rows == -1 {
+				log.Error().Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
+			} else {
+				log.Error().Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			}
 		} else {
-			log.Error().Stack().Err(errors.WithStack(err)).Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6,
-				rows,
-				sql)
+			if rows == -1 {
+				log.Error().Stack().Err(errors.WithStack(err)).Msgf(
+					"[Gorm] %f-%s",
+					float64(elapsed.Nanoseconds())/1e6, sql)
+			} else {
+				log.Error().Stack().Err(errors.WithStack(err)).Msgf(
+					"[Gorm] %f-%d %s",
+					float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			}
 		}
 	case elapsed > 200*time.Millisecond && l.LogLevel >= logger.Warn:
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", 200*time.Millisecond)

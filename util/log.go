@@ -98,7 +98,7 @@ type levelWriter struct {
 	level zerolog.Level
 }
 
-func (lw *levelWriter) writeLevel(l zerolog.Level, p []byte) (n int, err error) {
+func (lw *levelWriter) WriteLevel(l zerolog.Level, p []byte) (n int, err error) {
 	if l >= lw.level {
 		return lw.Writer.Write(p)
 	}
