@@ -578,7 +578,7 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		url, err := dynamic.GetString("card", "origin", "short_link")
+		url, err := dynamic.GetString("card", "origin", "short_link_v2")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
