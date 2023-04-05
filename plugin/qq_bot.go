@@ -22,8 +22,5 @@ func (q *QQBotPlugin) init(ctx context.Context, _ *gocron.Scheduler) error {
 }
 
 func (q *QQBotPlugin) run(ctx context.Context) (err error) {
-	go func() {
-		err = q.svc.Run(ctx)
-	}()
-	return
+	return q.svc.Run(ctx)
 }

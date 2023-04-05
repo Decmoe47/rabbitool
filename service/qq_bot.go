@@ -55,13 +55,17 @@ func NewQQBotService(ctx context.Context) (*QQBotService, error) {
 	}, nil
 }
 
-func (q *QQBotService) Run(ctx context.Context) error {
+func (q *QQBotService) Run(ctx context.Context) (err error) {
 	q.registerMessageAuditEvent()
 	intent := event.RegisterHandlers(q.handlers...)
-	err := botgo.NewSessionManager().Start(q.ws, q.token, &intent)
+	go func() {
+		err = botgo.NewSessionManager().Start(q.ws, q.token, &intent)
+	}()
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	time.Sleep(time.Second * 3)
 
 	botId, err := q.getBotId(ctx)
 	if err != nil {

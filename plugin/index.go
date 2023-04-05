@@ -62,9 +62,6 @@ func (p *PluginLoader) Run(ctx context.Context, cancel context.CancelFunc) (errs
 		return errs
 	}
 
-	// 等待qqbot运行后再让其他运行
-	time.Sleep(time.Second * 3)
-
 	p.Sch.StartBlocking()
 	return nil
 }
