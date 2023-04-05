@@ -56,7 +56,7 @@ func NewQQBotService(ctx context.Context) (*QQBotService, error) {
 }
 
 func (q *QQBotService) Run(ctx context.Context) (err error) {
-	q.registerMessageAuditEvent()
+	q.registerMessageAuditEvent(ctx)
 	intent := event.RegisterHandlers(q.handlers...)
 	go func() {
 		err = botgo.NewSessionManager().Start(q.ws, q.token, &intent)
@@ -121,20 +121,23 @@ func (q *QQBotService) RegisterAtMessageEvent(
 	q.handlers = append(q.handlers, handler)
 }
 
-func (q *QQBotService) registerMessageAuditEvent() {
+func (q *QQBotService) registerMessageAuditEvent(ctx context.Context) {
 	var handler event.MessageAuditEventHandler = func(event *dto.WSPayload, data *dto.WSMessageAuditData) error {
+		channel, err := q.GetChannel(ctx, data.ChannelID)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
 		if event.Type == dto.EventMessageAuditPass {
 			log.Info().
 				Str("messageId", data.MessageID).
-				Str("channelId", data.ChannelID).
-				Str("guildId", data.GuildID).
+				Str("channelName", channel.Name).
 				Str("createTime", data.CreateTime).
 				Msgf("Message audit passed.")
 		} else if event.Type == dto.EventMessageAuditReject {
 			log.Info().
 				Str("messageId", data.MessageID).
-				Str("channelId", data.ChannelID).
-				Str("guildId", data.GuildID).
+				Str("channelName", channel.Name).
 				Str("createTime", data.CreateTime).
 				Msgf("Message audit rejected!")
 		}
@@ -244,26 +247,38 @@ func (q *QQBotService) postMessage(
 		return nil, errors.WithStack(err)
 	}
 
+	channel, err := q.GetChannel(ctx, channelId)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	contentJson, err := json.Marshal(content)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	log.Info().
-		Str("channelId", channelId).
+		Str("channelName", channel.Name).
 		RawJSON("content", contentJson).
-		Msgf("Posting public message to the QQ channel %s...", channelId)
+		Msgf("Posting public message to the QQ channel %s...", channel.Name)
 
 	resp, err := q.api.PostMessage(ctx, channelId, content)
 	if e, ok := err.(*qqBotErrs.Err); ok && e.Code() == 202 {
-		log.Warn().Msgf(e.Error())
+		log.Warn().
+			Str("channelName", channel.Name).
+			RawJSON("content", contentJson).
+			Msgf("The message (messageId: %s) is posted to the QQChannel %s and waiting for audit.",
+				resp.ID,
+				channel.Name)
 	} else if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	log.Info().
-		Str("channelId", channelId).
+		Str("channelName", channel.Name).
 		RawJSON("content", contentJson).
-		Msgf("Successfully posted public message to the QQ channel %s.", channelId)
+		Msgf("The message (messageId: %s) is posted to the QQChannel %s.",
+			resp.ID,
+			channel.Name)
 	return resp, nil
 }
 
