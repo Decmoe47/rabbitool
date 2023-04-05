@@ -5,6 +5,7 @@ import (
 	buildInErrors "errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -82,8 +83,13 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) {
 			errs <- b.checkLive(ctx, record)
 		}(record, errsOfLive)
 	}
+
+	wait := false
 	for i := 0; i < len(records); i++ {
 		if err := <-errsOfDynamic; err != nil {
+			if strings.Contains(err.Error(), "-401") {
+				wait = true
+			}
 			log.Error().
 				Stack().Err(err).
 				Str("uname", records[i].Uname).
@@ -91,12 +97,19 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) {
 				Msgf("Failed to push dynamic message!")
 		}
 		if err := <-errsOfLive; err != nil {
+			if strings.Contains(err.Error(), "-401") {
+				wait = true
+			}
 			log.Error().
 				Stack().Err(err).
 				Str("uname", records[i].Uname).
 				Uint("uid", records[i].Uid).
 				Msgf("Failed to push live message!")
 		}
+	}
+
+	if wait {
+		time.Sleep(time.Minute * 10) // 反爬应对
 	}
 }
 
