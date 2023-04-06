@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
@@ -14,18 +15,20 @@ import (
 )
 
 func main() {
-	go func() {
-		err := http.ListenAndServe(":36000", nil)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	err := conf.Load("./configs.yml")
 	if err != nil {
 		panic(err)
+	}
+
+	if conf.R.PprofListenerPort != 0 {
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf(":%d", conf.R.PprofListenerPort), nil)
+			if err != nil {
+				panic(err)
+			}
+		}()
 	}
 
 	err = util.InitLog()
