@@ -32,6 +32,12 @@ func (l *LoggerForQQBot) Debugf(format string, v ...any) {
 }
 
 func (l *LoggerForQQBot) Infof(format string, v ...any) {
+	for _, value := range v {
+		if str, ok := value.(string); ok && strings.Contains(str, "Heartbeat") {
+			log.Debug().Msgf("[QQBot] "+format, v...)
+			return
+		}
+	}
 	log.Info().Msgf("[QQBot] "+format, v...)
 }
 
