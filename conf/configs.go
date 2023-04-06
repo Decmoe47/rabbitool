@@ -11,6 +11,8 @@ type Configs struct {
 	RedirectUrl string `yaml:"redirectUrl"`
 	DbPath      string `yaml:"dbPath"`
 
+	PprofListenerPort int `yaml:"pprofListenerPort,omitempty"`
+
 	Log      *Log      `yaml:"log"`
 	Oss      *Oss      `yaml:"oss"`
 	Notifier *Notifier `yaml:"notifier,omitempty"` // nullable
