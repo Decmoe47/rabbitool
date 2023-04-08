@@ -32,7 +32,7 @@ func NewTwitterService() *TwitterService {
 func (t *TwitterService) GetLatestTweet(ctx context.Context, screenName string) (*dto.Tweet, error) {
 	err := t.tweetApiLimiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	userId, _, err := t.getUserId(ctx, screenName)
@@ -53,24 +53,26 @@ func (t *TwitterService) GetLatestTweet(ctx context.Context, screenName string) 
 		SetPathParam("userId", userId).
 		Get("https://api.twitter.com/2/users/{userId}/tweets")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
+
+	errFields := map[string]any{"body": body}
 
 	tweet, err := body.Get("data", 0)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	id, err := tweet.GetString("id")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	text, err := tweet.GetString("text")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	var (
@@ -86,15 +88,19 @@ func (t *TwitterService) GetLatestTweet(ctx context.Context, screenName string) 
 	if originId, err := tweet.GetString("referenced_tweets", 0, "id"); err == nil {
 		originType, err := tweet.GetString("referenced_tweets", 0, "type")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		switch originType {
 		case "quoted":
 			tweetType = dto.EnumQuote
 		default:
-			return nil, errors.Wrapf(errx.ErrNotSupported, "Unknown origin type %s!\nTweet: %s", originType,
-				tweet.String())
+			return nil, errx.New(
+				errx.ErrTwitterApi,
+				"Unknown origin type %s!\nTweet: %s",
+				originType,
+				tweet.String(),
+			)
 		}
 
 		origin, err := t.getOriginTweet(ctx, originId, body)
@@ -106,17 +112,17 @@ func (t *TwitterService) GetLatestTweet(ctx context.Context, screenName string) 
 
 	pubTimeStr, err := tweet.GetString("created_at")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	pubTime, err := time.Parse("2006-01-02T15:04:05.000Z", pubTimeStr)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	pubTime = pubTime.UTC()
 
 	author, err := body.GetString("includes", "users", 0, "name")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	return &dto.Tweet{
@@ -134,9 +140,11 @@ func (t *TwitterService) GetLatestTweet(ctx context.Context, screenName string) 
 }
 
 func (t *TwitterService) getOriginTweet(ctx context.Context, originId string, body *jv.V) (*dto.Tweet, error) {
+	errFields := map[string]any{"body": body}
+
 	origins, err := body.GetArray("includes", "tweets")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	for _, origin := range origins.ForRangeArr() {
@@ -163,11 +171,11 @@ func (t *TwitterService) getOriginTweet(ctx context.Context, originId string, bo
 
 			pubTimeStr, err := origin.GetString("created_at")
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return nil, errx.WithStack(err, errFields)
 			}
 			pubTime, err := time.Parse("2006-01-02T15:04:05.000Z", pubTimeStr)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return nil, errx.WithStack(err, errFields)
 			}
 			pubTime = pubTime.UTC()
 
@@ -184,34 +192,35 @@ func (t *TwitterService) getOriginTweet(ctx context.Context, originId string, bo
 			}, nil
 		}
 	}
-	return nil, errors.Wrapf(errx.ErrTwitterApi, "Couldn't find the origin tweet!(originId: %s)", originId)
+	return nil, errx.New(errx.ErrTwitterApi, "Couldn't find the origin tweet!(originId: %s)", originId)
 }
 
 func (t *TwitterService) getUserId(ctx context.Context, screenName string) (userId string, name string, err error) {
 	err = t.userApiLimiter.Wait(ctx)
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
 		SetBearerAuthToken(conf.R.Twitter.Token).
 		Get("https://api.twitter.com/2/users/by/username/" + screenName)
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
+	errFields := map[string]any{"body": body}
 
 	id, err := body.GetString("data", "id")
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, errFields)
 	}
 
 	name, err = body.GetString("data", "name")
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, errFields)
 	}
 
 	return id, name, nil
@@ -220,27 +229,28 @@ func (t *TwitterService) getUserId(ctx context.Context, screenName string) (user
 func (t *TwitterService) getUserName(ctx context.Context, userId string) (name string, screenName string, err error) {
 	err = t.userApiLimiter.Wait(ctx)
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
 		SetBearerAuthToken(conf.R.Twitter.Token).
 		Get("https://api.twitter.com/2/users/" + userId)
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
+	errFields := map[string]any{"body": body}
 
 	name, err = body.GetString("data", "name")
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, errFields)
 	}
 	userName, err := body.GetString("data", "username")
 	if err != nil {
-		return "", "", errors.WithStack(err)
+		return "", "", errx.WithStack(err, errFields)
 	}
 
 	return name, userName, nil
@@ -253,6 +263,8 @@ func (t *TwitterService) getMedia(
 	text string,
 	tweetId string,
 ) (string, []string, bool) {
+	errFields := map[string]any{"body": body}
+
 	var (
 		hasVideo bool
 		imgUrls  []string
@@ -264,7 +276,7 @@ func (t *TwitterService) getMedia(
 			continue
 		} else if err != nil {
 			log.Error().
-				Stack().Err(errors.WithStack(err)).
+				Stack().Err(errx.WithStack(err, errFields)).
 				Msgf("Failed to get the medium from twitter user %s", tweetId)
 			continue
 		}
@@ -273,7 +285,7 @@ func (t *TwitterService) getMedia(
 		url, err := medium.GetString("url")
 		if err != nil {
 			log.Error().
-				Stack().Err(errors.WithStack(err)).
+				Stack().Err(errx.WithStack(err, errFields)).
 				Msgf("Failed to get the medium from twitter user %s", tweetId)
 			continue
 		}
@@ -308,9 +320,11 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 	mediaKey string,
 	tweetId string,
 ) (string, error) {
+	errFields := map[string]any{"body": body}
+
 	media, err := body.Get("includes", "media")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, errFields)
 	}
 
 	for _, medium := range media.ForRangeArr() {
@@ -322,7 +336,7 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 			url, err := medium.GetString("url")
 			if err != nil {
 				log.Error().
-					Stack().Err(errors.WithStack(err)).
+					Stack().Err(errx.WithStack(err, errFields)).
 					Msgf("Failed to get the medium from twitter user %s", tweetId)
 				continue
 			}
@@ -332,7 +346,7 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 			previewImgUrl, err := medium.GetString("preview_image_url")
 			if err != nil {
 				log.Error().
-					Stack().Err(errors.WithStack(err)).
+					Stack().Err(errx.WithStack(err, errFields)).
 					Msgf("Failed to get the medium from twitter user %s", tweetId)
 				continue
 			}
@@ -343,7 +357,7 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 
 	err = t.tweetApiLimiter.Wait(ctx)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
@@ -356,16 +370,17 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 		}).
 		Get("https://api.twitter.com/2/tweets/" + tweetId)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, nil)
 	}
 	j, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
+	errFields2 := map[string]any{"body": body}
 
 	imgs, err := j.GetArray("includes", "media")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, errFields2)
 	}
 	img, ok := lo.Find(imgs.ForRangeArr(), func(item *jv.V) bool {
 		if v, err := item.GetString("media_key"); err == nil && v == mediaKey {
@@ -374,12 +389,17 @@ func (t *TwitterService) getImageOrVideoThumbnailUrl(
 		return false
 	})
 	if !ok {
-		return "", errors.Wrapf(errx.ErrTwitterApi, "Failed to get image url from twitter user %s", tweetId)
+		return "", errx.NewWithFields(
+			errx.ErrTwitterApi,
+			"Failed to get image url from twitter user %s",
+			errFields2,
+			tweetId,
+		)
 	}
 
 	url, err := img.GetString("url")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, errFields2)
 	}
 	urlList := strings.Split(url, ".")
 

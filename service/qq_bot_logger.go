@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cockroachdb/errors"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/rs/zerolog/log"
 )
 
@@ -53,7 +53,7 @@ func (l *LoggerForQQBot) Errorf(format string, v ...any) {
 				if ee, ok := e.(fmt.Formatter); ok {
 					err = ee.(error)
 				} else {
-					err = errors.WithStack(e)
+					err = errx.WithStack(err, nil)
 				}
 				break
 			}

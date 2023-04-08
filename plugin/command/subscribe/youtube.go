@@ -5,8 +5,8 @@ import (
 
 	"github.com/Decmoe47/rabbitool/dao"
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/service"
-	"github.com/cockroachdb/errors"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog/log"
 )
@@ -46,7 +46,7 @@ func (y *youtubeSubscribeCommandHandler) checkId(ctx context.Context, channelId 
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL("https://www.youtube.com/feeds/videos.xml?channel_id=" + channelId)
 	if err != nil {
-		log.Warn().Stack().Err(errors.WithStack(err)).Msg(err.Error())
+		log.Warn().Stack().Err(errx.WithStack(err, map[string]any{"channelId": channelId})).Msg(err.Error())
 		return "", "错误：channelId为 " + channelId + " 的用户在油管上不存在！"
 	}
 

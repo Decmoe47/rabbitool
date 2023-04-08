@@ -4,6 +4,7 @@ import (
 	"context"
 
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/util"
 	"github.com/cockroachdb/errors"
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ func NewYoutubeSubscribeDao() *YoutubeSubscribeDao {
 func (y *YoutubeSubscribeDao) GetAll(ctx context.Context) ([]*entity.YoutubeSubscribe, error) {
 	records := []*entity.YoutubeSubscribe{}
 	if err := _db.WithContext(ctx).Preload("QQChannels").Find(&records).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	return records, nil
 }
@@ -29,14 +30,14 @@ func (y *YoutubeSubscribeDao) Get(ctx context.Context, channelId string) (*entit
 	if err := _db.WithContext(ctx).Preload("QQChannels").
 		Where(&entity.YoutubeSubscribe{ChannelId: channelId}).
 		First(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return record, nil
 }
 
-func (y *YoutubeSubscribeDao) Add(ctx context.Context, subscribe *entity.YoutubeSubscribe) error {
-	if err := _db.WithContext(ctx).Create(subscribe).Error; err != nil {
-		return errors.WithStack(err)
+func (y *YoutubeSubscribeDao) Add(ctx context.Context, record *entity.YoutubeSubscribe) error {
+	if err := _db.WithContext(ctx).Create(record).Error; err != nil {
+		return errx.WithStack(err, map[string]any{"channelId": record.ChannelId})
 	}
 	return nil
 }
@@ -51,14 +52,14 @@ func (y *YoutubeSubscribeDao) Delete(
 	}
 
 	if err = _db.WithContext(ctx).Delete(record).Error; err != nil {
-		return nil, err
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return record, nil
 }
 
 func (y *YoutubeSubscribeDao) Update(ctx context.Context, record *entity.YoutubeSubscribe) error {
 	if err := _db.WithContext(ctx).Save(record).Error; err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, map[string]any{"channelId": record.ChannelId})
 	}
 	return nil
 }
@@ -80,7 +81,7 @@ func (y *YoutubeSubscribeConfigDao) GetAll(
 		Preload("Subscribe").
 		Where(&entity.YoutubeSubscribeConfig{Subscribe: &entity.YoutubeSubscribe{ChannelId: channelId}}).
 		Find(&records).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return records, nil
 }
@@ -99,7 +100,7 @@ func (y *YoutubeSubscribeConfigDao) Get(
 			QQChannel: &entity.QQChannelSubscribe{ChannelId: qqChannelId},
 		}).
 		First(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return record, nil
 }
@@ -125,7 +126,7 @@ func (y *YoutubeSubscribeConfigDao) CreateOrUpdate(
 	}
 
 	if err := _db.WithContext(ctx).Save(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": subscribe.ChannelId})
 	}
 	return record, nil
 }
@@ -141,7 +142,7 @@ func (y *YoutubeSubscribeConfigDao) Delete(
 	}
 
 	if err = _db.WithContext(ctx).Delete(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return record, nil
 }

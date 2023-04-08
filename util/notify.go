@@ -6,7 +6,6 @@ import (
 
 	"github.com/Decmoe47/rabbitool/conf"
 	"github.com/Decmoe47/rabbitool/errx"
-	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	mail "github.com/xhit/go-simple-mail/v2"
@@ -38,7 +37,7 @@ func newErrorNotifier() (*errorNotifier, error) {
 
 	client, err := server.Connect()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	errNotifier := &errorNotifier{client: client, level: zerolog.ErrorLevel}
@@ -56,18 +55,20 @@ func (e *errorNotifier) checkAndSend(text string) error {
 }
 
 func (e *errorNotifier) send(text string) error {
+	errFields := map[string]any{"text": text}
+
 	email := mail.NewMSG()
 	email.SetFrom(conf.R.Notifier.From).
 		AddTo(conf.R.Notifier.To...).
 		SetSubject("Error occurred from rabbitool on "+time.Now().UTC().In(CST()).Format("2006-01-02 15:04:05 MST")).
 		SetBody(mail.TextPlain, text)
 	if email.Error != nil {
-		return errors.WithStack(email.Error)
+		return errx.WithStack(email.Error, errFields)
 	}
 
 	err := email.Send(e.client)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, errFields)
 	}
 	return nil
 }

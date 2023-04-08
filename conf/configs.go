@@ -3,7 +3,7 @@ package conf
 import (
 	"os"
 
-	"github.com/cockroachdb/errors"
+	"github.com/Decmoe47/rabbitool/errx"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,12 +27,12 @@ var R *Configs
 func Load(path string) error {
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	err = yaml.Unmarshal(file, &R)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	return nil

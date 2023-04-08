@@ -16,7 +16,6 @@ import (
 	"github.com/Decmoe47/rabbitool/event"
 	"github.com/Decmoe47/rabbitool/service"
 	"github.com/Decmoe47/rabbitool/util"
-	"github.com/cockroachdb/errors"
 	"github.com/go-co-op/gocron"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -221,7 +220,7 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 			richText := service.TextToRichText(text)
 			richTextJson, err := json.Marshal(richText)
 			if err != nil {
-				return errors.WithStack(err)
+				return errx.WithStack(err, map[string]any{"address": record.Address})
 			}
 
 			go func(channel *entity.QQChannelSubscribe, errs chan error) {

@@ -2,7 +2,7 @@ package dao
 
 import (
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
-	"github.com/cockroachdb/errors"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -16,7 +16,7 @@ func InitDb(dbPath string) error {
 		Logger: &LoggerForGorm{LogLevel: logger.Warn},
 	})
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	schema.RegisterSerializer("StrSliceToJson", &StrSliceToJson{})
@@ -33,7 +33,7 @@ func InitDb(dbPath string) error {
 		&entity.MailSubscribeConfig{},
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	_db = db

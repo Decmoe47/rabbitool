@@ -2,11 +2,41 @@ package errx
 
 import (
 	"fmt"
+	"io"
 	"runtime"
 
-	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 )
+
+type ErrPanic struct {
+	Msg   string
+	Stack string
+}
+
+func NewErrPanic(msg string) *ErrPanic {
+	var buf [4096]byte
+	n := runtime.Stack(buf[:], false)
+	stack := string(buf[:n])
+
+	return &ErrPanic{Msg: msg, Stack: stack}
+}
+
+func (e *ErrPanic) Error() string { return e.Msg }
+
+func (e *ErrPanic) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, fmt.Sprintf("%s\n%s", e.Msg, e.Stack))
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Msg)
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Msg)
+	}
+}
 
 func Recover(returnErr *error) {
 	err := recover()
@@ -14,21 +44,17 @@ func Recover(returnErr *error) {
 		return
 	}
 
-	var buf [4096]byte
-	n := runtime.Stack(buf[:], false)
-	stack := string(buf[:n])
-
 	switch e := err.(type) {
 	case string:
-		*returnErr = NewErrPanic(e, stack)
+		*returnErr = NewErrPanic(e)
 	case error:
 		if _, ok := e.(fmt.Formatter); ok {
-			*returnErr = errors.WithStack(e)
+			*returnErr = WithStack(e, nil)
 		} else {
-			*returnErr = NewErrPanic(e.Error(), stack)
+			*returnErr = NewErrPanic(e.Error())
 		}
 	default:
-		*returnErr = NewErrPanic(fmt.Sprintf("%v", e), stack)
+		*returnErr = NewErrPanic(fmt.Sprintf("%v", e))
 	}
 }
 
@@ -38,22 +64,18 @@ func RecoverAndLog() {
 		return
 	}
 
-	var buf [4096]byte
-	n := runtime.Stack(buf[:], false)
-	stack := string(buf[:n])
-
 	switch e := err.(type) {
 	case string:
-		log.Error().Stack().Err(NewErrPanic(e, stack)).Msgf(e)
+		log.Error().Stack().Err(NewErrPanic(e)).Msgf(e)
 	case error:
 		if _, ok := e.(fmt.Formatter); ok {
-			log.Error().Stack().Err(errors.WithStack(e)).Msgf(e.Error())
+			log.Error().Stack().Err(WithStack(e, nil)).Msgf(e.Error())
 		} else {
-			e = NewErrPanic(e.Error(), stack)
+			e = NewErrPanic(e.Error())
 			log.Error().Stack().Err(e).Msgf(e.Error())
 		}
 	default:
-		ee := NewErrPanic(fmt.Sprintf("%v", e), stack)
+		ee := NewErrPanic(fmt.Sprintf("%v", e))
 		log.Error().Stack().Err(ee).Msgf(ee.Error())
 	}
 }

@@ -12,7 +12,6 @@ import (
 	forumDto "github.com/Decmoe47/rabbitool/dto/qqbot/forum"
 	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/util"
-	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"github.com/tencent-connect/botgo"
@@ -43,7 +42,7 @@ func NewQQBotService(ctx context.Context) (*QQBotService, error) {
 	api := botgo.NewOpenAPI(botToken).WithTimeout(3 * time.Second)
 	ws, err := api.WS(ctx, nil, "")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	return &QQBotService{
@@ -62,20 +61,20 @@ func (q *QQBotService) Run(ctx context.Context) (err error) {
 		err = botgo.NewSessionManager().Start(q.ws, q.token, &intent)
 	}()
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	time.Sleep(time.Second * 3)
 
 	botId, err := q.getBotId(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	q.botId = botId
 
 	sandboxGuild, err := q.GetGuildByName(ctx, conf.R.QQBot.SandboxGuildName)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	q.sandboxGuildId = sandboxGuild.ID
 
@@ -113,7 +112,7 @@ func (q *QQBotService) RegisterAtMessageEvent(
 			},
 		})
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		return nil
@@ -125,7 +124,7 @@ func (q *QQBotService) registerMessageAuditEvent(ctx context.Context) {
 	var handler event.MessageAuditEventHandler = func(event *dto.WSPayload, data *dto.WSMessageAuditData) error {
 		channel, err := q.GetChannel(ctx, data.ChannelID)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		if event.Type == dto.EventMessageAuditPass {
@@ -150,7 +149,7 @@ func (q *QQBotService) registerMessageAuditEvent(ctx context.Context) {
 func (q *QQBotService) getBotId(ctx context.Context) (string, error) {
 	bot, err := q.api.Me(ctx)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, nil)
 	}
 	return bot.ID, nil
 }
@@ -158,11 +157,12 @@ func (q *QQBotService) getBotId(ctx context.Context) (string, error) {
 func (q *QQBotService) GetAllGuilds(ctx context.Context) ([]*dto.Guild, error) {
 	err := q.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
+
 	guilds, err := q.api.MeGuilds(ctx, &dto.GuildPager{})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	return guilds, nil
 }
@@ -176,7 +176,7 @@ func (q *QQBotService) GetGuild(ctx context.Context, guildId string) (*dto.Guild
 		return item.ID == guildId
 	})
 	if !ok {
-		return nil, errors.Wrapf(errx.ErrQQBotApi, `Failed to get the guild by the id "%s"`, guildId)
+		return nil, errx.New(errx.ErrQQBotApi, `Failed to get the guild by the id "%s"`, guildId)
 	}
 	return guild, nil
 }
@@ -190,7 +190,7 @@ func (q *QQBotService) GetGuildByName(ctx context.Context, name string) (*dto.Gu
 		return item.Name == name
 	})
 	if !ok {
-		return nil, errors.Wrapf(errx.ErrQQBotApi, `Failed to get the guild by the name "%s"`, name)
+		return nil, errx.New(errx.ErrQQBotApi, `Failed to get the guild by the name "%s"`, name)
 	}
 	return guild, nil
 }
@@ -198,11 +198,12 @@ func (q *QQBotService) GetGuildByName(ctx context.Context, name string) (*dto.Gu
 func (q *QQBotService) GetAllChannels(ctx context.Context, guildId string) ([]*dto.Channel, error) {
 	err := q.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"guildId": guildId})
 	}
+
 	channels, err := q.api.Channels(ctx, guildId)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"guildId": guildId})
 	}
 	return channels, nil
 }
@@ -210,11 +211,11 @@ func (q *QQBotService) GetAllChannels(ctx context.Context, guildId string) ([]*d
 func (q *QQBotService) GetChannel(ctx context.Context, channelId string) (*dto.Channel, error) {
 	err := q.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	channel, err := q.api.Channel(ctx, channelId)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"channelId": channelId})
 	}
 	return channel, nil
 }
@@ -228,7 +229,7 @@ func (q *QQBotService) GetChannelByName(ctx context.Context, name string, guildI
 		return item.Name == name
 	})
 	if !ok {
-		return nil, errors.Wrapf(errx.ErrQQBotApi, `Failed to get the channel by the name "%s"`, name)
+		return nil, errx.New(errx.ErrQQBotApi, `Failed to get the channel by the name "%s"`, name)
 	}
 	return channel, nil
 }
@@ -244,17 +245,19 @@ func (q *QQBotService) postMessage(
 
 	err := q.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
+
+	errFields := map[string]any{"channelId": channelId, "content": content}
 
 	channel, err := q.GetChannel(ctx, channelId)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	contentJson, err := json.Marshal(content)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	log.Info().
 		Str("channelName", channel.Name).
@@ -269,7 +272,7 @@ func (q *QQBotService) postMessage(
 			Msgf("The message is posted to the QQChannel %s and waiting for audit.", channel.Name)
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	log.Info().
@@ -332,7 +335,7 @@ func (q *QQBotService) PushCommonMessage(
 func (q *QQBotService) PostThread(ctx context.Context, channelId, title, json string) error {
 	err := q.limiter.Wait(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	log.Info().
@@ -346,7 +349,7 @@ func (q *QQBotService) PostThread(ctx context.Context, channelId, title, json st
 		"format":  4,
 	})
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, map[string]any{"channelId": channelId, "title": title, "json": json})
 	}
 
 	log.Info().
@@ -429,7 +432,7 @@ func ImagesToParagraphs(urls []string, uploader *UploaderService) ([]*forumDto.P
 	for _, url := range urls {
 		uploadedUrl, err := uploader.UploadImage(url)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, err
 		}
 
 		imgElems = append(imgElems, &forumDto.Elem{
@@ -452,7 +455,7 @@ func VideoToParagraphs(url string, pubTime *time.Time, uploader *UploaderService
 ) {
 	url, err := uploader.UploadVideo(url, pubTime)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return []*forumDto.Paragraph{

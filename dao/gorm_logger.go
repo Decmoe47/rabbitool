@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cockroachdb/errors"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm/logger"
 )
@@ -39,7 +39,7 @@ func (l *LoggerForGorm) Error(ctx context.Context, s string, v ...any) {
 	var err error
 	for _, value := range v {
 		if e, ok := value.(error); ok {
-			err = errors.WithStack(e)
+			err = errx.WithStack(e, nil)
 			break
 		}
 	}
@@ -76,11 +76,11 @@ func (l *LoggerForGorm) Trace(
 			}
 		} else {
 			if rows == -1 {
-				log.Error().Stack().Err(errors.WithStack(err)).Msgf(
+				log.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
 					"[Gorm] %f-%s",
 					float64(elapsed.Nanoseconds())/1e6, sql)
 			} else {
-				log.Error().Stack().Err(errors.WithStack(err)).Msgf(
+				log.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
 					"[Gorm] %f-%d %s",
 					float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}

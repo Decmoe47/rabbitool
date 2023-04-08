@@ -15,7 +15,6 @@ import (
 	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/service"
 	"github.com/Decmoe47/rabbitool/util"
-	"github.com/cockroachdb/errors"
 	"github.com/go-co-op/gocron"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -206,7 +205,7 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 			}
 			j, err := json.Marshal(richText)
 			if err != nil {
-				return errors.WithStack(err)
+				return errx.WithStack(err, map[string]any{"screenName": record.ScreenName})
 			}
 
 			go func(channel *entity.QQChannelSubscribe, errs chan error) {
@@ -273,7 +272,7 @@ func (t *TwitterPlugin) tweetToStr(tweet *dto.Tweet) (title string, text string,
 			addRedirectToUrls(tweet.Origin.Url),
 		)
 	} else {
-		return "", "", errors.Wrapf(errx.ErrNotSupported, "Not Supported tweet type %s", tweet.Type)
+		return "", "", errx.New(errx.ErrNotSupported, "Not Supported tweet type %s", tweet.Type)
 	}
 
 	if tweet.HasVideo || (tweet.Origin != nil && tweet.Origin.HasVideo) {

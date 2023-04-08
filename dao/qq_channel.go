@@ -4,6 +4,7 @@ import (
 	"context"
 
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/cockroachdb/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -25,7 +26,7 @@ func (q *QQChannelSubscribeDao) GetAll(
 		Preload(clause.Associations).
 		Where(&entity.QQChannelSubscribe{GuildId: guildId}).
 		Find(&records).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"guildId": guildId})
 	}
 	return records, nil
 }
@@ -41,7 +42,7 @@ func (q *QQChannelSubscribeDao) Get(
 		Preload(string(example.PropName())).
 		Where(&entity.QQChannelSubscribe{GuildId: guildId, ChannelId: channelId}).
 		First(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"guildId": guildId, "channelId": channelId})
 	}
 	return record, nil
 }
@@ -52,7 +53,12 @@ func (q *QQChannelSubscribeDao) Create(
 ) (*entity.QQChannelSubscribe, error) {
 	record := entity.NewQQChannelSubscribe(guildId, guildName, channelId, channelName)
 	if err := _db.WithContext(ctx).Create(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{
+			"guildId":     guildId,
+			"guildName":   guildName,
+			"channelId":   channelId,
+			"channelName": channelName,
+		})
 	}
 	return record, nil
 }
@@ -95,10 +101,24 @@ func (q *QQChannelSubscribeDao) AddSubscribe(
 	}
 
 	if err = _db.WithContext(ctx).Save(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{
+			"guildId":       guildId,
+			"guildName":     guildName,
+			"channelId":     channelId,
+			"channelName":   channelName,
+			"subscribeId":   subscribe.GetId(),
+			"subscribeType": subscribe.PropName(),
+		})
 	}
 	if err = _db.WithContext(ctx).Save(subscribe).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{
+			"guildId":       guildId,
+			"guildName":     guildName,
+			"channelId":     channelId,
+			"channelName":   channelName,
+			"subscribeId":   subscribe.GetId(),
+			"subscribeType": subscribe.PropName(),
+		})
 	}
 
 	return record, nil
@@ -120,17 +140,27 @@ func (q *QQChannelSubscribeDao) RemoveSubscribe(
 	subscribe.RemoveQQChannel(channelId)
 
 	if err := _db.WithContext(ctx).Save(record).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{
+			"guildId":       guildId,
+			"channelId":     channelId,
+			"subscribeId":   subscribe.GetId(),
+			"subscribeType": subscribe.PropName(),
+		})
 	}
 	if err = _db.WithContext(ctx).Save(subscribe).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{
+			"guildId":       guildId,
+			"channelId":     channelId,
+			"subscribeId":   subscribe.GetId(),
+			"subscribeType": subscribe.PropName(),
+		})
 	}
 	return record, nil
 }
 
 func (q *QQChannelSubscribeDao) Delete(ctx context.Context, record *entity.QQChannelSubscribe) error {
 	if err := _db.WithContext(ctx).Delete(record).Error; err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, map[string]any{"channelId": record.ChannelId, "channelName": record.ChannelName})
 	}
 	return nil
 }

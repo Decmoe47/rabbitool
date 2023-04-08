@@ -58,21 +58,21 @@ func (b *bilibiliSubscribeCommandHandler) checkId(ctx context.Context, uid strin
 		SetHeader("User-Agent", ua.Random()).
 		Get("https://api.bilibili.com/x/space/acc/info")
 	if err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Msg(err.Error())
+		log.Error().Stack().Err(errx.WithStack(err, map[string]any{"uid": uid})).Msg(err.Error())
 		return "", "内部错误！"
 	}
 
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Msg(err.Error())
+		log.Error().Stack().Err(errx.WithStack(err, map[string]any{"uid": uid})).Msg(err.Error())
 		return "", "内部错误！"
 	}
 
 	if code, err := body.GetInt("code"); err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Msg(err.Error())
+		log.Error().Stack().Err(errx.WithStack(err, map[string]any{"uid": uid})).Msg(err.Error())
 		return "", "内部错误！"
 	} else if code != 0 {
-		err = errors.Wrapf(errx.ErrBilibiliApi, "Failed to get bilibili user(uid: %s)'s info!", uid)
+		err = errx.New(errx.ErrBilibiliApi, "Failed to get bilibili user(uid: %s)'s info!", uid)
 		log.Error().Stack().Err(err).Msg(err.Error())
 		return "", "内部错误！"
 	}
@@ -81,7 +81,7 @@ func (b *bilibiliSubscribeCommandHandler) checkId(ctx context.Context, uid strin
 	if errors.Is(err, jv.ErrNotFound) {
 		return "", "错误：uid为 " + uid + " 的用户在b站上不存在!"
 	} else if err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Msg(err.Error())
+		log.Error().Stack().Err(errx.WithStack(err, map[string]any{"uid": uid})).Msg(err.Error())
 		return "", "内部错误！"
 	} else if name == "" {
 		return "", "错误：uid为 " + uid + " 的用户在b站上不存在!"

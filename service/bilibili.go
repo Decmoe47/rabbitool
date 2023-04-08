@@ -32,7 +32,7 @@ func (b *BilibiliService) RefreshCookies(ctx context.Context) error {
 		SetHeader("User-Agent", ua.Random()).
 		Get("https://bilibili.com")
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, nil)
 	}
 
 	req.Client.SetCommonCookies(resp.Cookies()...)
@@ -42,7 +42,7 @@ func (b *BilibiliService) RefreshCookies(ctx context.Context) error {
 func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, error) {
 	err := b.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
@@ -51,30 +51,36 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 		SetQueryParam("mid", strconv.FormatUint(uint64(uid), 10)).
 		Get("https://api.bilibili.com/x/space/acc/info")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
 
+	errFields := map[string]any{"body": body}
+
 	if code, err := body.GetInt("code"); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	} else if code != 0 {
-		return nil, errors.Wrapf(
+		return nil, errx.NewWithFields(
 			errx.ErrBilibiliApi,
-			"Failed to get the info from the bilibili user(uid: %d)!\nCode: %d\nBody: %s",
-			code, code, body.String(),
+			"Failed to get the info from the bilibili user(uid: %d)!",
+			map[string]any{
+				"code": code,
+				"body": body,
+			},
+			code,
 		)
 	}
 
 	uname, err := body.GetString("data", "name")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	roomId, err := body.GetUint("data", "live_room", "roomid")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	resp2, err := req.Client.R().
@@ -83,26 +89,32 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 		SetQueryParam("room_id", strconv.FormatUint(uint64(roomId), 10)).
 		Get("https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	body2, err := jv.UnmarshalString(resp2.String())
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"body": resp2.String()})
 	}
 
+	errFields2 := map[string]any{"body": body2}
+
 	if code, err := body2.GetInt("code"); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields2)
 	} else if code != 0 {
-		return nil, errors.Wrapf(
+		return nil, errx.NewWithFields(
 			errx.ErrBilibiliApi,
-			"Failed to get the info from the bilibili user(uid: %d)!\nCode: %d\nBody: %s",
-			code, code, body.String(),
+			"Failed to get the info from the bilibili user(uid: %d)!",
+			map[string]any{
+				"code": code,
+				"body": body,
+			},
+			code,
 		)
 	}
 
 	liveStatus, err := body2.GetInt("data", "room_info", "live_status")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields2)
 	}
 
 	switch liveStatus {
@@ -123,11 +135,11 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 	case int(dto.EnumStreaming):
 		title, err := body2.GetString("data", "room_info", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields2)
 		}
 		coverUrl, err := body2.GetString("data", "room_info", "cover")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields2)
 		}
 		liveStartTime := time.Now().In(util.CST())
 
@@ -141,8 +153,8 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 			CoverUrl:      coverUrl,
 		}, nil
 	default:
-		return nil, errors.Wrapf(
-			errx.ErrNotSupported,
+		return nil, errx.New(
+			errx.ErrBilibiliApi,
 			"Unknown live status %s from the bilibili user %s(uid: %d)",
 			liveStatus, uname, uid,
 		)
@@ -158,7 +170,7 @@ func (b *BilibiliService) GetLatestDynamic(ctx context.Context, uid uint, offset
 ) {
 	err := b.limiter.Wait(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
@@ -171,38 +183,51 @@ func (b *BilibiliService) GetLatestDynamic(ctx context.Context, uid uint, offset
 		}).
 		Get("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
 
+	errFields := map[string]any{"body": body}
+
 	if code, err := body.GetInt("code"); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	} else if code != 0 {
-		return nil, errors.Wrapf(
+		return nil, errx.NewWithFields(
 			errx.ErrBilibiliApi,
-			"Failed to get the info from the bilibili user(uid: %d)!\nCode: %d\nBody: %s",
-			uid, code, body.String(),
+			"Failed to get the info from the bilibili user(uid: %d)!",
+			map[string]any{
+				"code": code,
+				"body": body,
+			},
+			uid,
 		)
 	}
 
 	firstDynamic, err := body.Get("data", "cards", 0)
 	if errors.Is(err, jv.ErrNotFound) {
-		return nil, err
+		return nil, errx.NewWithFields(
+			errx.ErrBilibiliApi,
+			"The bilibili user (uid: %d) hasn't any dynamic yet!",
+			errFields,
+			uid,
+		)
 	} else if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
+
+	errFields2 := map[string]any{"dynamic": firstDynamic}
 
 	err = b.unmarshalCard(firstDynamic)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "Failed to unmarshal the card for uid: %d", uid)
+		return nil, err
 	}
 
 	dynamicTypeInt, err := firstDynamic.GetInt("desc", "type")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields2)
 	}
 	dynamicType := dto.DynamicTypeEnum(dynamicTypeInt)
 
@@ -216,61 +241,64 @@ func (b *BilibiliService) GetLatestDynamic(ctx context.Context, uid uint, offset
 	case dto.EnumForward:
 		return b.toForwardDynamic(ctx, firstDynamic)
 	default:
-		return nil, errors.Wrapf(
-			errx.ErrNotSupported,
-			"Not supported dynamic type %d\\nDynamic: %s",
-			dynamicType, firstDynamic.String(),
+		return nil, errx.NewWithFields(
+			errx.ErrBilibiliApi,
+			"Not supported dynamic type %d from uid %d",
+			map[string]any{"dynamicType": firstDynamic.String()},
+			dynamicType, uid,
 		)
 	}
 }
 
 func (b *BilibiliService) unmarshalCard(dynamic *jv.V) error {
+	errFields := map[string]any{"dynamic": dynamic}
+
 	cardStr, err := dynamic.GetString("card")
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, errFields)
 	}
 
 	card, err := jv.UnmarshalString(cardStr)
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, errFields)
 	}
 
 	if originStr, err := card.GetString("origin"); err == nil {
 		origin, err := jv.UnmarshalString(originStr)
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 		_, err = card.Set(origin).At("origin")
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 	}
 
 	if originExtendJsonStr, err := card.GetString("origin_extend_json"); err == nil {
 		originExtendJson, err := jv.UnmarshalString(originExtendJsonStr)
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 		_, err = card.Set(originExtendJson).At("origin_extend_json")
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 	}
 
 	if ctrlStr, err := card.GetString("ctrl"); err == nil {
 		ctrl, err := jv.UnmarshalString(ctrlStr)
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 		_, err = card.Set(ctrl).At("ctrl")
 		if err != nil {
-			return errors.WithStack(err)
+			return errx.WithStack(err, errFields)
 		}
 	}
 
 	_, err = dynamic.Set(card).At("card")
 	if err != nil {
-		return errors.WithStack(err)
+		return errx.WithStack(err, errFields)
 	}
 
 	return nil
@@ -293,10 +321,12 @@ func (b *BilibiliService) getBaseDynamic(
 		err               error
 	)
 
+	errFields := map[string]any{"dynamic": dynamic}
+
 	if origin {
 		uid, err = dynamic.GetUint("desc", "origin", "uid")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		uname, err = b.getUname(ctx, uid)
 		if err != nil {
@@ -304,29 +334,29 @@ func (b *BilibiliService) getBaseDynamic(
 		}
 		dynamicId, err = dynamic.GetString("desc", "origin", "dynamic_id_str")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		dynamicUploadTimeStamp, err := dynamic.GetInt64("desc", "origin", "timestamp")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		dynamicUploadTime = time.Unix(dynamicUploadTimeStamp, 0).UTC()
 	} else {
 		uid, err = dynamic.GetUint("desc", "uid")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		uname, err = dynamic.GetString("desc", "user_profile", "info", "uname")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		dynamicId, err = dynamic.GetString("desc", "dynamic_id_str")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		dynamicUploadTimeStamp, err := dynamic.GetInt64("desc", "timestamp")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		dynamicUploadTime = time.Unix(dynamicUploadTimeStamp, 0).UTC()
 	}
@@ -344,7 +374,7 @@ func (b *BilibiliService) getBaseDynamic(
 func (b *BilibiliService) getUname(ctx context.Context, uid uint) (string, error) {
 	err := b.limiter.Wait(ctx)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, nil)
 	}
 
 	resp, err := req.Client.R().
@@ -353,26 +383,32 @@ func (b *BilibiliService) getUname(ctx context.Context, uid uint) (string, error
 		SetQueryParam("mid", strconv.FormatUint(uint64(uid), 10)).
 		Get("https://api.bilibili.com/x/space/acc/info")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, nil)
 	}
 	body, err := jv.UnmarshalString(resp.String())
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
 
+	errFields := map[string]any{"body": body}
+
 	if code, err := body.GetInt("code"); err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, errFields)
 	} else if code != 0 {
-		return "", errors.Wrapf(
+		return "", errx.NewWithFields(
 			errx.ErrBilibiliApi,
-			"Failed to get the uname of uid %d\nCode: %d\nBody: %s",
-			uid, code, body.String(),
+			"Failed to get the uname of uid %d",
+			map[string]any{
+				"code": code,
+				"body": body,
+			},
+			uid,
 		)
 	}
 
 	uname, err := body.GetString("data", "name")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errx.WithStack(err, errFields)
 	}
 	return uname, nil
 }
@@ -391,14 +427,15 @@ func (b *BilibiliService) toCommonDynamic(ctx context.Context, dynamic *jv.V) (*
 	if err != nil {
 		return nil, err
 	}
+
+	errFields := map[string]any{"dynamic": dynamic}
+
 	text, err := dynamic.GetString("card", "item", "description")
 	if errors.Is(err, jv.ErrNotFound) {
 		text, err = dynamic.GetString("card", "item", "content")
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-	} else if err != nil {
-		return nil, errors.WithStack(err)
+	}
+	if err != nil {
+		return nil, errx.WithStack(err, errFields)
 	}
 	reserve, err := b.getReserve(dynamic)
 	if err != nil {
@@ -414,17 +451,19 @@ func (b *BilibiliService) toCommonDynamic(ctx context.Context, dynamic *jv.V) (*
 }
 
 func (b *BilibiliService) getReserve(dynamic *jv.V) (*dto.Reserve, error) {
+	errFields := map[string]any{"dynamic": dynamic}
+
 	if addOnCardInfo, err := dynamic.GetInt("display", "add_on_card_info", 0,
 		"add_on_card_show_type"); err == nil && addOnCardInfo == 6 {
 		title, err := dynamic.GetString("display", "origin", "add_on_card_info", 0, "reserve_attach_card", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		liveStartTimeStamp, err := dynamic.GetInt64("display", "origin", "add_on_card_info", 0, "reserve_attach_card",
 			"livePlanStartTime")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		liveStartTime := time.Unix(liveStartTimeStamp, 0).UTC()
 
@@ -436,13 +475,13 @@ func (b *BilibiliService) getReserve(dynamic *jv.V) (*dto.Reserve, error) {
 		"add_on_card_show_type"); err == nil && addOnCardShowType == 6 {
 		title, err := dynamic.GetString("display", "add_on_card_info", 0, "reserve_attach_card", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		liveStartTimeStamp, err := dynamic.GetInt64("display", "add_on_card_info", 0, "reserve_attach_card",
 			"livePlanStartTime")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		liveStartTime := time.Unix(liveStartTimeStamp, 0).UTC()
 
@@ -456,21 +495,23 @@ func (b *BilibiliService) getReserve(dynamic *jv.V) (*dto.Reserve, error) {
 }
 
 func (b *BilibiliService) toVideoDynamic(ctx context.Context, dynamic *jv.V) (*dto.VideoDynamic, error) {
+	errFields := map[string]any{"dynamic": dynamic}
+
 	base, err := b.getBaseDynamic(ctx, dynamic, dto.EnumVideo, false)
 	if err != nil {
 		return nil, err
 	}
 	title, err := dynamic.GetString("card", "title")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	thumbnailUrl, err := dynamic.GetString("card", "pic")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	url, err := dynamic.GetString("card", "short_link")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	return &dto.VideoDynamic{
@@ -482,21 +523,23 @@ func (b *BilibiliService) toVideoDynamic(ctx context.Context, dynamic *jv.V) (*d
 }
 
 func (b *BilibiliService) toArticleDynamic(ctx context.Context, dynamic *jv.V) (*dto.ArticleDynamic, error) {
+	errFields := map[string]any{"dynamic": dynamic}
+
 	base, err := b.getBaseDynamic(ctx, dynamic, dto.EnumArticle, false)
 	if err != nil {
 		return nil, err
 	}
 	title, err := dynamic.GetString("card", "title")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	thumbnailUrl, err := dynamic.GetString("card", "image_urls", 0)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	articleId, err := dynamic.GetString("card", "id")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 
 	return &dto.ArticleDynamic{
@@ -508,9 +551,11 @@ func (b *BilibiliService) toArticleDynamic(ctx context.Context, dynamic *jv.V) (
 }
 
 func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (*dto.ForwardDynamic, error) {
+	errFields := map[string]any{"dynamic": dynamic}
+
 	dynamicText, err := dynamic.GetString("card", "item", "content")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	dynamicType := lo.Ternary(b.isPureForwardDynamic(dynamicText), dto.EnumPureForward, dto.EnumForward)
 	base, err := b.getBaseDynamic(ctx, dynamic, dynamicType, false)
@@ -530,7 +575,7 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 
 	originDynamicTypeInt, err := dynamic.GetInt("desc", "origin", "type")
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, errFields)
 	}
 	originDynamicType := dto.DynamicTypeEnum(originDynamicTypeInt)
 	originBase, err := b.getBaseDynamic(ctx, dynamic, originDynamicType, true)
@@ -552,11 +597,9 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 		text, err := dynamic.GetString("card", "origin", "item", "description")
 		if errors.Is(err, jv.ErrNotFound) {
 			text, err = dynamic.GetString("card", "origin", "item", "content")
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
-		} else if err != nil {
-			return nil, errors.WithStack(err)
+		}
+		if err != nil {
+			return nil, errx.WithStack(err, errFields)
 		}
 		reserve, err := b.getReserve(dynamic)
 		if err != nil {
@@ -572,15 +615,15 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 	case dto.EnumVideo:
 		title, err := dynamic.GetString("card", "origin", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		thumbnailUrl, err := dynamic.GetString("card", "origin", "pic")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		url, err := dynamic.GetString("card", "origin", "short_link_v2")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		origin = &dto.VideoDynamic{
@@ -592,15 +635,15 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 	case dto.EnumArticle:
 		title, err := dynamic.GetString("card", "origin", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		thumbnailUrl, err := dynamic.GetString("card", "origin", "origin_image_urls", 0)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		articleId, err := dynamic.GetString("card", "origin", "id")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		origin = &dto.ArticleDynamic{
@@ -612,22 +655,22 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 	case dto.EnumLiveCard:
 		roomId, err := dynamic.GetUint("card", "origin", "roomid")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		liveStatusInt, err := dynamic.GetInt("card", "origin", "live_status")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		liveStatus := dto.LiveStatusEnum(liveStatusInt)
 		liveStartTimestamp, err := dynamic.GetInt64("card", "origin", "first_live_time")
 		liveStartTime := time.Unix(liveStartTimestamp, 0).UTC()
 		title, err := dynamic.GetString("card", "origin", "title")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 		coverUrl, err := dynamic.GetString("card", "origin", "cover")
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errx.WithStack(err, errFields)
 		}
 
 		origin = &dto.LiveCardDynamic{
@@ -639,8 +682,8 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 			CoverUrl:      coverUrl,
 		}
 	default:
-		return nil, errors.Wrapf(
-			errx.ErrNotSupported,
+		return nil, errx.New(
+			errx.ErrBilibiliApi,
 			"Not supported origin dynamic type %d for origin dynamic from the bilibili user (uid: %d)!",
 			dynamicType, originBase.Uid,
 		)

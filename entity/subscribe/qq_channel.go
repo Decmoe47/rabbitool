@@ -1,10 +1,10 @@
 package subscribe
 
 import (
-	"github.com/Decmoe47/rabbitool/errx"
+	"fmt"
+
 	"github.com/samber/lo"
 
-	"github.com/cockroachdb/errors"
 	"gorm.io/gorm"
 )
 
@@ -52,7 +52,7 @@ func GetSubscribes[T ISubscribe](channel *QQChannelSubscribe) []T {
 	case *MailSubscribe:
 		return any(channel.MailSubscribes).([]T)
 	default:
-		panic(errors.Wrapf(errx.ErrNotSupported, "Type of %T is not supported!", example))
+		panic(fmt.Sprintf("Type of %T is not supported!", example))
 	}
 }
 

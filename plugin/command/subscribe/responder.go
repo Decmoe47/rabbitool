@@ -2,6 +2,7 @@ package subscribe
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/Decmoe47/rabbitool/dto"
 	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/service"
-	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	qqBotDto "github.com/tencent-connect/botgo/dto"
@@ -84,7 +84,7 @@ func respondToSubscribeCommand(
 	cmdType subscribeCommandTypeEnum,
 ) (string, error) {
 	if qbSvc == nil {
-		return "", errors.Wrap(
+		return "", errx.New(
 			errx.ErrUnInitialized,
 			"You must initialize SubscribeCommandResponder first by SubscribeCommandResponder.setting()!",
 		)
@@ -219,6 +219,6 @@ func getSubscribeCommandHandler(platform string) iSubscribeCommandHandler {
 			dao.NewMailSubscribeConfigDao(),
 		)
 	default:
-		panic(errors.Wrapf(errx.ErrNotSupported, "The platform %s is not supported!", platform))
+		panic(fmt.Sprintf("The platform %s is not supported!", platform))
 	}
 }

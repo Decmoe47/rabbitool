@@ -7,7 +7,6 @@ import (
 
 	dto "github.com/Decmoe47/rabbitool/dto/mail"
 	"github.com/Decmoe47/rabbitool/errx"
-	"github.com/cockroachdb/errors"
 	"github.com/emersion/go-imap"
 	id "github.com/emersion/go-imap-id"
 	imapClient "github.com/emersion/go-imap/client"
@@ -33,7 +32,7 @@ type NewMailServiceOptions struct {
 func NewMailService(opts *NewMailServiceOptions) (*MailService, error) {
 	c, err := imapClient.Dial(fmt.Sprintf("%s:%d", opts.Host, opts.Port))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	idClient := id.NewClient(c)
@@ -44,12 +43,12 @@ func NewMailService(opts *NewMailServiceOptions) (*MailService, error) {
 		},
 	)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	err = c.Login(opts.UserName, opts.Password)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	return &MailService{
@@ -66,10 +65,10 @@ func (m *MailService) Logout() error {
 func (m *MailService) GetLatestMail() (*dto.Mail, error) {
 	inbox, err := m.client.Select(m.mailbox, false)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 	if inbox.Messages == 0 {
-		return nil, errors.Wrapf(errx.ErrMailApi, "No message in inbox which mail is %s", m.Address)
+		return nil, errx.New(errx.ErrMailApi, "No message in inbox which mail is %s", m.Address)
 	}
 
 	seqset := &imap.SeqSet{}
@@ -85,21 +84,21 @@ func (m *MailService) GetLatestMail() (*dto.Mail, error) {
 	message := <-messages
 	r := message.GetBody(section)
 	if r == nil {
-		return nil, errors.Wrapf(errx.ErrMailApi, "Server didn't returned message body!")
+		return nil, errx.New(errx.ErrMailApi, "Server didn't returned message body!")
 	}
 
 	if err := <-done; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	text, err := io.ReadAll(msg.Body)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errx.WithStack(err, nil)
 	}
 
 	return &dto.Mail{

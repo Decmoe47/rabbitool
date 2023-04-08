@@ -4,8 +4,6 @@ import (
 	buildInErrors "errors"
 	"reflect"
 
-	"github.com/Decmoe47/rabbitool/errx"
-	"github.com/cockroachdb/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -16,10 +14,10 @@ import (
 func UpdateFields(target any, fields map[string]any) {
 	targetValue := reflect.ValueOf(target)
 	if targetValue.Kind() != reflect.Pointer {
-		panic(errors.Wrap(errx.ErrInvalidParam, "The target is not a pointer!"))
+		panic("The target is not a pointer!")
 	}
 	if targetValue.Elem().Kind() != reflect.Struct {
-		panic(errors.Wrap(errx.ErrInvalidParam, "The target is not a struct!"))
+		panic("The target is not a struct!")
 	}
 
 	for k, v := range fields {
