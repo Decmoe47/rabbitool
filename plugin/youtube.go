@@ -103,7 +103,7 @@ func (y *YoutubePlugin) check(ctx context.Context, record *entity.YoutubeSubscri
 		}
 	case *dto.Video:
 		if im.PubTime.Compare(*record.LastVideoPubTime) <= 0 {
-			log.Debug().Msgf("No new video from the youtube user %s.", im.ChannelId)
+			log.Debug().Msgf("No new video from the youtube user %s (channelId: %s).", im.Author, im.ChannelId)
 			return nil
 		}
 
@@ -116,7 +116,8 @@ func (y *YoutubePlugin) check(ctx context.Context, record *entity.YoutubeSubscri
 			log.Debug().
 				Str("name", im.Author).
 				Str("channelId", im.ChannelId).
-				Msgf("Youtube video message of the user %s is skipped because it's curfew time now.", im.Author)
+				Msgf("Youtube video message of the user %s (channelId: %s) is skipped because it's curfew time now.",
+					im.Author, im.Author)
 			return nil
 		}
 
