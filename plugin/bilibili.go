@@ -122,7 +122,7 @@ func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.Bilibi
 
 	if dynamic.GetDynamicUploadTime().Compare(*record.LastDynamicTime) <= 0 {
 		log.Debug().
-			Msgf("No new dynamic from the bilibili user %s (uid: %s).", dynamic.GetUname(), dynamic.GetUid())
+			Msgf("No new dynamic from the bilibili user %s (uid: %d).", dynamic.GetUname(), dynamic.GetUid())
 		return nil
 	}
 
@@ -135,7 +135,7 @@ func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.Bilibi
 		log.Debug().
 			Str("uname", dynamic.GetUname()).
 			Uint("uid", dynamic.GetUid()).
-			Msgf("Dynamic message of the user %s (uid: %s) is skipped because it's curfew time now.",
+			Msgf("Dynamic message of the user %s (uid: %d) is skipped because it's curfew time now.",
 				dynamic.GetUname(), dynamic.GetUid())
 		return nil
 	}
@@ -275,7 +275,7 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 			log.Debug().
 				Str("uname", live.Uname).
 				Uint("uid", live.Uid).
-				Msgf("No live now from the bilibili user %s.", live.Uname)
+				Msgf("No live now from the bilibili user %s (uid: %d).", live.Uname, live.Uid)
 		} else {
 			// 开播
 			err := b.pushLiveAndUpdateRecord(ctx, record, live, false)
@@ -289,7 +289,7 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 			log.Debug().
 				Str("uname", live.Uname).
 				Uint("uid", live.Uid).
-				Msgf("The bilibili user %s is living.", live.Uname)
+				Msgf("The bilibili user %s (uid: %d) is living.", live.Uname, live.Uid)
 		} else {
 			// 下播
 			err := b.pushLiveAndUpdateRecord(ctx, record, live, true)

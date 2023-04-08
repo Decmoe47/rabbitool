@@ -88,7 +88,8 @@ func (t *TwitterPlugin) check(ctx context.Context, record *entity.TwitterSubscri
 	}
 
 	if tweet.PubTime.Compare(*record.LastTweetTime) <= 0 {
-		log.Debug().Msgf("No new tweet from the twitter user %s.", tweet.AuthorScreenName)
+		log.Debug().Msgf("No new tweet from the twitter user %s (screenName: %s).", tweet.Author,
+			tweet.AuthorScreenName)
 		return nil
 	}
 
