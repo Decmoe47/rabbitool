@@ -122,9 +122,7 @@ func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.Bilibi
 
 	if dynamic.GetDynamicUploadTime().Compare(*record.LastDynamicTime) <= 0 {
 		log.Debug().
-			Str("uname", dynamic.GetUname()).
-			Uint("uid", dynamic.GetUid()).
-			Msgf("No new dynamic from the bilibili user %s.", dynamic.GetUname())
+			Msgf("No new dynamic from the bilibili user %s (uid: %s).", dynamic.GetUname(), dynamic.GetUid())
 		return nil
 	}
 
@@ -137,7 +135,8 @@ func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.Bilibi
 		log.Debug().
 			Str("uname", dynamic.GetUname()).
 			Uint("uid", dynamic.GetUid()).
-			Msgf("Dynamic message of the user %s is skipped because it's curfew time now.", dynamic.GetUname())
+			Msgf("Dynamic message of the user %s (uid: %s) is skipped because it's curfew time now.",
+				dynamic.GetUname(), dynamic.GetUid())
 		return nil
 	}
 
@@ -587,6 +586,7 @@ func (b *BilibiliPlugin) forwardDynamicToStr(dynamic *dto.ForwardDynamic) (title
 			origin.DynamicUploadTime.In(util.CST()).Format("2006-01-02 15:04:05 MST"),
 			addRedirectToUrls(origin.VideoUrl),
 		)
+		imgUrls = append(imgUrls, origin.VideoThumbnailUrl)
 	case *dto.ArticleDynamic:
 		text = fmt.Sprintf(
 			`动态发布时间：%s
@@ -608,6 +608,7 @@ func (b *BilibiliPlugin) forwardDynamicToStr(dynamic *dto.ForwardDynamic) (title
 			origin.DynamicUploadTime.In(util.CST()).Format("2006-01-02 15:04:05 MST"),
 			addRedirectToUrls(origin.ArticleUrl),
 		)
+		imgUrls = append(imgUrls, origin.ArticleThumbnailUrl)
 	case *dto.LiveCardDynamic:
 		text = fmt.Sprintf(
 			`动态发布时间：%s
@@ -627,6 +628,7 @@ func (b *BilibiliPlugin) forwardDynamicToStr(dynamic *dto.ForwardDynamic) (title
 			origin.LiveStartTime.In(util.CST()).Format("2006-01-02 15:04:05 MST"),
 			addRedirectToUrls(fmt.Sprintf("https://live.bilibili.com/%d", origin.RoomId)),
 		)
+		imgUrls = append(imgUrls, origin.CoverUrl)
 	default:
 		panic(errx.ErrInvalidParam)
 	}
