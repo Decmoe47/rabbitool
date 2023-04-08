@@ -289,6 +289,9 @@ func (q *QQBotService) PushCommonMessage(
 	text string,
 	imgUrls []string,
 ) (*dto.Message, error) {
+	if imgUrls != nil { // 不允许发带图片的消息的临时应对
+		text += strings.Join(imgUrls, ", ")
+	}
 	msg, err := q.postMessage(ctx, channelId, &dto.MessageToCreate{
 		Content: text,
 	})
