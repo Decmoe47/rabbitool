@@ -25,7 +25,7 @@ type YoutubeSubscribe struct {
 	QQChannels []*QQChannelSubscribe `gorm:"many2many:qqChannel_with_youtube_subscribe"`
 }
 
-func NewYoutubeSubscribe(name string, channelId string) *YoutubeSubscribe {
+func NewYoutubeSubscribe(channelId, name string) *YoutubeSubscribe {
 	return &YoutubeSubscribe{
 		Name:              name,
 		ChannelId:         channelId,

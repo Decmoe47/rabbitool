@@ -22,7 +22,7 @@ type MailSubscribe struct {
 
 	LastMailTime *time.Time
 
-	QQChannels []*QQChannelSubscribe `gorm:"many2many:qqChannel_with_youtube_subscribe"`
+	QQChannels []*QQChannelSubscribe `gorm:"many2many:qqChannel_with_mail_subscribe"`
 }
 
 func NewMailSubscribe(
