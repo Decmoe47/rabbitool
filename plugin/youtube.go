@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	buildInErrors "errors"
 	"fmt"
 	"sync"
 	"time"
@@ -139,7 +138,7 @@ func (y *YoutubePlugin) check(ctx context.Context, record *entity.YoutubeSubscri
 				}
 				err := y.pushVideoAndUpdateRecord(ctx, m.(*dto.Video), record)
 				if err != nil {
-					errs = buildInErrors.Join(errs, err)
+					errs = errx.Join(errs, err)
 				}
 				nestedMap.Delete(uploadTime)
 			}
@@ -160,7 +159,7 @@ func (y *YoutubePlugin) checkUpcomingLive(ctx context.Context, record *entity.Yo
 			log.Debug().Msgf("Youtube upcoming live (roomId: %s) starts streaming.", roomId)
 			err := y.pushLiveAndUpdateRecord(ctx, live, record)
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 				continue
 			}
 
@@ -169,7 +168,7 @@ func (y *YoutubePlugin) checkUpcomingLive(ctx context.Context, record *entity.Yo
 			})
 			err = y.subscribeDao.Update(ctx, record)
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 				continue
 			}
 		}

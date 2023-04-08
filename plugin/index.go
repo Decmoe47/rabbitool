@@ -2,12 +2,12 @@ package plugin
 
 import (
 	"context"
-	buildInErrors "errors"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/event"
 	command "github.com/Decmoe47/rabbitool/plugin/command/subscribe"
 	"github.com/Decmoe47/rabbitool/service"
@@ -51,11 +51,11 @@ func (p *PluginLoader) Run(ctx context.Context, cancel context.CancelFunc) (errs
 
 	for _, plugin := range p.Plugins {
 		err := plugin.init(ctx, p.Sch)
-		errs = buildInErrors.Join(errs, err)
+		errs = errx.Join(errs, err)
 
 		if plg, ok := plugin.(IRunnablePlugin); ok {
 			err := plg.run(ctx)
-			errs = buildInErrors.Join(errs, err)
+			errs = errx.Join(errs, err)
 		}
 	}
 	if errs != nil {

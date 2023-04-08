@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	buildInErrors "errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -152,7 +151,7 @@ func (m *MailPlugin) check(ctx context.Context, svc *service.MailService, record
 			}
 			err := m.pushMailAndUpdateRecord(ctx, tw.(*dto.Mail), record)
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 			}
 			nestedMap.Delete(uploadTime)
 		}
@@ -320,7 +319,7 @@ func (m *MailPlugin) handleSubscribeDeletedEvent(address string) error {
 func (m *MailPlugin) logOutAll() (errs error) {
 	for _, svc := range m.services {
 		err := svc.Logout()
-		errs = buildInErrors.Join(err)
+		errs = errx.Join(errs, err)
 	}
 	return
 }

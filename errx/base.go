@@ -1,6 +1,7 @@
 package errx
 
 import (
+	buildInErrors "errors"
 	"fmt"
 
 	"github.com/cockroachdb/errors"
@@ -100,3 +101,7 @@ func (e *Error) Format(s fmt.State, verb rune) {
 }
 
 func (e *Error) Unwrap() error { return e.Cause }
+
+func Join(errs ...error) error {
+	return buildInErrors.Join(errs...)
+}

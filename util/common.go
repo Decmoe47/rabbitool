@@ -1,9 +1,9 @@
 package util
 
 import (
-	buildInErrors "errors"
 	"reflect"
 
+	"github.com/Decmoe47/rabbitool/errx"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -46,7 +46,7 @@ func TryGetMapValue[T any](m map[string]any, key string) (T, bool) {
 
 func ReceiveErrs(errCh chan error, count int) (errs error) {
 	for i := 0; i < count; i++ {
-		errs = buildInErrors.Join(errs, <-errCh)
+		errs = errx.Join(errs, <-errCh)
 	}
 	return
 }

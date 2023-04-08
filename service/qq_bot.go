@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	buildInErrors "errors"
 	"fmt"
 	"strings"
 	"time"
@@ -86,7 +85,7 @@ func (q *QQBotService) RegisterAtMessageEvent(
 	fn func(ctx context.Context, msg *dto.WSATMessageData) string,
 ) {
 	var handler event.ATMessageEventHandler = func(event *dto.WSPayload, data *dto.WSATMessageData) error {
-		if !(event.Type == dto.EventAtMessageCreate) {
+		if event.Type != dto.EventAtMessageCreate {
 			return nil
 		}
 		// if !strings.Contains(data.Content, "<@!"+q.botId+">") {
@@ -290,45 +289,26 @@ func (q *QQBotService) PushCommonMessage(
 	text string,
 	imgUrls []string,
 ) (*dto.Message, error) {
-	if imgUrls == nil {
-		return q.postMessage(ctx, channelId, &dto.MessageToCreate{
-			Content: text,
-		})
-	}
+	msg, err := q.postMessage(ctx, channelId, &dto.MessageToCreate{
+		Content: text,
+	})
 
-	switch len(imgUrls) {
-	case 0:
-		return q.postMessage(ctx, channelId, &dto.MessageToCreate{
-			Content: text,
-		})
-	case 1:
-		return q.postMessage(ctx, channelId, &dto.MessageToCreate{
-			Content: text,
-			Image:   imgUrls[0],
-		})
-	default:
-		msg, err := q.postMessage(ctx, channelId, &dto.MessageToCreate{
-			Content: text,
-			Image:   imgUrls[0],
-		})
-		if err != nil {
-			return nil, err
-		}
+	if imgUrls != nil {
 		var errs error
 		for _, img := range imgUrls[1:] {
 			_, err = q.postMessage(ctx, channelId, &dto.MessageToCreate{
 				Image: img,
 			})
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 			}
 		}
 		if errs != nil {
 			return nil, errs
 		}
-
-		return msg, nil
 	}
+
+	return msg, err
 }
 
 // PostThead 发布帖子（仅支持json格式）

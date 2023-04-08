@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	buildInErrors "errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -161,7 +160,7 @@ func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.Bilibi
 			}
 			err := b.pushDynamicAndUpdateRecord(ctx, dy.(dto.IDynamic), record)
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 			}
 			nestedMap.Delete(uploadTime)
 		}
@@ -280,7 +279,7 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 				Msgf("No live now from the bilibili user %s.", live.Uname)
 		} else {
 			// 开播
-			err := b.pushLiveAndUpdateRecord(ctx, record, live, dto.EnumStreaming)
+			err := b.pushLiveAndUpdateRecord(ctx, record, live, false)
 			if err != nil {
 				return err
 			}
@@ -294,7 +293,7 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 				Msgf("The bilibili user %s is living.", live.Uname)
 		} else {
 			// 下播
-			err := b.pushLiveAndUpdateRecord(ctx, record, live, dto.EnumStreaming)
+			err := b.pushLiveAndUpdateRecord(ctx, record, live, true)
 			if err != nil {
 				return err
 			}
@@ -307,7 +306,7 @@ func (b *BilibiliPlugin) pushLiveAndUpdateRecord(
 	ctx context.Context,
 	record *entity.BilibiliSubscribe,
 	live *dto.Live,
-	liveStatus dto.LiveStatusEnum,
+	liveEnding bool,
 ) error {
 	now := time.Now().UTC().In(util.CST())
 	if now.Hour() >= 0 && now.Hour() <= 5 {
@@ -316,7 +315,7 @@ func (b *BilibiliPlugin) pushLiveAndUpdateRecord(
 			Uint("uid", live.Uid).
 			Msgf("Live message of the user %s is skipped because it's curfew time now.", live.Uname)
 	} else {
-		err := b.pushLiveMsg(ctx, live, record, liveStatus)
+		err := b.pushLiveMsg(ctx, live, record, liveEnding)
 		if err != nil {
 			return err
 		}
@@ -338,7 +337,7 @@ func (b *BilibiliPlugin) pushLiveMsg(
 	ctx context.Context,
 	live *dto.Live,
 	record *entity.BilibiliSubscribe,
-	liveStatus dto.LiveStatusEnum,
+	liveEnding bool,
 ) error {
 	title, text := b.liveToStr(live)
 	redirectCoverUrl := lo.Ternary(live.CoverUrl != "", []string{live.CoverUrl}, nil)
@@ -373,7 +372,7 @@ func (b *BilibiliPlugin) pushLiveMsg(
 		if !config.LivePush {
 			continue
 		}
-		if liveStatus == dto.EnumNoLiveStream && !config.LiveEndingPush {
+		if liveEnding && !config.LiveEndingPush {
 			continue
 		}
 

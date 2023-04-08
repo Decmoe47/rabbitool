@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	buildInErrors "errors"
 	"fmt"
 	"sync"
 	"time"
@@ -123,7 +122,7 @@ func (t *TwitterPlugin) check(ctx context.Context, record *entity.TwitterSubscri
 			}
 			err := t.pushTweetAndUpdateRecord(ctx, tw.(*dto.Tweet), record)
 			if err != nil {
-				errs = buildInErrors.Join(errs, err)
+				errs = errx.Join(errs, err)
 			}
 			nestedMap.Delete(uploadTime)
 		}

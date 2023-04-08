@@ -2,12 +2,12 @@ package subscribe
 
 import (
 	"context"
-	buildInErrors "errors"
 	"strings"
 
 	"github.com/Decmoe47/rabbitool/dao"
 	"github.com/Decmoe47/rabbitool/dto"
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
+	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/Decmoe47/rabbitool/service"
 	"github.com/Decmoe47/rabbitool/util"
 	"github.com/cockroachdb/errors"
@@ -184,7 +184,7 @@ func (b *baseSubscribeCommandHandler[TSubscribe, TConfig, TSubscribeDao, TConfig
 
 		msg, err := b.listAllSubscribesInChannel(ctx, channel.ChannelId, channel.ChannelName, subscribes)
 		if err != nil {
-			errs = buildInErrors.Join(errs, err)
+			errs = errx.Join(errs, err)
 		}
 		result = msg + "\n\n"
 	}
