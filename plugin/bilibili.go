@@ -273,8 +273,6 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 		if live.LiveStatus != dto.EnumStreaming {
 			// 未开播
 			log.Debug().
-				Str("uname", live.Uname).
-				Uint("uid", live.Uid).
 				Msgf("No live now from the bilibili user %s (uid: %d).", live.Uname, live.Uid)
 		} else {
 			// 开播
@@ -287,8 +285,6 @@ func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliS
 		if live.LiveStatus == dto.EnumStreaming {
 			// 直播中
 			log.Debug().
-				Str("uname", live.Uname).
-				Uint("uid", live.Uid).
 				Msgf("The bilibili user %s (uid: %d) is living.", live.Uname, live.Uid)
 		} else {
 			// 下播
