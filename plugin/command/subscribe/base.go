@@ -210,7 +210,7 @@ func (b *baseSubscribeCommandHandler[TSubscribe, TConfig, TSubscribeDao, TConfig
 		if err != nil {
 			return "", err
 		}
-		result += "；配置：" + config.GetConfigs("，") + "\n"
+		result += "，" + config.GetConfigs("，") + "\n"
 	}
 
 	result = util.RegexMailAddress.ReplaceAllStringFunc(result, func(s string) string {
@@ -249,7 +249,7 @@ func (b *baseSubscribeCommandHandler[TSubscribe, TConfig, TSubscribeDao, TConfig
 	} else if err != nil {
 		return "", err
 	}
-	result = subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n"
+	result = subscribe.GetInfo("，") + "，" + config.GetConfigs("，") + "\n"
 
 	result = util.RegexMailAddress.ReplaceAllStringFunc(result, func(s string) string {
 		return strings.ReplaceAll(s, ".", "*")

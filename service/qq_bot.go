@@ -290,8 +290,13 @@ func (q *QQBotService) PushCommonMessage(
 	imgUrls []string,
 ) (*dto.Message, error) {
 	if imgUrls != nil { // 不允许发带图片的消息的临时应对
-		text += strings.Join(imgUrls, ", ")
+		text += "\n"
+		for _, url := range imgUrls {
+			text += "- " + url + "\n"
+		}
 	}
+	text = strings.TrimSuffix(text, "\n")
+
 	msg, err := q.postMessage(ctx, channelId, &dto.MessageToCreate{
 		Content: text,
 	})
