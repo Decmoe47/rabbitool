@@ -335,7 +335,14 @@ func (b *BilibiliPlugin) pushLiveMsg(
 	liveEnding bool,
 ) error {
 	title, text := b.liveToStr(live)
-	redirectCoverUrl := lo.Ternary(live.CoverUrl != "", []string{live.CoverUrl}, nil)
+	var redirectCoverUrl []string
+	if live.CoverUrl != "" {
+		url, err := b.uploader.UploadImage(live.CoverUrl)
+		if err != nil {
+			return err
+		}
+		redirectCoverUrl = append(redirectCoverUrl, url)
+	}
 
 	configs, err := b.configDao.GetAllByUint(ctx, record.Uid)
 	if err != nil {
@@ -638,7 +645,8 @@ func (b *BilibiliPlugin) liveToStr(live *dto.Live) (title, text string) {
 		text = fmt.Sprintf(
 			`直播标题：%s
 开播时间：%s
-直播间链接：%s`,
+直播间链接：%s
+直播间封面：`,
 			live.Title,
 			live.LiveStartTime.In(util.CST()).Format("2006-01-02 15:04:05 MST"),
 			addRedirectToUrls(fmt.Sprintf("https://live.bilibili.com/%d", live.RoomId)),
