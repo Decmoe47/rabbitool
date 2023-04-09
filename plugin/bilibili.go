@@ -52,7 +52,10 @@ func (b *BilibiliPlugin) init(ctx context.Context, sch *gocron.Scheduler) error 
 		}
 		b.allow = false
 		time.Sleep(time.Second * time.Duration(rand.Intn(50))) // 反爬应对
-		b.checkAll(ctx)
+		wait := b.checkAll(ctx)
+		if wait {
+			time.Sleep(time.Minute * 5) // 反爬应对
+		}
 		b.allow = true
 	})
 	return err
@@ -62,7 +65,7 @@ func (b *BilibiliPlugin) refreshCookies(ctx context.Context) error {
 	return b.svc.RefreshCookies(ctx)
 }
 
-func (b *BilibiliPlugin) checkAll(ctx context.Context) {
+func (b *BilibiliPlugin) checkAll(ctx context.Context) bool {
 	records, err := b.subscribeDao.GetAll(ctx)
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf(err.Error())
@@ -107,9 +110,7 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) {
 		}
 	}
 
-	if wait {
-		time.Sleep(time.Minute * 10) // 反爬应对
-	}
+	return wait
 }
 
 func (b *BilibiliPlugin) checkDynamic(ctx context.Context, record *entity.BilibiliSubscribe) (err error) {
