@@ -272,7 +272,7 @@ func (t *TwitterPlugin) tweetToStr(tweet *dto.Tweet) (title string, text string,
 			addRedirectToUrls(tweet.Origin.Url),
 		)
 	} else {
-		return "", "", errx.New(errx.ErrNotSupported, "Not Supported tweet type %s", tweet.Type)
+		return "", "", errx.New(errx.ErrNotSupported, "Not Supported tweet type %d", tweet.Type)
 	}
 
 	if tweet.HasVideo || (tweet.Origin != nil && tweet.Origin.HasVideo) {
