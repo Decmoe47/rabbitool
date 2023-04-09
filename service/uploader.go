@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/Decmoe47/rabbitool/conf"
 	"github.com/Decmoe47/rabbitool/errx"
+	"github.com/Decmoe47/rabbitool/util"
 	"github.com/Decmoe47/rabbitool/util/req"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/rs/zerolog/log"
@@ -37,17 +37,7 @@ func NewUploaderService() (*UploaderService, error) {
 }
 
 func (u *UploaderService) UploadImage(url string) (string, error) {
-	splitUrl := strings.Split(url, "/")
-	fileName := splitUrl[len(splitUrl)-1]
-
-	if i := strings.Index(fileName, "?"); i != -1 {
-		fileName = fileName[0:i]
-	}
-
-	if !strings.HasSuffix(fileName, ".jpg") && !strings.HasSuffix(fileName, ".png") {
-		fileName += ".jpg"
-	}
-
+	fileName := time.Now().In(util.CST()).Format("20060102_150405.000") + ".png"
 	errFields := map[string]any{"url": url, "fileName": fileName}
 
 	resp, err := req.Client.R().Get(url)
@@ -78,7 +68,7 @@ func (u *UploaderService) UploadVideo(url string, pubTime *time.Time) (string, e
 		}
 	}
 
-	fileName := pubTime.Format("20060102_150405_MST") + ".mp4"
+	fileName := pubTime.Format("20060102_150405.000") + ".mp4"
 	filePath := "./tmp/" + fileName
 
 	errFields := map[string]any{"url": url, "filePath": filePath}
