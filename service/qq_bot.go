@@ -35,7 +35,11 @@ type QQBotService struct {
 }
 
 func NewQQBotService(ctx context.Context) (*QQBotService, error) {
-	botgo.SetLogger(&LoggerForQQBot{})
+	logger, err := NewLoggerForQQBot()
+	if err != nil {
+		return nil, err
+	}
+	botgo.SetLogger(logger)
 
 	botToken := token.BotToken(conf.R.QQBot.AppId, conf.R.QQBot.Token)
 	api := botgo.NewOpenAPI(botToken).WithTimeout(3 * time.Second)

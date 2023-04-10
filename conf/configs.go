@@ -8,14 +8,12 @@ import (
 )
 
 type Configs struct {
-	RedirectUrl string `yaml:"redirectUrl"`
-	DbPath      string `yaml:"dbPath"`
-
-	PprofListenerPort int `yaml:"pprofListenerPort,omitempty"`
-
-	Log      *Log      `yaml:"log"`
-	Oss      *Oss      `yaml:"oss"`
-	Notifier *Notifier `yaml:"notifier,omitempty"` // nullable
+	RedirectUrl       string    `yaml:"redirectUrl"`
+	PprofListenerPort int       `yaml:"pprofListenerPort,omitempty"`
+	DefaultLogger     *Logger   `yaml:"defaultLogger"`
+	Gorm              *Gorm     `yaml:"gorm"`
+	Oss               *Oss      `yaml:"oss"`
+	Notifier          *Notifier `yaml:"notifier,omitempty"` // nullable
 
 	QQBot   *QQBot   `yaml:"qqBot"`
 	Twitter *Twitter `yaml:"twitter,omitempty"` // nullable

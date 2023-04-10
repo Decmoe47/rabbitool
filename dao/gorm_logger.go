@@ -6,34 +6,79 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Decmoe47/rabbitool/conf"
 	"github.com/Decmoe47/rabbitool/errx"
-	"github.com/rs/zerolog/log"
-	"gorm.io/gorm/logger"
+	"github.com/Decmoe47/rabbitool/util"
+	"github.com/rs/zerolog"
+	"gopkg.in/natefinch/lumberjack.v2"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 type LoggerForGorm struct {
-	LogLevel logger.LogLevel
+	logger   *zerolog.Logger
+	LogLevel gormLogger.LogLevel
 }
 
-func (l *LoggerForGorm) LogMode(level logger.LogLevel) logger.Interface {
+func NewLoggerForGorm(logLevel gormLogger.LogLevel) (*LoggerForGorm, error) {
+	var (
+		logger *zerolog.Logger
+		err    error
+	)
+
+	if conf.R.Gorm.Logger == nil {
+		logger, err = util.InitLogger(&util.InitLoggerOptions{
+			Global:       true,
+			ConsoleLevel: conf.R.DefaultLogger.ConsoleLevel,
+			FileLevel:    conf.R.DefaultLogger.FileLevel,
+			FileOpts: &lumberjack.Logger{
+				Filename:   "log/rabbitool.log",
+				MaxSize:    1,
+				MaxAge:     30,
+				MaxBackups: 5,
+				LocalTime:  false,
+				Compress:   false,
+			},
+		})
+	} else {
+		logger, err = util.InitLogger(&util.InitLoggerOptions{
+			Global:       false,
+			ConsoleLevel: conf.R.Gorm.Logger.ConsoleLevel,
+			FileLevel:    conf.R.Gorm.Logger.FileLevel,
+			FileOpts: &lumberjack.Logger{
+				Filename:   "log/gorm.log",
+				MaxSize:    1,
+				MaxAge:     30,
+				MaxBackups: 5,
+				LocalTime:  false,
+				Compress:   false,
+			},
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &LoggerForGorm{logger: logger, LogLevel: logLevel}, nil
+}
+
+func (l *LoggerForGorm) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
 	l.LogLevel = level
 	return l
 }
 
 func (l *LoggerForGorm) Info(ctx context.Context, s string, v ...any) {
-	if l.LogLevel >= logger.Info {
-		log.Info().Msgf("[Gorm] "+s, v...)
+	if l.LogLevel >= gormLogger.Info {
+		l.logger.Info().Msgf("[Gorm] "+s, v...)
 	}
 }
 
 func (l *LoggerForGorm) Warn(ctx context.Context, s string, v ...any) {
-	if l.LogLevel >= logger.Warn {
-		log.Warn().Msgf("[Gorm] "+s, v...)
+	if l.LogLevel >= gormLogger.Warn {
+		l.logger.Warn().Msgf("[Gorm] "+s, v...)
 	}
 }
 
 func (l *LoggerForGorm) Error(ctx context.Context, s string, v ...any) {
-	if l.LogLevel < logger.Error {
+	if l.LogLevel < gormLogger.Error {
 		return
 	}
 	var err error
@@ -46,12 +91,12 @@ func (l *LoggerForGorm) Error(ctx context.Context, s string, v ...any) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "record not found") {
-			log.Warn().Msgf("[Gorm] "+s, v...)
+			l.logger.Warn().Msgf("[Gorm] "+s, v...)
 		} else {
-			log.Error().Stack().Err(err).Msgf("[Gorm] "+s, v...)
+			l.logger.Error().Stack().Err(err).Msgf("[Gorm] "+s, v...)
 		}
 	}
-	log.Error().Msgf("[Gorm] "+s, v...)
+	l.logger.Error().Msgf("[Gorm] "+s, v...)
 }
 
 func (l *LoggerForGorm) Trace(
@@ -60,43 +105,43 @@ func (l *LoggerForGorm) Trace(
 	fc func() (sql string, rowsAffected int64),
 	err error,
 ) {
-	if l.LogLevel <= logger.Silent {
+	if l.LogLevel <= gormLogger.Silent {
 		return
 	}
 
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 	switch {
-	case err != nil && l.LogLevel >= logger.Error:
+	case err != nil && l.LogLevel >= gormLogger.Error:
 		if strings.Contains(err.Error(), "record not found") {
 			if rows == -1 {
-				log.Error().Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
+				l.logger.Error().Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
 			} else {
-				log.Error().Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+				l.logger.Error().Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}
 		} else {
 			if rows == -1 {
-				log.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
+				l.logger.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
 					"[Gorm] %f-%s",
 					float64(elapsed.Nanoseconds())/1e6, sql)
 			} else {
-				log.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
+				l.logger.Error().Stack().Err(errx.WithStack(err, nil)).Msgf(
 					"[Gorm] %f-%d %s",
 					float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}
 		}
-	case elapsed > 200*time.Millisecond && l.LogLevel >= logger.Warn:
+	case elapsed > 200*time.Millisecond && l.LogLevel >= gormLogger.Warn:
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", 200*time.Millisecond)
 		if rows == -1 {
-			log.Warn().Msgf("[Gorm] %s. %f-%s", slowLog, float64(elapsed.Nanoseconds())/1e6, sql)
+			l.logger.Warn().Msgf("[Gorm] %s. %f-%s", slowLog, float64(elapsed.Nanoseconds())/1e6, sql)
 		} else {
-			log.Warn().Msgf("[Gorm] %s. %f-%d %s", slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			l.logger.Warn().Msgf("[Gorm] %s. %f-%d %s", slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
-	case l.LogLevel >= logger.Info:
+	case l.LogLevel >= gormLogger.Info:
 		if rows == -1 {
-			log.Trace().Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
+			l.logger.Trace().Msgf("[Gorm] %f-%s", float64(elapsed.Nanoseconds())/1e6, sql)
 		} else {
-			log.Trace().Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			l.logger.Trace().Msgf("[Gorm] %f-%d %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
 	}
 }

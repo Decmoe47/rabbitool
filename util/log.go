@@ -13,7 +13,14 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func InitLog() error {
+type InitLoggerOptions struct {
+	Global       bool
+	ConsoleLevel string             // 可选，为空则不输出到console
+	FileLevel    string             // 可选，为空则不输出到文件
+	FileOpts     *lumberjack.Logger // 必须FileLevel也要填
+}
+
+func InitLogger(opts *InitLoggerOptions) (*zerolog.Logger, error) {
 	zerolog.ErrorStackMarshaler = func(err error) interface{} {
 		return fmt.Sprintf("%+v", err)
 	}
@@ -41,35 +48,39 @@ func InitLog() error {
 			}
 		},
 	)
-	consoleWriterLeveled := &levelWriter{
-		Writer: consoleWriter,
-		level:  convertLevel(conf.R.Log.ConsoleLevel),
+
+	var writers []io.Writer
+
+	if opts.ConsoleLevel != "" {
+		consoleWriterLeveled := &levelWriter{
+			Writer: consoleWriter,
+			level:  convertLevel(opts.ConsoleLevel),
+		}
+		writers = append(writers, consoleWriterLeveled)
+	}
+	if opts.FileLevel != "" {
+		fileWriter := consoleWriter
+		fileWriter.Out = opts.FileOpts
+		fileWriter.NoColor = true
+		fileWriterLeveled := &levelWriter{Writer: fileWriter, level: convertLevel(opts.FileLevel)}
+		writers = append(writers, fileWriterLeveled)
+	}
+	if conf.R.Notifier != nil {
+		errNotifier, err := newErrorNotifier()
+		if err != nil {
+			return nil, err
+		}
+		writers = append(writers, errNotifier)
 	}
 
-	fileWriter := consoleWriter
-	fileWriter.Out = &lumberjack.Logger{
-		Filename:   "log/rabbitool.log",
-		MaxSize:    1,
-		MaxAge:     30,
-		MaxBackups: 5,
-		LocalTime:  false,
-		Compress:   false,
-	}
-	fileWriter.NoColor = true
-	fileWriterLeveled := &levelWriter{Writer: fileWriter, level: convertLevel(conf.R.Log.FileLevel)}
-
-	errNotifier, err := newErrorNotifier()
-	if err != nil {
-		return err
-	}
-
-	if conf.R.Notifier == nil {
-		log.Logger = log.Output(zerolog.MultiLevelWriter(consoleWriterLeveled, fileWriterLeveled))
+	var result zerolog.Logger
+	if opts.Global {
+		result = log.Output(zerolog.MultiLevelWriter(writers...))
 	} else {
-		log.Logger = log.Output(zerolog.MultiLevelWriter(consoleWriterLeveled, fileWriterLeveled, errNotifier))
+		result = zerolog.New(os.Stderr).With().Timestamp().Logger().Output(zerolog.MultiLevelWriter(writers...))
 	}
 
-	return nil
+	return &result, nil
 }
 
 func convertLevel(level string) zerolog.Level {

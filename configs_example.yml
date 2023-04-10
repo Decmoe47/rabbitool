@@ -1,10 +1,15 @@
 # 以下除非有说明“可选”，否则均为必填
 
-dbPath: "rabbitool.db" # string，目前只支持sqlite3
 redirectUrl: # string，重定向链接用
-log:
-  consoleLevel: "debug" # log输出到控制台的最低级别，可填"verbose", "debug", "info", "warn", "error", "fatal"
-  fileLevel: "info" # log输出到文件的最低级别
+pprofListenerPort: # （可选）pprof监听端口，填了就开启
+defaultLogger:
+  consoleLevel: "debug" # string  # （可选）
+  fileLevel: "info" # string  # （可选）
+gorm:
+  dbPath: "rabbitool.db"  # string，目前只支持sqlite3
+  logger: # （可选）
+    consoleLevel: "debug" # string  # （可选）
+    fileLevel: "info" # string  # （可选）
 
 notifier: # （可选）用于发生错误时通知的，下面皆指邮箱的配置
   host: # string
@@ -27,6 +32,9 @@ qqbot:
   token: # string
   isSandbox: # bool
   sandboxGuildName: # string
+  logger: # （可选）
+    consoleLevel: "debug" # string  # （可选）
+    fileLevel: "info" # string  # （可选）
 youtube:  # （可选）
   apiKey: # string，官方api，参见官方说明
 twitter: # （可选）

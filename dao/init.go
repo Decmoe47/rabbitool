@@ -5,15 +5,19 @@ import (
 	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormLogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
 var _db *gorm.DB
 
 func InitDb(dbPath string) error {
+	logger, err := NewLoggerForGorm(gormLogger.Warn)
+	if err != nil {
+		return err
+	}
 	db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{
-		Logger: &LoggerForGorm{LogLevel: logger.Warn},
+		Logger: logger,
 	})
 	if err != nil {
 		return errx.WithStack(err, nil)

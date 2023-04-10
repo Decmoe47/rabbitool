@@ -12,6 +12,8 @@ import (
 	"github.com/Decmoe47/rabbitool/plugin"
 	"github.com/Decmoe47/rabbitool/util"
 	"github.com/Decmoe47/rabbitool/util/req"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
@@ -31,11 +33,25 @@ func main() {
 		}()
 	}
 
-	err = util.InitLog()
+	logger, err := util.InitLogger(&util.InitLoggerOptions{
+		Global:       true,
+		ConsoleLevel: conf.R.DefaultLogger.ConsoleLevel,
+		FileLevel:    conf.R.DefaultLogger.FileLevel,
+		FileOpts: &lumberjack.Logger{
+			Filename:   "log/rabbitool.log",
+			MaxSize:    1,
+			MaxAge:     30,
+			MaxBackups: 5,
+			LocalTime:  false,
+			Compress:   false,
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
-	err = dao.InitDb(conf.R.DbPath)
+	log.Logger = *logger
+
+	err = dao.InitDb(conf.R.Gorm.DbPath)
 	if err != nil {
 		panic(err)
 	}

@@ -5,4 +5,6 @@ type QQBot struct {
 	Token            string `yaml:"token"`
 	IsSandbox        bool   `yaml:"isSandbox"`
 	SandboxGuildName string `yaml:"sandboxGuildName"`
+
+	Logger *Logger `yaml:"logger,omitempty"`
 }
