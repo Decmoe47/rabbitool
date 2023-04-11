@@ -58,6 +58,27 @@ func Recover(returnErr *error) {
 	}
 }
 
+func RecoverAndSendErr(returnErr chan error) {
+	err := recover()
+	if err == nil {
+		returnErr <- nil
+		return
+	}
+
+	switch e := err.(type) {
+	case string:
+		returnErr <- NewErrPanic(e)
+	case error:
+		if _, ok := e.(fmt.Formatter); ok {
+			returnErr <- WithStack(e, nil)
+		} else {
+			returnErr <- NewErrPanic(e.Error())
+		}
+	default:
+		returnErr <- NewErrPanic(fmt.Sprintf("%v", e))
+	}
+}
+
 func RecoverAndLog() {
 	err := recover()
 	if err == nil {

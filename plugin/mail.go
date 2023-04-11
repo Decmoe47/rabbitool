@@ -65,6 +65,7 @@ func (m *MailPlugin) CheckAll(ctx context.Context) {
 		log.Debug().Msgf("There isn't any mail subscribe yet!")
 	}
 
+	count := 0
 	errs := make(chan error, len(records))
 	for _, record := range records {
 		svc, ok := lo.Find(m.services, func(item *service.MailService) bool {
@@ -88,11 +89,12 @@ func (m *MailPlugin) CheckAll(ctx context.Context) {
 			}
 		}
 
+		count++
 		go func(svc *service.MailService, record *entity.MailSubscribe, errs chan error) {
 			errs <- m.check(ctx, svc, record)
 		}(svc, record, errs)
 	}
-	for i := 0; i < len(records); i++ {
+	for i := 0; i < count; i++ {
 		if err := <-errs; err != nil {
 			log.Error().
 				Stack().Err(err).
@@ -190,7 +192,7 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 		return err
 	}
 
-	count := len(record.QQChannels)
+	count := 0
 	errs := make(chan error, count)
 	for _, channel := range record.QQChannels {
 		if _, err := m.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
@@ -222,8 +224,9 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 				return errx.WithStack(err, map[string]any{"address": record.Address})
 			}
 
+			count++
 			go func(channel *entity.QQChannelSubscribe, errs chan error) {
-				defer errx.RecoverAndLog()
+				defer errx.RecoverAndSendErr(errs)
 
 				err = m.qbSvc.PostThread(ctx, channel.ChannelId, title, string(richTextJson))
 				if err == nil {
@@ -233,8 +236,9 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 			}(channel, errs)
 		}
 
+		count++
 		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndLog()
+			defer errx.RecoverAndSendErr(errs)
 
 			_, err = m.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, nil)
 			if err == nil {

@@ -267,7 +267,7 @@ func (y *YoutubePlugin) pushItemMsg(ctx context.Context, item dto.IItem, record 
 		return err
 	}
 
-	count := len(record.QQChannels)
+	count := 0
 	errs := make(chan error, count)
 	for _, channel := range record.QQChannels {
 		if _, err := y.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
@@ -301,8 +301,9 @@ func (y *YoutubePlugin) pushItemMsg(ctx context.Context, item dto.IItem, record 
 			continue
 		}
 
+		count++
 		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndLog()
+			defer errx.RecoverAndSendErr(errs)
 
 			_, err := y.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, []string{uploadedImgUrl})
 			if err == nil {

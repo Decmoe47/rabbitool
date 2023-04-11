@@ -221,7 +221,7 @@ func (b *BilibiliPlugin) pushDynamicMsg(
 		return err
 	}
 
-	count := len(record.QQChannels)
+	count := 0
 	errs := make(chan error, count)
 	for _, channel := range record.QQChannels {
 		if _, err := b.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
@@ -250,8 +250,9 @@ func (b *BilibiliPlugin) pushDynamicMsg(
 			continue
 		}
 
+		count++
 		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndLog()
+			defer errx.RecoverAndSendErr(errs)
 
 			_, err := b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectImgUrls)
 			if err == nil {
@@ -350,7 +351,7 @@ func (b *BilibiliPlugin) pushLiveMsg(
 		return err
 	}
 
-	count := len(record.QQChannels)
+	count := 0
 	errs := make(chan error, count)
 	for _, channel := range record.QQChannels {
 		if _, err := b.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
@@ -379,8 +380,9 @@ func (b *BilibiliPlugin) pushLiveMsg(
 			continue
 		}
 
+		count++
 		go func(channel *entity.QQChannelSubscribe, errCh chan error) {
-			defer errx.RecoverAndLog()
+			defer errx.RecoverAndSendErr(errs)
 
 			_, err := b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectCoverUrl)
 			if err == nil {

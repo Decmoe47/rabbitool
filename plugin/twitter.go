@@ -171,7 +171,7 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 		return err
 	}
 
-	count := len(record.QQChannels)
+	count := 0
 	errs := make(chan error, count)
 	for _, channel := range record.QQChannels {
 		if _, err := t.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
@@ -208,8 +208,9 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 				return errx.WithStack(err, map[string]any{"screenName": record.ScreenName})
 			}
 
+			count++
 			go func(channel *entity.QQChannelSubscribe, errs chan error) {
-				defer errx.RecoverAndLog()
+				defer errx.RecoverAndSendErr(errs)
 
 				err := t.qbSvc.PostThread(ctx, channel.ChannelId, title, string(j))
 				if err == nil {
@@ -220,8 +221,9 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 			continue
 		}
 
+		count++
 		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndLog()
+			defer errx.RecoverAndSendErr(errs)
 
 			_, err = t.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, imgUrls)
 			if err == nil {
