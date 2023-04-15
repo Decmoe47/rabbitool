@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Decmoe47/async"
 	"github.com/Decmoe47/rabbitool/dao"
 	dto "github.com/Decmoe47/rabbitool/dto/youtube"
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
@@ -64,19 +65,18 @@ func (y *YoutubePlugin) CheckAll(ctx context.Context) {
 		log.Debug().Msgf("There isn't any youtube subscribe yet!")
 	}
 
-	errs := make(chan error, len(records))
+	var fns []func() error
 	for _, record := range records {
-		go func(record *entity.YoutubeSubscribe, errs chan error) {
-			errs <- y.check(ctx, record)
-		}(record, errs)
+		record := record
+		fns = append(fns, func() error {
+			return y.check(ctx, record)
+		})
 	}
-	for i := 0; i < len(records); i++ {
-		if err := <-errs; err != nil {
-			log.Error().
-				Stack().Err(err).
-				Str("channelId", records[i].ChannelId).
-				Str("name", records[i].Name).
-				Msgf("Failed to push youtube item message!")
+
+	errs := async.ExecAllOne(ctx, fns).Await(ctx)
+	for _, err := range errs {
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf(err.Error())
 		}
 	}
 }
@@ -267,9 +267,9 @@ func (y *YoutubePlugin) pushItemMsg(ctx context.Context, item dto.IItem, record 
 		return err
 	}
 
-	count := 0
-	errs := make(chan error, count)
+	var fns []func() error
 	for _, channel := range record.QQChannels {
+		channel := channel
 		if _, err := y.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
 			log.Warn().
 				Str("channelName", channel.ChannelName).
@@ -301,19 +301,18 @@ func (y *YoutubePlugin) pushItemMsg(ctx context.Context, item dto.IItem, record 
 			continue
 		}
 
-		count++
-		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndSendErr(errs)
+		fns = append(fns, func() (err error) {
+			defer errx.Recover(&err)
 
-			_, err := y.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, []string{uploadedImgUrl})
+			_, err = y.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, []string{uploadedImgUrl})
 			if err == nil {
 				log.Info().Msgf("Succeeded to push the youtube message to the channel %s", channel.ChannelName)
 			}
-			errs <- err
-		}(channel, errs)
+			return err
+		})
 	}
 
-	return util.ReceiveErrs(errs, count)
+	return errx.Blend(async.ExecAllOne(ctx, fns).Await(ctx))
 }
 
 func (y *YoutubePlugin) itemToStr(item dto.IItem) (title, text, imgUrl string) {

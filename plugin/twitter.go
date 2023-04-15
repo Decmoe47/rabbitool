@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Decmoe47/async"
 	"github.com/Decmoe47/rabbitool/dao"
 	"github.com/Decmoe47/rabbitool/dto/qqbot/forum"
 	dto "github.com/Decmoe47/rabbitool/dto/twitter"
@@ -62,19 +63,17 @@ func (t *TwitterPlugin) CheckAll(ctx context.Context) {
 		log.Debug().Msgf("There isn't any twitter subscribe yet!")
 	}
 
-	errs := make(chan error, len(records))
+	var fns []func() error
 	for _, record := range records {
-		go func(record *entity.TwitterSubscribe, errs chan error) {
-			errs <- t.check(ctx, record)
-		}(record, errs)
+		record := record
+		fns = append(fns, func() error {
+			return t.check(ctx, record)
+		})
 	}
-	for i := 0; i < len(records); i++ {
-		if err := <-errs; err != nil {
-			log.Error().
-				Stack().Err(err).
-				Str("screenName", records[i].ScreenName).
-				Str("name", records[i].Name).
-				Msgf("Failed to push tweet message!")
+	errs := async.ExecAllOne(ctx, fns).Await(ctx)
+	for _, err := range errs {
+		if err != nil {
+			log.Error().Stack().Err(err).Msgf(err.Error())
 		}
 	}
 }
@@ -171,9 +170,9 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 		return err
 	}
 
-	count := 0
-	errs := make(chan error, count)
+	var fns []func() error
 	for _, channel := range record.QQChannels {
+		channel := channel
 		if _, err := t.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
 			log.Warn().
 				Str("channelName", channel.ChannelName).
@@ -208,32 +207,30 @@ func (t *TwitterPlugin) pushTweetMsg(ctx context.Context, tweet *dto.Tweet, reco
 				return errx.WithStack(err, map[string]any{"screenName": record.ScreenName})
 			}
 
-			count++
-			go func(channel *entity.QQChannelSubscribe, errs chan error) {
-				defer errx.RecoverAndSendErr(errs)
+			fns = append(fns, func() (err error) {
+				defer errx.Recover(&err)
 
-				err := t.qbSvc.PostThread(ctx, channel.ChannelId, title, string(j))
+				err = t.qbSvc.PostThread(ctx, channel.ChannelId, title, string(j))
 				if err == nil {
 					log.Info().Msgf("Succeeded to push the tweet message to the channel %s", channel.ChannelName)
 				}
-				errs <- err
-			}(channel, errs)
+				return err
+			})
 			continue
 		}
 
-		count++
-		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndSendErr(errs)
+		fns = append(fns, func() (err error) {
+			defer errx.Recover(&err)
 
 			_, err = t.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, imgUrls)
 			if err == nil {
 				log.Info().Msgf("Succeeded to push the tweet message to the channel %s", channel.ChannelName)
 			}
-			errs <- err
-		}(channel, errs)
+			return err
+		})
 	}
 
-	return util.ReceiveErrs(errs, count)
+	return errx.Blend(async.ExecAllOne(ctx, fns).Await(ctx))
 }
 
 func (t *TwitterPlugin) tweetToStr(tweet *dto.Tweet) (title string, text string, err error) {

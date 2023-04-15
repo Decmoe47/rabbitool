@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Decmoe47/async"
 	"github.com/Decmoe47/rabbitool/dao"
 	dto "github.com/Decmoe47/rabbitool/dto/bilibili"
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
@@ -74,39 +75,25 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) bool {
 		log.Debug().Msgf("There isn't any bilibili subscribe yet!")
 	}
 
-	errsOfDynamic := make(chan error, len(records))
-	errsOfLive := make(chan error, len(records))
+	var fns []func() error
 	for _, record := range records {
-		go func(record *entity.BilibiliSubscribe, errs chan error) {
-			errs <- b.checkDynamic(ctx, record)
-		}(record, errsOfDynamic)
-
-		go func(record *entity.BilibiliSubscribe, errs chan error) {
-			errs <- b.checkLive(ctx, record)
-		}(record, errsOfLive)
+		record := record
+		fns = append(fns, func() error {
+			return b.checkDynamic(ctx, record)
+		})
+		fns = append(fns, func() error {
+			return b.checkLive(ctx, record)
+		})
 	}
 
 	wait := false
-	for i := 0; i < len(records); i++ {
-		if err := <-errsOfDynamic; err != nil {
+	errs := async.ExecAllOne(ctx, fns).Await(ctx)
+	for _, err := range errs {
+		if err != nil {
 			if strings.Contains(err.Error(), "-401") {
 				wait = true
 			}
-			log.Error().
-				Stack().Err(err).
-				Str("uname", records[i].Uname).
-				Uint("uid", records[i].Uid).
-				Msgf("Failed to push dynamic message!")
-		}
-		if err := <-errsOfLive; err != nil {
-			if strings.Contains(err.Error(), "-401") {
-				wait = true
-			}
-			log.Error().
-				Stack().Err(err).
-				Str("uname", records[i].Uname).
-				Uint("uid", records[i].Uid).
-				Msgf("Failed to push live message!")
+			log.Error().Stack().Err(err).Msg(err.Error())
 		}
 	}
 
@@ -221,8 +208,7 @@ func (b *BilibiliPlugin) pushDynamicMsg(
 		return err
 	}
 
-	count := 0
-	errs := make(chan error, count)
+	var fns []func() error
 	for _, channel := range record.QQChannels {
 		if _, err := b.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
 			log.Warn().
@@ -250,19 +236,19 @@ func (b *BilibiliPlugin) pushDynamicMsg(
 			continue
 		}
 
-		count++
-		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndSendErr(errs)
+		channel := channel
+		fns = append(fns, func() (err error) {
+			defer errx.Recover(&err)
 
-			_, err := b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectImgUrls)
+			_, err = b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectImgUrls)
 			if err == nil {
 				log.Info().Msgf("Succeeded to push the dynamic message to the channel %s", channel.ChannelName)
 			}
-			errs <- err
-		}(channel, errs)
+			return err
+		})
 	}
 
-	return util.ReceiveErrs(errs, count)
+	return errx.Blend(async.ExecAllOne(ctx, fns).Await(ctx))
 }
 
 func (b *BilibiliPlugin) checkLive(ctx context.Context, record *entity.BilibiliSubscribe) error {
@@ -351,8 +337,7 @@ func (b *BilibiliPlugin) pushLiveMsg(
 		return err
 	}
 
-	count := 0
-	errs := make(chan error, count)
+	var fns []func() error
 	for _, channel := range record.QQChannels {
 		if _, err := b.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
 			log.Warn().
@@ -380,19 +365,19 @@ func (b *BilibiliPlugin) pushLiveMsg(
 			continue
 		}
 
-		count++
-		go func(channel *entity.QQChannelSubscribe, errCh chan error) {
-			defer errx.RecoverAndSendErr(errs)
+		channel := channel
+		fns = append(fns, func() (err error) {
+			defer errx.Recover(&err)
 
-			_, err := b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectCoverUrl)
+			_, err = b.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, redirectCoverUrl)
 			if err == nil {
 				log.Info().Msgf("Succeeded to push the dynamic message to the channel %s", channel.ChannelName)
 			}
-			errCh <- err
-		}(channel, errs)
+			return err
+		})
 	}
 
-	return util.ReceiveErrs(errs, count)
+	return errx.Blend(async.ExecAllOne(ctx, fns).Await(ctx))
 }
 
 func (b *BilibiliPlugin) dynamicToStr(dynamic dto.IDynamic) (title string, text string, imgUrls []string) {

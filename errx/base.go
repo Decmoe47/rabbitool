@@ -105,3 +105,10 @@ func (e *Error) Unwrap() error { return e.Cause }
 func Join(errs ...error) error {
 	return buildInErrors.Join(errs...)
 }
+
+func Blend(errs []error) (res error) {
+	for _, err := range errs {
+		res = buildInErrors.Join(res, err)
+	}
+	return
+}

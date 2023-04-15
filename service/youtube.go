@@ -131,7 +131,7 @@ func (y *YoutubeService) createDto(channelId string, itemId string, video *youtu
 		}
 		return &dto.Live{
 			ItemBase: &dto.ItemBase{
-				Type:         dto.EnumLive,
+				Type:         dto.EnumLive, // TODO
 				ChannelId:    channelId,
 				Author:       video.Snippet.ChannelTitle,
 				Id:           itemId,

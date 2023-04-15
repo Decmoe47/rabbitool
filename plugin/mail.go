@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Decmoe47/async"
 	"github.com/Decmoe47/rabbitool/dao"
 	dto "github.com/Decmoe47/rabbitool/dto/mail"
 	entity "github.com/Decmoe47/rabbitool/entity/subscribe"
@@ -65,8 +66,7 @@ func (m *MailPlugin) CheckAll(ctx context.Context) {
 		log.Debug().Msgf("There isn't any mail subscribe yet!")
 	}
 
-	count := 0
-	errs := make(chan error, len(records))
+	var fns []func() error
 	for _, record := range records {
 		svc, ok := lo.Find(m.services, func(item *service.MailService) bool {
 			return item.Address == record.Address
@@ -89,17 +89,16 @@ func (m *MailPlugin) CheckAll(ctx context.Context) {
 			}
 		}
 
-		count++
-		go func(svc *service.MailService, record *entity.MailSubscribe, errs chan error) {
-			errs <- m.check(ctx, svc, record)
-		}(svc, record, errs)
+		record := record
+		fns = append(fns, func() error {
+			return m.check(ctx, svc, record)
+		})
 	}
-	for i := 0; i < count; i++ {
-		if err := <-errs; err != nil {
-			log.Error().
-				Stack().Err(err).
-				Str("address", records[i].Address).
-				Msgf("Failed to push mail message!")
+
+	errs := async.ExecAllOne(ctx, fns).Await(ctx)
+	for _, err := range errs {
+		if err != nil {
+			log.Error().Stack().Err(err).Msg(err.Error())
 		}
 	}
 }
@@ -192,9 +191,9 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 		return err
 	}
 
-	count := 0
-	errs := make(chan error, count)
+	var fns []func() error
 	for _, channel := range record.QQChannels {
+		channel := channel
 		if _, err := m.qbSvc.GetChannel(ctx, channel.ChannelId); err != nil {
 			log.Warn().
 				Str("channelName", channel.ChannelName).
@@ -224,30 +223,30 @@ func (m *MailPlugin) pushMailMsg(ctx context.Context, mail *dto.Mail, record *en
 				return errx.WithStack(err, map[string]any{"address": record.Address})
 			}
 
-			count++
-			go func(channel *entity.QQChannelSubscribe, errs chan error) {
-				defer errx.RecoverAndSendErr(errs)
+			fns = append(fns, func() (err error) {
+				defer errx.Recover(&err)
 
 				err = m.qbSvc.PostThread(ctx, channel.ChannelId, title, string(richTextJson))
 				if err == nil {
 					log.Info().Msgf("Succeeded to push the mail message to the channel %s", channel.ChannelName)
 				}
-				errs <- err
-			}(channel, errs)
+				return err
+			})
+			continue
 		}
 
-		count++
-		go func(channel *entity.QQChannelSubscribe, errs chan error) {
-			defer errx.RecoverAndSendErr(errs)
+		fns = append(fns, func() (err error) {
+			defer errx.Recover(&err)
 
 			_, err = m.qbSvc.PushCommonMessage(ctx, channel.ChannelId, title+"\n\n"+text, nil)
 			if err == nil {
 				log.Info().Msgf("Succeeded to push the mail message to the channel %s", channel.ChannelName)
 			}
-			errs <- err
-		}(channel, errs)
+			return err
+		})
 	}
-	return util.ReceiveErrs(errs, count)
+
+	return errx.Blend(async.ExecAllOne(ctx, fns).Await(ctx))
 }
 
 func (m *MailPlugin) mailToStr(mail *dto.Mail) (title string, text string, header string) {
