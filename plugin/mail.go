@@ -45,7 +45,7 @@ func (m *MailPlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
 	event.OnMailSubscribeAdded = m.handleSubscribeAddedEvent
 	event.OnMailSubscribeDeleted = m.handleSubscribeDeletedEvent
 
-	_, err := sch.Every(5).Seconds().Do(func() {
+	_, err := sch.SingletonMode().Every(5).Seconds().Do(func() {
 		m.CheckAll(ctx)
 	})
 	return err

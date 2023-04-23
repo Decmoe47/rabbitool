@@ -41,7 +41,7 @@ func NewTwitterPlugin(base *PluginBase) *TwitterPlugin {
 }
 
 func (t *TwitterPlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
-	_, err := sch.Every(5).Seconds().Do(func() {
+	_, err := sch.SingletonMode().Every(5).Seconds().Do(func() {
 		t.CheckAll(ctx)
 	})
 	return err

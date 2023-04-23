@@ -45,7 +45,7 @@ func (b *BilibiliPlugin) init(ctx context.Context, sch *gocron.Scheduler) error 
 	if err != nil {
 		log.Error().Stack().Err(err).Msgf(err.Error())
 	}
-	_, err = sch.Every(10).Seconds().Do(func() {
+	_, err = sch.SingletonMode().Every(10).Seconds().Do(func() {
 		time.Sleep(time.Second * time.Duration(rand.Intn(50))) // 反爬应对
 		wait := b.checkAll(ctx)
 		if wait {
@@ -83,7 +83,7 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) bool {
 	errs := async.ExecAllOne(ctx, fns).Await(ctx)
 	for _, err := range errs {
 		if err != nil {
-			if strings.Contains(err.Error(), "-401") {
+			if strings.Contains(err.Error(), "-401") || strings.Contains(err.Error(), "-509") {
 				wait = true
 			}
 			log.Error().Stack().Err(err).Msg(err.Error())

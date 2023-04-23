@@ -43,7 +43,7 @@ func NewYoutubePlugin(ctx context.Context, basePlugin *PluginBase) (*YoutubePlug
 }
 
 func (y *YoutubePlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
-	_, err := sch.Every(5).Seconds().Do(func() {
+	_, err := sch.SingletonMode().Every(5).Seconds().Do(func() {
 		y.CheckAll(ctx)
 	})
 	return err

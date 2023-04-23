@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Andrew-M-C/go.jsonvalue v1.3.3
-	github.com/Decmoe47/async v0.0.0-20230414140011-caa216455748
+	github.com/Decmoe47/async v0.0.0-20230423082645-226a088d8378
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.7+incompatible
 	github.com/cockroachdb/errors v1.9.1
 	github.com/emersion/go-imap v1.2.1
@@ -47,7 +47,6 @@ require (
 	github.com/go-test/deep v1.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230406165453-00490a63f317 // indirect
 	github.com/google/s2a-go v0.1.2 // indirect
@@ -81,9 +80,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
-	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
-	github.com/quic-go/quic-go v0.34.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
