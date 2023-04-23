@@ -31,7 +31,7 @@ func InitLogger(opts *InitLoggerOptions) (*zerolog.Logger, error) {
 			w.TimeFormat = time.RFC3339
 			w.FormatErrFieldName = func(i any) string {
 				if i.(string) == "error" {
-					return fmt.Sprintf("\n\n- %s: ", i)
+					return ""
 				}
 				return fmt.Sprintf("\n- %s: ", i)
 			}

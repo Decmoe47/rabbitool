@@ -67,7 +67,7 @@ func NewWithCause(name ErrorName, msg string, fields map[string]any, cause error
 func WithStack(err error, fields map[string]any) error {
 	return errors.WithStack(&Error{
 		Name:   "ErrWithStack",
-		Msg:    "",
+		Msg:    err.Error(),
 		Fields: fields,
 		Cause:  err,
 	})
