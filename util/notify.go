@@ -81,12 +81,9 @@ func (e *errorNotifier) allow() bool {
 	}
 
 	e.errCount++
-	if e.errCount < conf.R.Notifier.AllowedAmount {
+	if e.errCount != conf.R.Notifier.AllowedAmount {
 		return false
 	}
-
-	e.timeStampToRefresh = now + conf.R.Notifier.IntervalMinutes*60
-	e.errCount = 0
 	return true
 }
 
