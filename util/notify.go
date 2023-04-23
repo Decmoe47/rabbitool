@@ -2,27 +2,24 @@ package util
 
 import (
 	"io"
+	"sync"
 	"time"
 
 	"github.com/Decmoe47/rabbitool/conf"
 	"github.com/Decmoe47/rabbitool/errx"
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
 type errorNotifier struct {
-	client        *mail.SMTPClient
-	errorCounters []*errorCounter
+	client             *mail.SMTPClient
+	errCount           int
+	timeStampToRefresh int64
 
 	io.Writer
 	level zerolog.Level
-}
 
-type errorCounter struct {
-	text               string
-	amount             int
-	timestampToRefresh int64
+	mu sync.Locker
 }
 
 func newErrorNotifier() (*errorNotifier, error) {
@@ -40,17 +37,16 @@ func newErrorNotifier() (*errorNotifier, error) {
 		return nil, errx.WithStack(err, nil)
 	}
 
-	errNotifier := &errorNotifier{client: client, level: zerolog.ErrorLevel}
+	errNotifier := &errorNotifier{client: client, level: zerolog.ErrorLevel, mu: &sync.Mutex{}}
 	errNotifier.Writer = errNotifier
 
 	return errNotifier, nil
 }
 
 func (e *errorNotifier) checkAndSend(text string) error {
-	if !e.allow(text) {
+	if !e.allow() {
 		return nil
 	}
-
 	return e.send(text)
 }
 
@@ -73,32 +69,22 @@ func (e *errorNotifier) send(text string) error {
 	return nil
 }
 
-func (e *errorNotifier) allow(text string) bool {
+func (e *errorNotifier) allow() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	now := time.Now().UTC().Unix()
-	_, i, ok := lo.FindIndexOf(e.errorCounters, func(item *errorCounter) bool {
-		return item.text == text
-	})
-	if !ok {
-		i = len(e.errorCounters)
-		e.errorCounters = append(e.errorCounters, &errorCounter{
-			text:               text,
-			timestampToRefresh: now + conf.R.Notifier.IntervalMinutes*60,
-		})
-	} else {
-		e.errorCounters[i].amount++
+	if now > e.timeStampToRefresh {
+		e.timeStampToRefresh = now + conf.R.Notifier.IntervalMinutes*60
+		e.errCount = 1
+		return false
 	}
 
-	if now < e.errorCounters[i].timestampToRefresh && e.errorCounters[i].amount >= conf.R.Notifier.AllowedAmount {
-		e.errorCounters = lo.Reject(e.errorCounters, func(_ *errorCounter, index int) bool {
-			return index == i
-		})
-		return true
+	e.errCount++
+	if e.errCount < conf.R.Notifier.AllowedAmount {
+		return false
 	}
-
-	if now >= e.errorCounters[i].timestampToRefresh {
-		e.errorCounters[i].amount = 0
-	}
-	return false
+	return true
 }
 
 func (e *errorNotifier) Write(p []byte) (n int, err error) {
