@@ -84,6 +84,9 @@ func (e *errorNotifier) allow() bool {
 	if e.errCount < conf.R.Notifier.AllowedAmount {
 		return false
 	}
+
+	e.timeStampToRefresh = now + conf.R.Notifier.IntervalMinutes*60
+	e.errCount = 0
 	return true
 }
 
@@ -97,7 +100,7 @@ func (e *errorNotifier) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (e *errorNotifier) writeLevel(l zerolog.Level, p []byte) (n int, err error) {
+func (e *errorNotifier) WriteLevel(l zerolog.Level, p []byte) (n int, err error) {
 	if l >= e.level {
 		return e.Writer.Write(p)
 	}
