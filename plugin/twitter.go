@@ -28,7 +28,6 @@ type TwitterPlugin struct {
 	configDao    *dao.TwitterSubscribeConfigDao
 
 	storedTweets *sync.Map
-	allow        bool
 }
 
 func NewTwitterPlugin(base *PluginBase) *TwitterPlugin {
@@ -38,18 +37,12 @@ func NewTwitterPlugin(base *PluginBase) *TwitterPlugin {
 		subscribeDao: dao.NewTwitterSubscribeDao(),
 		configDao:    dao.NewTwitterSubscribeConfigDao(),
 		storedTweets: &sync.Map{},
-		allow:        true,
 	}
 }
 
 func (t *TwitterPlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
 	_, err := sch.Every(5).Seconds().Do(func() {
-		if !t.allow {
-			return
-		}
-		t.allow = false
 		t.CheckAll(ctx)
-		t.allow = true
 	})
 	return err
 }

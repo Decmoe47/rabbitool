@@ -29,7 +29,6 @@ type MailPlugin struct {
 	configDao    *dao.MailSubscribeConfigDao
 
 	storedMails *sync.Map
-	allow       bool
 }
 
 func NewMailPlugin(base *PluginBase) *MailPlugin {
@@ -47,12 +46,7 @@ func (m *MailPlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
 	event.OnMailSubscribeDeleted = m.handleSubscribeDeletedEvent
 
 	_, err := sch.Every(5).Seconds().Do(func() {
-		if !m.allow {
-			return
-		}
-		m.allow = false
 		m.CheckAll(ctx)
-		m.allow = true
 	})
 	return err
 }

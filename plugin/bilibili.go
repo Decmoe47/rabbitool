@@ -28,7 +28,6 @@ type BilibiliPlugin struct {
 	configDao    *dao.BilibiliSubscribeConfigDao
 
 	storedDynamics *sync.Map
-	allow          bool
 }
 
 func NewBilibiliPlugin(base *PluginBase) *BilibiliPlugin {
@@ -38,7 +37,6 @@ func NewBilibiliPlugin(base *PluginBase) *BilibiliPlugin {
 		subscribeDao:   dao.NewBilibiliSubscribeDao(),
 		configDao:      dao.NewBilibiliSubscribeConfigDao(),
 		storedDynamics: &sync.Map{},
-		allow:          true,
 	}
 }
 
@@ -48,16 +46,11 @@ func (b *BilibiliPlugin) init(ctx context.Context, sch *gocron.Scheduler) error 
 		log.Error().Stack().Err(err).Msgf(err.Error())
 	}
 	_, err = sch.Every(10).Seconds().Do(func() {
-		if !b.allow {
-			return
-		}
-		b.allow = false
 		time.Sleep(time.Second * time.Duration(rand.Intn(50))) // 反爬应对
 		wait := b.checkAll(ctx)
 		if wait {
 			time.Sleep(time.Minute * 5) // 反爬应对
 		}
-		b.allow = true
 	})
 	return err
 }

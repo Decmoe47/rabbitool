@@ -62,6 +62,7 @@ func (p *PluginLoader) Run(ctx context.Context, cancel context.CancelFunc) (errs
 		return errs
 	}
 
+	p.Sch.SingletonModeAll()
 	p.Sch.StartBlocking()
 	return nil
 }
