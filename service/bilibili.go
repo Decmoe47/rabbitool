@@ -23,7 +23,7 @@ type BilibiliService struct {
 }
 
 func NewBilibiliService() *BilibiliService {
-	return &BilibiliService{limiter: rate.NewLimiter(rate.Every(time.Second), 1)}
+	return &BilibiliService{limiter: rate.NewLimiter(rate.Every(time.Second*5), 1)}
 }
 
 func (b *BilibiliService) RefreshCookies(ctx context.Context) error {
@@ -53,7 +53,7 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 	if err != nil {
 		return nil, errx.WithStack(err, nil)
 	}
-	body, err := jv.UnmarshalString(resp.String())
+	body, err := jv.UnmarshalString(Replace509(resp.String()))
 	if err != nil {
 		return nil, errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
@@ -185,7 +185,7 @@ func (b *BilibiliService) GetLatestDynamic(ctx context.Context, uid uint, offset
 	if err != nil {
 		return nil, errx.WithStack(err, nil)
 	}
-	body, err := jv.UnmarshalString(resp.String())
+	body, err := jv.UnmarshalString(Replace509(resp.String()))
 	if err != nil {
 		return nil, errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
@@ -385,7 +385,7 @@ func (b *BilibiliService) getUname(ctx context.Context, uid uint) (string, error
 	if err != nil {
 		return "", errx.WithStack(err, nil)
 	}
-	body, err := jv.UnmarshalString(resp.String())
+	body, err := jv.UnmarshalString(Replace509(resp.String()))
 	if err != nil {
 		return "", errx.WithStack(err, map[string]any{"body": resp.String()})
 	}
@@ -698,4 +698,8 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 
 func (b *BilibiliService) isPureForwardDynamic(dynamicText string) bool {
 	return dynamicText == "转发动态" || strings.HasPrefix(strings.Split(dynamicText, "//")[0], "@")
+}
+
+func Replace509(text string) string {
+	return strings.ReplaceAll(text, `{"code":-509,"message":"请求过于频繁，请稍后再试","ttl":1}`, "")
 }
