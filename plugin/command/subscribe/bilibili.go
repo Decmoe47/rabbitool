@@ -62,7 +62,7 @@ func (b *bilibiliSubscribeCommandHandler) checkId(ctx context.Context, uid strin
 		return "", "内部错误！"
 	}
 
-	body, err := jv.UnmarshalString(resp.String())
+	body, err := jv.UnmarshalString(service.Replace509(resp.String()))
 	if err != nil {
 		log.Error().Stack().Err(errx.WithStack(err, map[string]any{"uid": uid})).Msg(err.Error())
 		return "", "内部错误！"

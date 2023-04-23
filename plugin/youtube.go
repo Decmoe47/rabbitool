@@ -26,6 +26,7 @@ type YoutubePlugin struct {
 	configDao    *dao.YoutubeSubscribeConfigDao
 
 	storedVideos *sync.Map
+	allow        bool
 }
 
 func NewYoutubePlugin(ctx context.Context, basePlugin *PluginBase) (*YoutubePlugin, error) {
@@ -39,12 +40,18 @@ func NewYoutubePlugin(ctx context.Context, basePlugin *PluginBase) (*YoutubePlug
 		subscribeDao: dao.NewYoutubeSubscribeDao(),
 		configDao:    dao.NewYoutubeSubscribeConfigDao(),
 		storedVideos: &sync.Map{},
+		allow:        true,
 	}, nil
 }
 
 func (y *YoutubePlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
-	_, err := sch.SingletonMode().Every(5).Seconds().Do(func() {
+	_, err := sch.Every(5).Seconds().Do(func() {
+		if !y.allow {
+			return
+		}
+		y.allow = false
 		y.CheckAll(ctx)
+		y.allow = true
 	})
 	return err
 }

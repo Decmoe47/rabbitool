@@ -29,6 +29,7 @@ type MailPlugin struct {
 	configDao    *dao.MailSubscribeConfigDao
 
 	storedMails *sync.Map
+	allow       bool
 }
 
 func NewMailPlugin(base *PluginBase) *MailPlugin {
@@ -37,6 +38,7 @@ func NewMailPlugin(base *PluginBase) *MailPlugin {
 		subscribeDao: dao.NewMailSubscribeDao(),
 		configDao:    dao.NewMailSubscribeConfigDao(),
 		storedMails:  &sync.Map{},
+		allow:        true,
 	}
 }
 
@@ -45,8 +47,13 @@ func (m *MailPlugin) init(ctx context.Context, sch *gocron.Scheduler) error {
 	event.OnMailSubscribeAdded = m.handleSubscribeAddedEvent
 	event.OnMailSubscribeDeleted = m.handleSubscribeDeletedEvent
 
-	_, err := sch.SingletonMode().Every(5).Seconds().Do(func() {
+	_, err := sch.Every(5).Seconds().Do(func() {
+		if !m.allow {
+			return
+		}
+		m.allow = false
 		m.CheckAll(ctx)
+		m.allow = true
 	})
 	return err
 }
