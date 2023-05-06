@@ -58,6 +58,10 @@ github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3
 github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMdUywE7VMo=
 github.com/Decmoe47/async v0.0.0-20230423122439-ece984ea1271 h1:HRfSLSUmbg7w3ZdSDXMexiOknKmwsBYyaPU8GCCx9Wk=
 github.com/Decmoe47/async v0.0.0-20230423122439-ece984ea1271/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
+github.com/Decmoe47/async v0.0.0-20230506131831-72a5080ec17a h1:gbDYhq40zpWjuzq5+Gb7qM/PY4kz28NBXaG7wo9Ql4E=
+github.com/Decmoe47/async v0.0.0-20230506131831-72a5080ec17a/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
+github.com/Decmoe47/async v0.0.0-20230506132638-ac00c2802393 h1:Pq0RmD+cKH4usOjtYOHltf4DGTn0gtHsP3NLczeSbOo=
+github.com/Decmoe47/async v0.0.0-20230506132638-ac00c2802393/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/PuerkitoBio/goquery v1.8.1 h1:uQxhNlArOIdbrH1tr0UXwdVFgDcZDrZVdcpygAcwmWM=
 github.com/PuerkitoBio/goquery v1.8.1/go.mod h1:Q8ICL1kNUJ2sXGoAhPGUdYDJvgQgHzJsnnd3H7Ho5jQ=
