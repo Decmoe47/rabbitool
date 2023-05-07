@@ -62,6 +62,8 @@ github.com/Decmoe47/async v0.0.0-20230506131831-72a5080ec17a h1:gbDYhq40zpWjuzq5
 github.com/Decmoe47/async v0.0.0-20230506131831-72a5080ec17a/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
 github.com/Decmoe47/async v0.0.0-20230506132638-ac00c2802393 h1:Pq0RmD+cKH4usOjtYOHltf4DGTn0gtHsP3NLczeSbOo=
 github.com/Decmoe47/async v0.0.0-20230506132638-ac00c2802393/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
+github.com/Decmoe47/async v0.0.0-20230507114901-9fa0efbd5a36 h1:beQxyTUJDu7VHwbXzoOWS2ygO8i06+xsMnib9YL1Gi8=
+github.com/Decmoe47/async v0.0.0-20230507114901-9fa0efbd5a36/go.mod h1:Y3C7ASW0znZYPQyuUedJ5IX+4uGLgdmq8ySnHT7HdPA=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/PuerkitoBio/goquery v1.8.1 h1:uQxhNlArOIdbrH1tr0UXwdVFgDcZDrZVdcpygAcwmWM=
 github.com/PuerkitoBio/goquery v1.8.1/go.mod h1:Q8ICL1kNUJ2sXGoAhPGUdYDJvgQgHzJsnnd3H7Ho5jQ=

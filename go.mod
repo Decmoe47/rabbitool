@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Andrew-M-C/go.jsonvalue v1.3.3
-	github.com/Decmoe47/async v0.0.0-20230506132638-ac00c2802393
+	github.com/Decmoe47/async v0.0.0-20230507114901-9fa0efbd5a36
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.7+incompatible
 	github.com/cockroachdb/errors v1.9.1
 	github.com/emersion/go-imap v1.2.1
