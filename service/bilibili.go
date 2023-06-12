@@ -657,17 +657,23 @@ func (b *BilibiliService) toForwardDynamic(ctx context.Context, dynamic *jv.V) (
 		if err != nil {
 			return nil, errx.WithStack(err, errFields)
 		}
+
 		liveStatusInt, err := dynamic.GetInt("card", "origin", "live_status")
 		if err != nil {
 			return nil, errx.WithStack(err, errFields)
 		}
 		liveStatus := dto.LiveStatusEnum(liveStatusInt)
 		liveStartTimestamp, err := dynamic.GetInt64("card", "origin", "first_live_time")
+		if err != nil {
+			return nil, errx.WithStack(err, errFields)
+		}
 		liveStartTime := time.Unix(liveStartTimestamp, 0).UTC()
+
 		title, err := dynamic.GetString("card", "origin", "title")
 		if err != nil {
 			return nil, errx.WithStack(err, errFields)
 		}
+
 		coverUrl, err := dynamic.GetString("card", "origin", "cover")
 		if err != nil {
 			return nil, errx.WithStack(err, errFields)
