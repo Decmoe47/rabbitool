@@ -93,7 +93,9 @@ func (b *BilibiliPlugin) checkAll(ctx context.Context) bool {
 	errs := async.ExecAllOne(ctx, fns).Await(ctx)
 	for _, err := range errs {
 		if err != nil {
-			if strings.Contains(err.Error(), "-401") || strings.Contains(err.Error(), "-509") {
+			if strings.Contains(err.Error(), "-401") ||
+				strings.Contains(err.Error(), "-509") ||
+				strings.Contains(err.Error(), "-799") {
 				wait = true
 			}
 			log.Error().Stack().Err(err).Msg(err.Error())
