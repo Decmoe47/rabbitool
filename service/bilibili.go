@@ -155,7 +155,7 @@ func (b *BilibiliService) GetLive(ctx context.Context, uid uint) (*dto.Live, err
 	default:
 		return nil, errx.New(
 			errx.ErrBilibiliApi,
-			"Unknown live status %s from the bilibili user %s(uid: %d)",
+			"Unknown live status %d from the bilibili user %s(uid: %d)",
 			liveStatus, uname, uid,
 		)
 	}
