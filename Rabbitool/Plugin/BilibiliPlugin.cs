@@ -1,5 +1,4 @@
 ﻿using Coravel;
-using Flurl.Http;
 using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
@@ -36,8 +35,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             scheduler
                 .ScheduleAsync(async () =>
                 {
-                    TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(10));
-                    Log.Debug($"[BilibiliPlugin] Sleep {sleepTime}...");
+                    TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30));
+                    Log.Debug($"[BilibiliPlugin] Sleep {sleepTime.TotalSeconds}s...");
                     Thread.Sleep(sleepTime);
 
                     bool wait = await CheckAllAsync(ct);
@@ -66,43 +65,28 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             return false;
         }
 
-        List<Task> tasks = new();
+        List<Task<bool>> tasks = new();
         foreach (BilibiliSubscribeEntity record in records)
         {
             tasks.Add(CheckDynamicAsync(record, ct));
             tasks.Add(CheckLiveAsync(record, ct));
         }
-        try
-        {
-            await Task.WhenAll(tasks);
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("-401") || ex.Message.Contains("-509") || ex.Message.Contains("-799"))
-            {
-                return true;
-            }
-            else
-            {
-                await RefreshCookiesAsync(ct);
-                throw;
-            }
-        }
-        return false;
+        bool[] result = await Task.WhenAll(tasks);
+        return result.Any(r => r == true);
     }
 
-    private async Task CheckDynamicAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
+    private async Task<bool> CheckDynamicAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
             BaseDynamic? dy = await _svc.GetLatestDynamicAsync(record.Uid, ct: ct);
             if (dy == null)
-                return;
+                return false;
 
             if (dy.DynamicUploadTime <= record.LastDynamicTime)
             {
                 Log.Debug("No new dynamic from the bilibili user {uname}(uid: {uid}).", dy.Uname, dy.Uid);
-                return;
+                return false;
             }
 
             async Task FnAsync(BaseDynamic dy)
@@ -127,7 +111,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
                 Log.Debug("Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
                     dy.Uname, dy.Uid);
-                return;
+                return false;
             }
 
             // 过了宵禁把攒的先发了
@@ -142,18 +126,34 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     await FnAsync(storedDys[uploadTime]);
                     _storedDynamics[dy.Uid].Remove(uploadTime);
                 }
-                return;
+                return false;
             }
 
             await FnAsync(dy);
+            return false;
         }
         catch (OperationCanceledException)
         {
+            return false;
+        }
+        catch (BilibiliApiException bex)
+        {
+            if (bex.Code == -401 || bex.Code == -509 || bex.Code == -799)
+            {
+                return true;
+            }
+            else
+            {
+                Log.Error(bex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
+                record.Uname, record.Uid);
+                return false;
+            }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push dynamic message!\nUid: {uid}\nUname: {uname}",
-                record.Uid, record.Uname);
+            Log.Error(ex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
+                record.Uname, record.Uid);
+            return false;
         }
     }
 
@@ -571,7 +571,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         );
     }
 
-    private async Task CheckLiveAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
+    private async Task<bool> CheckLiveAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         try
         {
@@ -579,7 +579,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             Live? live = await _svc.GetLiveAsync(record.Uid, ct: ct);
             if (live == null)
-                return;
+                return false;
 
             async Task FnAsync(Live live)
             {
@@ -614,13 +614,31 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     // 直播中
                     Log.Debug("The bilibili user {uname}(uid: {uid}) is living.", live.Uname, live.Uid);
             }
+
+            return false;
         }
         catch (OperationCanceledException)
         {
+            return false;
+        }
+        catch (BilibiliApiException bex)
+        {
+            if (bex.Code == -401 || bex.Code == -509 || bex.Code == -799)
+            {
+                return true;
+            }
+            else
+            {
+                Log.Error(bex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
+                    record.Uname, record.Uid);
+                return false;
+            }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push live message!\nUid: {uid}\nUname: {uname}", record.Uid, record.Uname);
+            Log.Error(ex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
+                record.Uname, record.Uid);
+            return false;
         }
     }
 
