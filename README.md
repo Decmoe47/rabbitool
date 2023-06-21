@@ -9,18 +9,25 @@
 ## 订阅推送
 
 - b站
-    - 动态：
-        - 普通动态
-        - 转发动态
-        - 投稿动态（视频动态、专栏动态）
-    - 直播：开播、下播
+  - 动态：
+    - 普通动态
+    - 转发动态
+    - 投稿动态（视频动态、专栏动态）
+  - 直播：开播、下播
+
 - 推特：
-    - 普通推文
-    - 转发推文（转发不带文字的）/引用推文（转发带文字的）
-    - 视频推文（支持获得自动转存到COS后的下载直链）
+  - 普通推文
+  - 转发推文（转发不带文字的）/引用推文（转发带文字的）
+  - 视频推文（支持获得自动转存到COS后的下载直链）
+
+> ※推特推文默认guest身份是获取不到敏感图片（例如标记为r18的）的。现在你初始化推特插件配置的方式有：
+> 1. 使用官方开发者账号，提供你账号的v2 api token。（推荐）
+> 2. 或者提供你的推特小号的`x-csrf-token`和`cookie`，但太涩的依然有可能获取不到。
+> 3. 或者干脆放弃涩图，就都不需要填了。
+
 - 油管：
-    - 视频投稿
-    - 直播（仅开播）
+  - 视频投稿
+  - 直播（仅开播）
 
 > ※部分油管用户使用了自定义域名，想要通过地址获取channel id，可以通过 [https://commentpicker.com/youtube-channel-id.php](https://commentpicker.com/youtube-channel-id.php) 这个网页转换。
 
@@ -30,7 +37,7 @@
 >
 > `/订阅 邮箱 [邮箱地址] username=[用户名] password=[邮箱密码] host=[服务器地址] port=[端口]`
 >
-> 推荐使用163/126，安全限制较为松。outlook和gmail比较严，可能会失败。
+> 推荐使用163/126，安全限制较为松。outlook和gmail比较严，操作步骤较为繁琐。
 
 # 配置
 
@@ -45,36 +52,35 @@
 （下面写的是默认值）
 
 - b站：
-    - livePush: `true`（推送开播通知）
-    - dynamicPush: `true`（推送动态）
-    - pureForwardDynamicPush: `false`（推送无附带文字的转发动态）
-    - liveEndingPush: `false` （推送下播通知）
+  - livePush: `true`（推送开播通知）
+  - dynamicPush: `true`（推送动态）
+  - pureForwardDynamicPush: `false`（推送无附带文字的转发动态）
+  - liveEndingPush: `false` （推送下播通知）
 - 推特：
-    - quotePush: `true`（推送附带文字的转发推文，即引用推文）
-    - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
+  - quotePush: `true`（推送附带文字的转发推文，即引用推文）
+  - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
 - 油管：
-    - videoPush: `true`（上传视频）
-    - livePush: `true`（开播）
-    - upcomingLivePush: `true`（预定直播间）
-    - archivePush: `false`（推送直播录像）
+  - videoPush: `true`（上传视频）
+  - livePush: `true`（开播）
+  - upcomingLivePush: `true`（预定直播间）
+  - archivePush: `false`（推送直播录像）
 - 邮箱：
-    - address（必须，邮箱地址，修改需取消订阅后重新订阅）
-    - userName（必须，邮箱登录名，一般就是邮箱地址，修改需取消订阅后重新订阅）
-    - password（必须，邮箱密码或授权码，修改需取消订阅后重新订阅）
-    - host （必须，邮箱imap服务器地址，修改需取消订阅后重新订阅）
-    - port （必须，邮箱imap端口，修改需取消订阅后重新订阅）
-    - mailbox: `INBOX` （订阅的邮箱，修改需取消订阅后重新订阅）
-    - SSL: `false`（修改需取消订阅后重新订阅）
-    - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
-    - containsHeader: `false` （带from、to、subject、time信息）
+  - address（必须，邮箱地址，修改需取消订阅后重新订阅）
+  - password（必须，邮箱密码或授权码，修改需取消订阅后重新订阅）
+  - host （必须，邮箱imap服务器地址，修改需取消订阅后重新订阅）
+  - port （必须，邮箱imap端口，修改需取消订阅后重新订阅）
+  - mailbox: `INBOX` （订阅的邮箱，修改需取消订阅后重新订阅）
+  - SSL: `false`（修改需取消订阅后重新订阅）
+  - pushToThread: `false`（推送到话题子频道，同时也要写`channel=[频道名]`）
+  - detail: `false` （带from、to、subject、time信息）
 
 ## 查询参数
 
 - 列出订阅：
-    - allChannels: `false`（bool，列出当前频道所有子频道的指定平台的订阅）
+  - allChannels: `false`（bool，列出当前频道所有子频道的指定平台的订阅）
 
 # 其他
 
-- log打印在`./log`文件夹内，会自动日志轮转。
-- 上传推特小视频时会暂存到`./tmp`文件夹内，可手动清理。
+- log打印在`./log`文件夹内，会自动日志切割。
+- 上传推特小视频时会暂存到`./tmp`文件夹内，可手动删除。
 - 因为频道机器人存在宵禁机制（0点到6点），宵禁时间内一般消息会攒起来，过了之后会逐条发送；开播/下播消息因为其时效性，会直接跳过。

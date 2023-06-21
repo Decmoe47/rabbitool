@@ -1,7 +1,7 @@
 # 以下除非有说明“可选”，否则均为必填
 
 redirectUrl: # string，重定向链接用
-pprofListenerPort: # （可选）pprof监听端口，填了就开启
+inTestEnvironment: # bool，可选，同时会指定qqbot为sanbox mode
 defaultLogger:
   consoleLevel: "debug" # string  # （可选）
   fileLevel: "info" # string  # （可选）
@@ -21,16 +21,16 @@ notifier: # （可选）用于发生错误时通知的，下面皆指邮箱的�
   to: # string[]
   intervalMinutes: 5 # int，重置积攒的重复通知
   allowedAmount: 25 # int，积攒的重复通知量在规定时间内达到上限后就发送
-oss:  # 阿里云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
-  endpoint: # string
-  accessKeyId: # string
-  accessKeySecret: # string
+cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
+  secretId: # string
+  secretKey: # string
   bucketName: # string
+  region: # string
+
 
 qqbot:
   appId: # string
   token: # string
-  isSandbox: # bool
   sandboxGuildName: # string
   logger: # （可选）
     consoleLevel: "debug" # string  # （可选）
