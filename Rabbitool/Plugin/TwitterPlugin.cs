@@ -134,10 +134,8 @@ public class TwitterPlugin : BasePlugin, IPlugin
             }
 
             TwitterSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
-            if (tweet.Origin != null)
-            {
-                if (config.QuotePush == false) continue;
-            }
+            if (tweet.Type == TweetTypeEnum.RT && config.RtPush == false)
+                continue;
             if (config.PushToThread)
             {
                 tasks.Add(_qbSvc.PostThreadAsync(
