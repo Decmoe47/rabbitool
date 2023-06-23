@@ -96,7 +96,11 @@ public class TwitterService
         }
 
         if (origin != null)
+        {
             result.Origin = origin;
+            result.Text = result.Text.Replace(origin.Url, "");
+        }
+
         return result;
     }
 
