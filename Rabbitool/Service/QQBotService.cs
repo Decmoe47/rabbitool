@@ -299,13 +299,11 @@ public class QQBotService
                 byte[] firstImg = await imgUrls[0].GetBytesAsync();
                 Message? msg = await PostMessageAsync(channelId, channelName, text, firstImg, ct: ct);
 
-                List<Task<Message?>> tasks = new();
                 foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
                 {
                     byte[] otherImg = await imgUrl.GetBytesAsync();
-                    tasks.Add(PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct));
+                    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
                 }
-                await Task.WhenAll(tasks);
 
                 return msg;
         }
