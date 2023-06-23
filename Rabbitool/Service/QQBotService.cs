@@ -239,6 +239,9 @@ public class QQBotService
 
         await _limiter.AcquireAsync(1, ct);
 
+        if (imgFile != null && ImageUtil.IsLargerThanAllowed(imgFile))
+            imgFile = ImageUtil.Compress(imgFile);
+
         try
         {
             _log.Information("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}",
