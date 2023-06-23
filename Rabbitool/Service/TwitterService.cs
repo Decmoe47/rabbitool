@@ -40,35 +40,37 @@ public class TwitterService
         if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
         {
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
-            .WithTimeout(10)
-            .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-            .SetQueryParams(new Dictionary<string, string>()
-            {
-                { "count", "5" },
-                { "screen_name", screenName },
-                { "exclude_replies", "true" },
-                { "include_rts", "true" },
-            })
-            .WithHeaders(new Dictionary<string, string>
-            {
-                { "x-csrf-token", Configs.R.Twitter.XCsrfToken },
-                { "Cookie", Configs.R.Twitter.Cookie }
-            })
-            .GetStringAsync(ct);
+                .WithTimeout(10)
+                .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                .SetQueryParams(new Dictionary<string, string>()
+                {
+                    { "count", "5" },
+                    { "screen_name", screenName },
+                    { "exclude_replies", "true" },
+                    { "include_rts", "true" },
+                    { "tweet_mode", "extended" }    // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
+                })
+                .WithHeaders(new Dictionary<string, string>
+                {
+                    { "x-csrf-token", Configs.R.Twitter.XCsrfToken },
+                    { "Cookie", Configs.R.Twitter.Cookie }
+                })
+                .GetStringAsync(ct);
         }
         else
         {
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
-            .WithTimeout(10)
-            .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-            .SetQueryParams(new Dictionary<string, string>()
-            {
-                { "count", "5" },
-                { "screen_name", screenName },
-                { "exclude_replies", "true" },
-                { "include_rts", "true" },
-            })
-            .GetStringAsync(ct);
+                .WithTimeout(10)
+                .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                .SetQueryParams(new Dictionary<string, string>()
+                {
+                    { "count", "5" },
+                    { "screen_name", screenName },
+                    { "exclude_replies", "true" },
+                    { "include_rts", "true" },
+                    { "tweet_mode", "extended" }
+                })
+                .GetStringAsync(ct);
         }
         if (resp.Contains("errors"))
         {
@@ -101,7 +103,7 @@ public class TwitterService
     private Tweet Parse(JObject tweet)
     {
         string id = (string)tweet["id"]!;
-        string text = (string)tweet["text"]!;
+        string text = (string)tweet["full_text"]!;
 
         List<string>? imgUrls = null;
         string? videoUrl = null;
@@ -113,9 +115,9 @@ public class TwitterService
         string screenName = (string)tweet["user"]!["screen_name"]!;
         DateTime pubTime = DateTime
             .ParseExact(
-                (string)tweet["created_at"]!, 
+                (string)tweet["created_at"]!,
                 "ddd MMM dd HH:mm:ss zz00 yyyy",
-                DateTimeFormatInfo.InvariantInfo, 
+                DateTimeFormatInfo.InvariantInfo,
                 DateTimeStyles.AdjustToUniversal)
             .ToUniversalTime();
         return new()
