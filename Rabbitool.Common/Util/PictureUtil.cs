@@ -10,7 +10,7 @@ public static class ImageUtil
     /// <summary>
     /// Byte
     /// </summary>
-    private static readonly int _allowedMaxImageSize = 2000000;
+    private static readonly int _allowedMaxImageSize = 5242880;
 
     /// <summary>
     /// 压缩图片
@@ -88,7 +88,14 @@ public static class ImageUtil
 
     public static bool IsLargerThanAllowed(byte[] image)
     {
-        return image.Length > _allowedMaxImageSize;
+        string fileName = $"img_{DateTime.Now:yyyy-MM-dd_HH:mm:ss}.jpg";
+
+        if (!Directory.Exists("./tmp"))
+            Directory.CreateDirectory("./tmp");
+        File.WriteAllBytes("./tmp/"+fileName, image);
+
+        FileInfo fileInfo = new("./tmp/" + fileName);
+        return fileInfo.Length > _allowedMaxImageSize;
     }
 }
 
