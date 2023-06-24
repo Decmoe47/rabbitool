@@ -299,7 +299,7 @@ public class QQBotService
                 return await PostMessageAsync(channelId, channelName, text, img, ct: ct);
 
             default:
-                text += "\n\n（更多图片请查看动态链接）";
+                text += "\n\n（更多图片请查看原链接）";
                 byte[] firstImg = await imgUrls[0].GetBytesAsync();
                 Message? msg = await PostMessageAsync(channelId, channelName, text, firstImg, ct: ct);
 
