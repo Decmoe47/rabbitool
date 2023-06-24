@@ -5,7 +5,6 @@ using Rabbitool.Common.Extension;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
-using Rabbitool.Tool;
 using RandomUserAgent;
 using Serilog;
 
@@ -41,7 +40,7 @@ public class BilibiliSubscribeCommandHandler
                     .GetAsync();
         }
 
-        string query = await Wbi.GenerateQueryAsync("mid", uid);
+        string query = await BilibiliHelper.GenerateQueryAsync("mid", uid);
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
                 .WithCookies(_jar)
                 .WithHeader("User-Agent", RandomUa.RandomUserAgent)

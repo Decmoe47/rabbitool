@@ -5,7 +5,6 @@ using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
 using Rabbitool.Model.DTO.Bilibili;
-using Rabbitool.Tool;
 using RandomUserAgent;
 using Serilog;
 
@@ -41,7 +40,7 @@ public class BilibiliService
     {
         await _limiter.AcquireAsync(1, ct);
 
-        string query = await Wbi.GenerateQueryAsync("mid", uid.ToString());
+        string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
                 .WithTimeout(10)
                 .WithCookies(_jar)
@@ -402,7 +401,7 @@ public class BilibiliService
     {
         await _limiter.AcquireAsync(1, ct);
 
-        string query = await Wbi.GenerateQueryAsync("mid", uid.ToString());
+        string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
             .WithTimeout(10)

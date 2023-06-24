@@ -3,12 +3,12 @@ using System.Text;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
 
-namespace Rabbitool.Tool;
+namespace Rabbitool.Service;
 
 /// <summary>
 /// <see cref="https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/misc/sign/wbi.md"/>
 /// </summary>
-public class Wbi
+public class BilibiliHelper
 {
     private static readonly int[] _mixinKeyEncTab = {
         46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -17,7 +17,7 @@ public class Wbi
         36, 20, 34, 44, 52
     };
 
-    public static async Task<string> GenerateQueryAsync(Dictionary<string, string> commonParams)
+    public static async Task<string> GenerateQueryWithWbiAsync(Dictionary<string, string> commonParams)
     {
         (string imgKey, string subKey) = await GetWbiKeysAsync();
         Dictionary<string, string> signedParams = EncWbi(commonParams, imgKey, subKey);
@@ -28,11 +28,11 @@ public class Wbi
     {
         (string imgKey, string subKey) = await GetWbiKeysAsync();
         Dictionary<string, string> signedParams = EncWbi(
-            new Dictionary<string, string> 
+            new Dictionary<string, string>
             {
                 { commonParamKey, commonParamValue },
             },
-            imgKey, 
+            imgKey,
             subKey
         );
         return string.Join("&", signedParams.Select(p => $"{p.Key}={p.Value}"));
