@@ -299,14 +299,15 @@ public class QQBotService
                 return await PostMessageAsync(channelId, channelName, text, img, ct: ct);
 
             default:
+                text += "\n\n（更多图片请查看动态链接）";
                 byte[] firstImg = await imgUrls[0].GetBytesAsync();
                 Message? msg = await PostMessageAsync(channelId, channelName, text, firstImg, ct: ct);
 
-                foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
-                {
-                    byte[] otherImg = await imgUrl.GetBytesAsync();
-                    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
-                }
+                //foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
+                //{
+                //    byte[] otherImg = await imgUrl.GetBytesAsync();
+                //    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
+                //}
 
                 return msg;
         }
