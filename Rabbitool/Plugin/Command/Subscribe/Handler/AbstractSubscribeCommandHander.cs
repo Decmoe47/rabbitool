@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Flurl.Http;
 using QQChannelFramework.Models.WsModels;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
@@ -62,7 +63,18 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
-        (string name, string? errMsg) = await CheckId(cmd.SubscribeId, ct);
+        string name;
+        string? errMsg = null;
+        try
+        {
+            (name, errMsg) = await CheckId(cmd.SubscribeId, ct);
+        } 
+        catch (FlurlHttpException ex)
+        {
+            Log.Error(ex, "Failed to check id {id}", cmd.SubscribeId);
+            return "在检查id时发生http错误！";
+        }
+        
         if (errMsg != null)
             return errMsg;
 

@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Flurl.Http;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
@@ -31,9 +32,18 @@ public class MailSubscribeCommandHandler
     {
         if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
-        (string address, string? errMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errMsg != null)
-            return errMsg;
+
+        string address;
+        string? errMsg = null;
+        try
+        {
+            (address, errMsg) = await CheckId(cmd.SubscribeId, ct);
+        }
+        catch (FlurlHttpException ex)
+        {
+            Log.Error(ex, "Failed to check id {id}", cmd.SubscribeId);
+            return "在检查id时发生http错误！";
+        }
 
         if (cmd.Configs == null)
             return "错误：需指定邮箱地址！";
