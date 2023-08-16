@@ -10,7 +10,7 @@ public static class ImageUtil
     /// <summary>
     /// Byte
     /// </summary>
-    private static readonly int _allowedMaxImageSize = 5242880;
+    private static readonly int _allowedMaxImageSize = 2000000;
 
     /// <summary>
     /// 压缩图片
@@ -71,7 +71,7 @@ public static class ImageUtil
         byte[] result = compressedImg.ToArray();
         while (IsLargerThanAllowed(result))
         {
-            newWidth = width * (decimal)0.75;
+            newWidth = width * (decimal)0.85;
             newHeight = height / width * newWidth;
             using SKBitmap resized2 = bitmap.Resize(new SKImageInfo((int)newWidth, (int)newHeight), SKFilterQuality.Medium)
                 ?? throw new CompressPictureException();
@@ -88,7 +88,7 @@ public static class ImageUtil
 
     public static bool IsLargerThanAllowed(byte[] image)
     {
-        string fileName = $"img_{DateTime.Now:yyyy-MM-dd_HH:mm:ss}.jpg";
+        string fileName = $"img_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
         if (!Directory.Exists("./tmp"))
             Directory.CreateDirectory("./tmp");
