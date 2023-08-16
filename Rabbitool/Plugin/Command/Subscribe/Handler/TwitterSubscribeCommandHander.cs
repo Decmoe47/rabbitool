@@ -1,6 +1,7 @@
 ﻿using Flurl;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Conf;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -11,8 +12,6 @@ namespace Rabbitool.Plugin.Command.Subscribe;
 public class TwitterSubscribeCommandHandler
     : AbstractSubscribeCommandHandler<TwitterSubscribeEntity, TwitterSubscribeConfigEntity, TwitterSubscribeRepository, TwitterSubscribeConfigRepository>
 {
-    private readonly string _apiV1_1Auth = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
-
     public TwitterSubscribeCommandHandler(
         QQBotService qbSvc,
         SubscribeDbContext dbCtx,
@@ -27,16 +26,41 @@ public class TwitterSubscribeCommandHandler
         string resp;
         try
         {
-            resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
-            .WithHeader("Authorization", _apiV1_1Auth)
-            .SetQueryParams(new Dictionary<string, string>()
+            if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
             {
-                {"screen_name", screenName},
-                {"exclude_replies", "false"},
-                {"include_rts", "true"},
-                {"count", "5"}
-            })
-            .GetStringAsync(ct);
+                resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
+                    .WithTimeout(10)
+                    .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                    .SetQueryParams(new Dictionary<string, string>()
+                    {
+                        { "count", "5" },
+                        { "screen_name", screenName },
+                        { "exclude_replies", "true" },
+                        { "include_rts", "true" },
+                        { "tweet_mode", "extended" }    // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
+                    })
+                    .WithHeaders(new Dictionary<string, string>
+                    {
+                        { "x-csrf-token", Configs.R.Twitter.XCsrfToken },
+                        { "Cookie", Configs.R.Twitter.Cookie }
+                    })
+                    .GetStringAsync(ct);
+            }
+            else
+            {
+                resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
+                    .WithTimeout(10)
+                    .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                    .SetQueryParams(new Dictionary<string, string>()
+                    {
+                    { "count", "5" },
+                    { "screen_name", screenName },
+                    { "exclude_replies", "true" },
+                    { "include_rts", "true" },
+                    { "tweet_mode", "extended" }
+                    })
+                    .GetStringAsync(ct);
+            }
         }
         catch (FlurlHttpException ex)
         {
