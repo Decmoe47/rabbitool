@@ -16,6 +16,7 @@ using Rabbitool.Common.Tool;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
 using Serilog;
+using static System.Net.Mime.MediaTypeNames;
 using Channel = QQChannelFramework.Models.Channel;
 
 namespace Rabbitool.Service;
@@ -231,7 +232,7 @@ public class QQBotService
         JObject? embed = null,
         JObject? ark = null,
         string? referenceMessageId = null,
-        string passiveReference = "",
+        string passiveMsgId = "",
         CancellationToken ct = default)
     {
         if (!Configs.R.InTestEnvironment && channelId == _sandboxGuildId)
@@ -244,8 +245,8 @@ public class QQBotService
 
         try
         {
-            _log.Information("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}",
-                channelName, referenceMessageId ?? "", passiveReference, text ?? "");
+            _log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
+                channelName, referenceMessageId ?? "", passiveMsgId, text ?? "");
             return await _qqApi
                 .GetMessageApi()
                 .SendMessageAsync(
@@ -255,19 +256,19 @@ public class QQBotService
                     embed: embed,
                     ark: ark,
                     referenceMessageId: referenceMessageId,
-                    passiveMsgId: passiveReference);
+                    passiveMsgId: passiveMsgId);
         }
         catch (MessageAuditException ex)
         {
             if (ex.Message.Contains("push message is waiting for audit now"))
             {
-                _log.Information(ex.Message);
+                _log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
                 return null;
             }
             else
             {
                 throw new QQBotApiException(
-                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgFile}\nReferenceMessageId: {referenceMessageId}\nPassiveReference: {passiveReference}\nText: {text}", ex);
+                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgFile}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
             }
         }
     }
@@ -310,6 +311,58 @@ public class QQBotService
                 //}
 
                 return msg;
+        }
+    }
+
+    public async Task<Message?> PushMarkdownMsgAsync(
+        string channelId,
+        string channelName,
+        MessageMarkdown markdown,
+        List<string>? otherImgs = null,
+        string? referenceMessageId = null, 
+        string? passiveMsgId = null, 
+        string? passiveEventId = null,
+        CancellationToken ct = default)
+    {
+        if (!Configs.R.InTestEnvironment && channelId == _sandboxGuildId)
+            return null;
+
+        await _limiter.AcquireAsync(1, ct);
+
+        try
+        {
+            _log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
+                channelName, referenceMessageId ?? "", passiveMsgId, JsonConvert.SerializeObject(markdown) ?? "");
+            Message msg = await _qqApi
+                .GetMessageApi()
+                .SendMessageAsync(
+                    channelId,
+                    markdown: markdown,
+                    referenceMessageId: referenceMessageId,
+                    passiveMsgId: passiveMsgId,
+                    passiveEventId: passiveEventId);
+            if (otherImgs != null && otherImgs.Count > 0)
+            {
+                foreach (string imgUrl in otherImgs)
+                {
+                    byte[] otherImg = await imgUrl.GetBytesAsync();
+                    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
+                }
+            }
+            return msg;
+        }
+        catch (MessageAuditException ex)
+        {
+            if (ex.Message.Contains("message is waiting for audit now"))
+            {
+                _log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
+                return null;
+            }
+            else
+            {
+                throw new QQBotApiException(
+                    $"Post message failed!\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {JsonConvert.SerializeObject(markdown)}", ex);
+            }
         }
     }
 

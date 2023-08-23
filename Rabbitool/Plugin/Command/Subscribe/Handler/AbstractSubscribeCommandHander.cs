@@ -113,10 +113,6 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
-        (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errCommandMsg != null)
-            return errCommandMsg;
-
         try
         {
             TSubscribe subscribe = await _repo.GetAsync(cmd.SubscribeId, true, ct);

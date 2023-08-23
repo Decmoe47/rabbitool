@@ -15,7 +15,4 @@ public class MarkdownTemplateIds
 
     [Required]
     public required string ContainsOriginWithImage { get; set; }
-
-    [Required]
-    public required string ContainsOriginDeleted { get; set; }
 }

@@ -160,7 +160,15 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     private async Task PushDynamicMsgAsync(
         BaseDynamic dy, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
-        (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
+        (MessageMarkdown markdown, List<string>? otherImgs) = await DynamicToMarkdownAsync(dy);
+        if (otherImgs != null && otherImgs.Count > 0)
+        {
+            markdown.Params.ForEach(p =>
+            {
+                if (p.Key == "Text")
+                    p.Values[0] += "\u200B（更多图片请查看原链接）";
+            });
+        }
 
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
@@ -179,8 +187,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct));
+            tasks.Add(_qbSvc.PushMarkdownMsgAsync(channel.ChannelId, channel.ChannelName, markdown, ct: ct));
             Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
                 dy.Uname, dy.Uid);
         }
@@ -428,8 +435,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             new MessageMarkdown()
             {
                 CustomTemplateId = dy.ImageUrls != null && dy.ImageUrls.Count != 0
-                    ? Configs.R.MarkdownTemplateIds!.WithImage
-                    : Configs.R.MarkdownTemplateIds!.TextOnly,
+                    ? Configs.R.QQBot.MarkdownTemplateIds!.WithImage
+                    : Configs.R.QQBot.MarkdownTemplateIds!.TextOnly,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             otherImgs
@@ -451,7 +458,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         return (
             new MessageMarkdown()
             {
-                CustomTemplateId = Configs.R.MarkdownTemplateIds!.WithImage,
+                CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -471,7 +478,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         return (
             new MessageMarkdown()
             {
-                CustomTemplateId = Configs.R.MarkdownTemplateIds!.WithImage,
+                CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -493,13 +500,14 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         switch (dy.Origin)
         {
             case string:
-                templateId = Configs.R.MarkdownTemplateIds!.ContainsOriginDeleted;
+                templateId = Configs.R.QQBot.MarkdownTemplateIds!.TextOnly;
+                templateParams.Text += "\n（原动态已被删除）";
                 break;
 
             case CommonDynamic cOrigin:
                 templateId = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
-                    ? Configs.R.MarkdownTemplateIds!.ContainsOriginTextOnly
-                    : Configs.R.MarkdownTemplateIds!.ContainsOriginWithImage;
+                    ? Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly
+                    : Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new()
                 {
                     Info = "动态",
@@ -521,7 +529,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 break;
 
             case VideoDynamic vOrigin:
-                templateId = Configs.R.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new()
                 {
                     Info = "视频",
@@ -535,7 +543,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 break;
 
             case ArticleDynamic aOrigin:
-                templateId = Configs.R.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new()
                 {
                     Info = "",
@@ -547,7 +555,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 break;
 
             case LiveCardDynamic lOrigin:
-                templateId = Configs.R.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new()
                 {
                     Info = "直播",
@@ -645,7 +653,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     private async Task PushLiveMsgAsync(
         Live live, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
-        (string title, string text) = LiveToStr(live);
+        MessageMarkdown markdown = await LiveToMarkdownAsync(live);
 
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
@@ -661,8 +669,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.LivePush == false) continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct));
+            tasks.Add(_qbSvc.PushMarkdownMsgAsync(channel.ChannelId, channel.ChannelName, markdown, ct: ct));
             Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
                 live.Uname, live.Uid);
         }
@@ -698,7 +705,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         };
         return new MessageMarkdown()
         {
-            CustomTemplateId = Configs.R.MarkdownTemplateIds!.WithImage,
+            CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
             Params = templateParams.ToMessageMarkdownParams(),
         };
     }

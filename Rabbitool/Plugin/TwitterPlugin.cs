@@ -222,7 +222,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
     private async Task<(MessageMarkdown markdown, List<string>? otherImgs)> TweetToMarkdownAsync(Tweet tweet, CancellationToken ct = default)
     {
         List<string> otherImages = new();
-        string templateId = Configs.R.MarkdownTemplateIds!.TextOnly;
+        string templateId = Configs.R.QQBot.MarkdownTemplateIds!.TextOnly;
         MarkdownTemplateParams templateParams = new()
         {
             Info = "新推文",
@@ -236,7 +236,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
             templateParams.ImageUrl = tweet.ImageUrls[0];
             if (tweet.ImageUrls.Count > 1)
                 otherImages.AddRange(tweet.ImageUrls.GetRange(1, tweet.ImageUrls.Count - 1));
-            templateId = Configs.R.MarkdownTemplateIds.WithImage;
+            templateId = Configs.R.QQBot.MarkdownTemplateIds.WithImage;
         }
 
         switch (tweet.Type)
@@ -245,27 +245,8 @@ public class TwitterPlugin : BasePlugin, IPlugin
                 break;
 
             case TweetTypeEnum.Quote:
-                templateId = Configs.R.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新带评论转发推文";
-                templateParams.Origin = new()
-                {
-                    Info = "原推文",
-                    From = tweet.Origin!.Author,
-                    Text = tweet.Origin!.Text.AddRedirectToUrls(),
-                };
-                if (tweet.Origin.ImageUrls != null)
-                {
-                    templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
-                    if (tweet.Origin.ImageUrls.Count > 1)
-                        otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Configs.R.MarkdownTemplateIds.ContainsOriginWithImage;
-                }
-                break;
-
-            case TweetTypeEnum.RT:
-                templateId = Configs.R.MarkdownTemplateIds.ContainsOriginTextOnly;
-                templateParams.Info = "新转发推文";
-                templateParams.Url = null;
                 templateParams.Origin = new()
                 {
                     Info = "原推文",
@@ -278,7 +259,27 @@ public class TwitterPlugin : BasePlugin, IPlugin
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Configs.R.MarkdownTemplateIds.ContainsOriginWithImage;
+                    templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
+                }
+                break;
+
+            case TweetTypeEnum.RT:
+                templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateParams.Info = "新转发推文";
+                templateParams.Url = tweet.Url.AddRedirectToUrls();
+                templateParams.Origin = new()
+                {
+                    Info = "原推文",
+                    From = tweet.Origin!.Author,
+                    Text = tweet.Origin!.Text.AddRedirectToUrls(),
+                    Url = tweet.Origin!.Url.AddRedirectToUrls(),
+                };
+                if (tweet.Origin.ImageUrls != null)
+                {
+                    templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
+                    if (tweet.Origin.ImageUrls.Count > 1)
+                        otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
+                    templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
                 }
                 break;
 

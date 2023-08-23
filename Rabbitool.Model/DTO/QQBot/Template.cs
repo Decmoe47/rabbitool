@@ -11,7 +11,7 @@ public class MarkdownTemplateParams
     public required string Info { get; set; }
     public required string From { get; set; }
     public required string Text { get; set; }
-    public string? Url { get; set; }
+    public required string Url { get; set; }
     public string? ImageUrl { get; set; }
 
     public MarkdownTemplateParams? Origin { get; set; }
@@ -21,20 +21,18 @@ public class MarkdownTemplateParams
         List<MessageMarkdownParams> messageParams = new()
         {
             new("info", Info),
-            new("From", From),
-            new("Text", Text)
+            new("from", From),
+            new("text", Text.Replace("\n", "\u200B")),
+            new("link", Url)
         };
-        if (Url != null)
-            messageParams.Add(new("Url", Url));
         if (ImageUrl != null)
-            messageParams.Add(new("text", Text));
-
+            messageParams.Add(new("image", Text));
         if (Origin?.Info != null)
             messageParams.Add(new("origin_info", Origin.Info));
         if (Origin?.From != null)
             messageParams.Add(new("origin_from", Origin.From));
         if (Origin?.Text != null)
-            messageParams.Add(new("origin_text", Origin.Text));
+            messageParams.Add(new("origin_text", Origin.Text.Replace("\n", "\u200B")));
         if (Origin?.Url != null)
             messageParams.Add(new("origin_link", Origin.Url));
         if (Origin?.ImageUrl != null)

@@ -17,8 +17,6 @@ public class Configs
     [Required]
     public required Logger DefaultLogger { get; set; }
 
-    public MarkdownTemplateIds? MarkdownTemplateIds { get; set; }
-
     public Notifier? Notifier { get; set; }
 
     public Proxy? Proxy { get; set; }

@@ -35,15 +35,7 @@ public class MailSubscribeCommandHandler
 
         string address;
         string? errMsg = null;
-        try
-        {
-            (address, errMsg) = await CheckId(cmd.SubscribeId, ct);
-        }
-        catch (FlurlHttpException ex)
-        {
-            Log.Error(ex, "Failed to check id {id}", cmd.SubscribeId);
-            return "在检查id时发生http错误！";
-        }
+        (address, errMsg) = await CheckId(cmd.SubscribeId, ct);
 
         if (cmd.Configs == null)
             return "错误：需指定邮箱地址！";
@@ -108,10 +100,6 @@ public class MailSubscribeCommandHandler
     {
         if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
-
-        (_, string? errCommandMsg) = await CheckId(cmd.SubscribeId, ct);
-        if (errCommandMsg != null)
-            return errCommandMsg;
 
         try
         {
