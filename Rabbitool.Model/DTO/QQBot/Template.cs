@@ -22,7 +22,7 @@ public class MarkdownTemplateParams
         {
             new("info", Info),
             new("from", From),
-            new("text", Text.Replace("\n", "\u200B")),
+            new("text", Text.Replace("\n","\u200B")),
             new("link", Url)
         };
         if (ImageUrl != null)

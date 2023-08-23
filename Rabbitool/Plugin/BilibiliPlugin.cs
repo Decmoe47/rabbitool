@@ -1,4 +1,6 @@
-﻿using Coravel;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using Coravel;
 using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
@@ -160,15 +162,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     private async Task PushDynamicMsgAsync(
         BaseDynamic dy, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
-        (MessageMarkdown markdown, List<string>? otherImgs) = await DynamicToMarkdownAsync(dy);
-        if (otherImgs != null && otherImgs.Count > 0)
-        {
-            markdown.Params.ForEach(p =>
-            {
-                if (p.Key == "Text")
-                    p.Values[0] += "\u200B（更多图片请查看原链接）";
-            });
-        }
+        (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
 
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
@@ -187,7 +181,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushMarkdownMsgAsync(channel.ChannelId, channel.ChannelName, markdown, ct: ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct));
             Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
                 dy.Uname, dy.Uid);
         }
@@ -489,6 +484,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     {
         string templateId = "";
         List<string>? otherImgs = null;
+
         MarkdownTemplateParams templateParams = new()
         {
             Info = "新转发动态",
@@ -506,13 +502,13 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             case CommonDynamic cOrigin:
                 templateId = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
-                    ? Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly
-                    : Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
+                    ? Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage
+                    : Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly;
                 templateParams.Origin = new()
                 {
                     Info = "动态",
                     From = cOrigin.Uname,
-                    Url = cOrigin.Text.AddRedirectToUrls(),
+                    Url = cOrigin.DynamicUrl.AddRedirectToUrls(),
                     Text = cOrigin.Text,
                     ImageUrl = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
                         ? await _cosSvc.UploadImageAsync(cOrigin.ImageUrls[0])
@@ -653,7 +649,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     private async Task PushLiveMsgAsync(
         Live live, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
-        MessageMarkdown markdown = await LiveToMarkdownAsync(live);
+        (string title, string text) = LiveToStr(live);
 
         List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
@@ -669,7 +665,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.LivePush == false) continue;
 
-            tasks.Add(_qbSvc.PushMarkdownMsgAsync(channel.ChannelId, channel.ChannelName, markdown, ct: ct));
+            tasks.Add(_qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct));
             Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
                 live.Uname, live.Uid);
         }

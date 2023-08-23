@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Rabbitool.Common.Util;
 
-public static class CommonUtil
+public static partial class CommonUtil
 {
     /// <summary>
     /// 不存在的属性名会被忽略
@@ -26,7 +26,7 @@ public static class CommonUtil
 
     public static bool ExistUrl(string text)
     {
-        return Regex.IsMatch(text, @"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?");
+        return MyRegex().IsMatch(text);
     }
 
     public static List<T> CombineLists<T>(
@@ -43,4 +43,7 @@ public static class CommonUtil
             lst = lst.Concat(lst6);
         return lst.ToList();
     }
+
+    [GeneratedRegex("(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?")]
+    private static partial Regex MyRegex();
 }
