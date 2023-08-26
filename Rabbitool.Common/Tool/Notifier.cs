@@ -84,7 +84,7 @@ public class Notifier : ILogEventSink, IDisposable
         msg.From.Add(new MailboxAddress(_from, _from));
         foreach (string to in _to)
             msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
+        msg.Subject = $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
         msg.Body = new TextPart() { Text = text };
 
         await _client.SendAsync(msg);
