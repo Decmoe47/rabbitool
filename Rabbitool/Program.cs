@@ -19,8 +19,8 @@ if (conf.InTestEnvironment && conf.Proxy != null)
     System.Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.Https);
 }
 
-QQBotService qbSvc = new();
 CosService cosSvc = new();
+QQBotService qbSvc = new(cosSvc);
 
 PluginLoader loader = new(qbSvc);
 loader.Load(new QQBotPlugin(qbSvc));

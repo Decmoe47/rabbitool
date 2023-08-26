@@ -29,6 +29,7 @@ public class QQBotService
     private readonly ChannelBot _qqBot;
     private string _sandboxGuildId = "";
     private string _botId = "";
+    private readonly CosService _cosSvc;
 
     private readonly ILogger _log = Log.Logger;
 
@@ -40,8 +41,9 @@ public class QQBotService
         TokensPerPeriod = 5,
     });     // See https://bot.q.qq.com/wiki/develop/api/openapi/message/post_messages.html
 
-    public QQBotService()
+    public QQBotService(CosService cosSvc)
     {
+        _cosSvc = cosSvc;
         if (Configs.R.QQBot.Logger is not null)
             _log = LogConfiger.New(fileName: "qqBot");
 
@@ -228,7 +230,7 @@ public class QQBotService
         string channelId,
         string channelName,
         string? text = null,
-        byte[]? imgFile = null,
+        string? imgUrl = null,
         JObject? embed = null,
         JObject? ark = null,
         string? referenceMessageId = null,
@@ -240,9 +242,9 @@ public class QQBotService
 
         await _limiter.AcquireAsync(1, ct);
 
-        if (imgFile != null && ImageUtil.IsLargerThanAllowed(imgFile))
-            imgFile = ImageUtil.Compress(imgFile);
-
+        if (imgUrl != null)
+            imgUrl = await _cosSvc.UploadImageAsync(imgUrl, ct);
+        
         try
         {
             _log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
@@ -252,7 +254,7 @@ public class QQBotService
                 .SendMessageAsync(
                     channelId: channelId,
                     content: text,
-                    imageData: imgFile,
+                    imageUrl: imgUrl,
                     embed: embed,
                     ark: ark,
                     referenceMessageId: referenceMessageId,
@@ -268,7 +270,7 @@ public class QQBotService
             else
             {
                 throw new QQBotApiException(
-                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgFile}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
+                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
             }
         }
     }
@@ -276,15 +278,7 @@ public class QQBotService
     public async Task<Message?> PushCommonMsgAsync(
         string channelId, string channelName, string text, string? imgUrl = null, CancellationToken ct = default)
     {
-        if (imgUrl != null)
-        {
-            byte[] img = await imgUrl.GetBytesAsync();
-            return await PostMessageAsync(channelId, channelName, text, img, ct: ct);
-        }
-        else
-        {
-            return await PostMessageAsync(channelId, channelName, text, ct: ct);
-        }
+        return await PostMessageAsync(channelId, channelName, text, imgUrl, ct: ct);
     }
 
     public async Task<Message?> PushCommonMsgAsync(
@@ -296,19 +290,11 @@ public class QQBotService
                 return await PostMessageAsync(channelId, channelName, text, ct: ct);
 
             case 1:
-                byte[] img = await imgUrls[0].GetBytesAsync();
-                return await PostMessageAsync(channelId, channelName, text, img, ct: ct);
+                return await PostMessageAsync(channelId, channelName, text, imgUrls[0], ct: ct);
 
             default:
                 text += "\n\n（更多图片请查看原链接）";
-                byte[] firstImg = await imgUrls[0].GetBytesAsync();
-                Message? msg = await PostMessageAsync(channelId, channelName, text, firstImg, ct: ct);
-
-                //foreach (string imgUrl in imgUrls.GetRange(1, imgUrls.Count - 1))
-                //{
-                //    byte[] otherImg = await imgUrl.GetBytesAsync();
-                //    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
-                //}
+                Message? msg = await PostMessageAsync(channelId, channelName, text, imgUrls[0], ct: ct);
 
                 return msg;
         }
@@ -344,10 +330,7 @@ public class QQBotService
             if (otherImgs != null && otherImgs.Count > 0)
             {
                 foreach (string imgUrl in otherImgs)
-                {
-                    byte[] otherImg = await imgUrl.GetBytesAsync();
-                    await PostMessageAsync(channelId, channelName, imgFile: otherImg, ct: ct);
-                }
+                    await PostMessageAsync(channelId, channelName, imgUrl, ct: ct);
             }
             return msg;
         }
