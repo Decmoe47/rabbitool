@@ -6,8 +6,6 @@ using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Rabbitool.Common.Tool;
 
