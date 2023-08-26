@@ -16,10 +16,11 @@ public static class LogConfiger
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                $"log/{fileName}_{DateTime.Now:yyyyMMdd_HHmmsszz}.log",
+                $"log/{fileName}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
+                rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 1024 * 1024)
+                fileSizeLimitBytes: 1024 * 1024 * 3)
             .CreateLogger();
     }
 
@@ -35,10 +36,11 @@ public static class LogConfiger
                 restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
                 outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                $"log/{fileName}_{DateTime.Now:yyyyMMdd_HHmmsszz}.log",
+                $"log/{fileName}.log",
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
+                rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 1024 * 1024)
+                fileSizeLimitBytes: 1024 * 1024 * 3)
             .WriteTo.Mail(errorNotifierOptions)
             .CreateLogger();
     }

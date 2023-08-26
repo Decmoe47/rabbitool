@@ -26,7 +26,7 @@ public class ErrorNotifierTest
         catch (ArgumentException ex)
         {
             for (int i = 0; i < 6; i++)
-                await _notifier.SendAsync(ex);
+                await _notifier.NotifyAsync(ex);
         }
     }
 
@@ -40,7 +40,7 @@ public class ErrorNotifierTest
         catch (ArgumentException ex)
         {
             for (int i = 0; i < 5; i++)
-                await _notifier.SendAsync(ex);
+                await _notifier.NotifyAsync(ex);
         }
     }
 }

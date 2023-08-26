@@ -1,10 +1,13 @@
-﻿using MailKit.Net.Smtp;
+﻿using System.Diagnostics.CodeAnalysis;
+using MailKit.Net.Smtp;
 using MimeKit;
 using Rabbitool.Common.Util;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Rabbitool.Common.Tool;
 
@@ -22,8 +25,7 @@ public class Notifier : ILogEventSink, IDisposable
 
     private readonly int _intervalMinutes;
     private readonly int _allowedAmount;
-    private int _errCount;
-    private long _timeStampToRefresh;
+    private readonly List<ErrorCounter> _errors = new();
 
     private readonly IFormatProvider? _formatProvider;
 
@@ -56,19 +58,23 @@ public class Notifier : ILogEventSink, IDisposable
         if (logEvent.Exception != null)
             message += "\n\n" + logEvent.Exception.ToString();
 
-        Send(message);
+        Notify(message);
     }
 
-    public async Task SendAsync(System.Exception ex, CancellationToken ct = default)
+    public async Task NotifyAsync(System.Exception ex, CancellationToken ct = default)
     {
-        await SendAsync(ex.ToString(), ct);
+        await NotifyAsync(ex.ToString(), ct);
     }
 
-    public async Task SendAsync(string text, CancellationToken ct = default)
+    public async Task NotifyAsync(string text, CancellationToken ct = default)
     {
-        if (!Allow())
+        if (!Allow(text))
             return;
+        await SendAsync(text, ct);
+    }
 
+    private async Task SendAsync(string text, CancellationToken ct = default)
+    {
         if (!_client.IsConnected)
             await _client.ConnectAsync(_host, _port, _ssl, ct);
         if (!_client.IsAuthenticated)
@@ -84,16 +90,20 @@ public class Notifier : ILogEventSink, IDisposable
         await _client.SendAsync(msg);
     }
 
-    public void Send(System.Exception ex)
+    public void Notify(System.Exception ex)
     {
-        Send(ex.ToString());
+        Notify(ex.ToString());
     }
 
-    public void Send(string text)
+    public void Notify(string text)
     {
-        if (!Allow())
+        if (!Allow(text))
             return;
+        Send(text);
+    }
 
+    private void Send(string text, bool isRecoverd = false)
+    {
         if (!_client.IsConnected)
             _client.Connect(_host, _port, _ssl);
         if (!_client.IsAuthenticated)
@@ -103,31 +113,97 @@ public class Notifier : ILogEventSink, IDisposable
         msg.From.Add(new MailboxAddress(_from, _from));
         foreach (string to in _to)
             msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = $"Error from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
+        msg.Subject = isRecoverd
+            ? $"Alert Cleared from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}"
+            : $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
+
         msg.Body = new TextPart() { Text = text };
 
         _client.Send(msg);
     }
 
-    private bool Allow()
+    private bool Allow(string text)
     {
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        ClearDisposedErrorCounter();
 
-        if (now > _timeStampToRefresh)
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        ErrorCounter? error = _errors.FirstOrDefault(e => e.Text == text && !e.Disposed);
+        if (error == null)
         {
-            _timeStampToRefresh = now + _intervalMinutes * 60;
-            _errCount = 1;
-            return false;
+            error = new(text, now + (_intervalMinutes * 60));
+            _errors.Add(error);
         }
 
-        _errCount++;
-        return _errCount == _allowedAmount;
+        error.Count++;
+        if (now > error.TimeStampToRefresh)
+        {
+            error.TimeStampToRefresh = now + (_intervalMinutes * 60);
+            error.Count = 1;
+        }
+
+        if (error.Count > _allowedAmount)
+        {
+            error.Alerting = true;
+            return true;
+        }
+        
+        return false;
+    }
+
+    private void ClearDisposedErrorCounter()
+    {
+        List<int> indexesToRemove = new();
+        for (int i = 0; i < _errors.Count; i++)
+        {
+            if (_errors[i].Disposed)
+            {
+                Send("【The error below is no longer happened】\n\n" + _errors[i].Text);
+                indexesToRemove.Add(i);
+            }
+        }
+
+        foreach (int index in indexesToRemove)
+            _errors.RemoveAt(index);  
     }
 
     public void Dispose()
     {
         _client?.Dispose();
         GC.SuppressFinalize(this);
+    }
+}
+
+public class ErrorCounter
+{
+    public int Count { get; set; }
+    public List<int> Last5Count { get; set; } = new();
+    public required string Text { get; set; }
+    public required long TimeStampToRefresh { get; set; }
+    public required Timer Timer { get; set; }
+    public bool Alerting { get; set; }
+    public bool Disposed { get; set; }
+
+    [SetsRequiredMembers]
+    public ErrorCounter(string text, long timeStampToRefresh)
+    {
+        Text = text;
+        TimeStampToRefresh = timeStampToRefresh;
+        Timer = new Timer(state =>
+        {
+            if (!Alerting)
+                return;
+
+            Last5Count.Add(Count);
+            if (Last5Count.Count > 5) 
+                Last5Count.RemoveAt(0);
+
+            if (Last5Count.All(c => c == Last5Count[0]))
+            {
+                Timer? t = (Timer?)state;
+                t?.Dispose();
+                Disposed = true;
+            }
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 }
 
