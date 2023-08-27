@@ -49,6 +49,10 @@ public class YoutubeSubscribeConfigEntity : BaseSubscribeConfigEntity<YoutubeSub
     {
     }
 
+    private YoutubeSubscribeConfigEntity()
+    {
+    }
+
     public bool VideoPush { get; set; } = true;
     public bool LivePush { get; set; } = true;
     public bool UpcomingLivePush { get; set; } = true;

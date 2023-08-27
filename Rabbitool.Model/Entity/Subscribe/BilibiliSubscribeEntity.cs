@@ -48,6 +48,10 @@ public class BilibiliSubscribeConfigEntity : BaseSubscribeConfigEntity<BilibiliS
     {
     }
 
+    private BilibiliSubscribeConfigEntity()
+    {
+    }
+
     public bool LivePush { get; set; } = true;
     public bool DynamicPush { get; set; } = true;
     public bool PureForwardDynamicPush { get; set; }

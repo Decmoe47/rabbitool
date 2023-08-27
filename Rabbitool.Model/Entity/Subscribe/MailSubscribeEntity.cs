@@ -59,6 +59,10 @@ public class MailSubscribeConfigEntity : BaseSubscribeConfigEntity<MailSubscribe
     {
     }
 
+    private MailSubscribeConfigEntity()
+    {
+    }
+
     public bool Detail { get; set; }
     public bool PushToThread { get; set; }
 

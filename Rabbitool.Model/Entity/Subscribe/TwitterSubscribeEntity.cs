@@ -42,6 +42,10 @@ public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSub
     {
     }
 
+    private TwitterSubscribeConfigEntity()
+    {
+    }
+
     public bool RtPush { get; set; }
     public bool PushToThread { get; set; }
 
