@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading.RateLimiting;
-using Flurl.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using QQChannelFramework.Api;
@@ -12,11 +11,9 @@ using QQChannelFramework.Models.Forum.Contents;
 using QQChannelFramework.Models.MessageModels;
 using QQChannelFramework.Models.Types;
 using QQChannelFramework.Models.WsModels;
-using Rabbitool.Common.Tool;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
 using Serilog;
-using static System.Net.Mime.MediaTypeNames;
 using Channel = QQChannelFramework.Models.Channel;
 
 namespace Rabbitool.Service;
@@ -31,8 +28,6 @@ public class QQBotService
     private string _botId = "";
     private readonly CosService _cosSvc;
 
-    private readonly ILogger _log = Log.Logger;
-
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
@@ -44,8 +39,6 @@ public class QQBotService
     public QQBotService(CosService cosSvc)
     {
         _cosSvc = cosSvc;
-        if (Configs.R.QQBot.Logger is not null)
-            _log = LogConfiger.New(fileName: "qqBot");
 
         OpenApiAccessInfo openApiAccessInfo = new()
         {
@@ -84,7 +77,7 @@ public class QQBotService
                 return;
             if (!message.Content.Contains("<@!" + _botId + ">"))
                 return;
-            _log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
+            Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
             string text = await fn(message, ct);
@@ -100,7 +93,7 @@ public class QQBotService
             }
             catch (Exception ex)
             {
-                _log.Error(ex, ex.Message);
+                Log.Error(ex, ex.Message);
             }
         };
     }
@@ -129,9 +122,9 @@ public class QQBotService
     {
         _qqBot.RegisterAuditEvent();
         _qqBot.MessageAuditPass += (audit)
-            => _log.Information("Message audit passed.\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
+            => Log.Information("Message audit passed.\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
         _qqBot.MessageAuditReject += (audit)
-            => _log.Error("Message audit rejected!\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
+            => Log.Error("Message audit rejected!\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
     }
 
     private void RegisterBasicEvents()
@@ -139,12 +132,12 @@ public class QQBotService
         _qqBot.OnConnected += () =>
         {
             IsOnline = true;
-            _log.Information("QQBot connected!");
+            Log.Information("QQBot connected!");
         };
         _qqBot.OnError += async (ex) =>
         {
             IsOnline = false;
-            _log.Error(ex, "QQBot error: {message}", ex.Message);
+            Log.Error(ex, "QQBot error: {message}", ex.Message);
             if (ex.Message.Contains("websocket link does not exist"))
             {
                 await _qqBot.OfflineAsync();
@@ -154,7 +147,7 @@ public class QQBotService
         _qqBot.OnClose += () =>
         {
             IsOnline = false;
-            _log.Warning("QQBot connect closed!");
+            Log.Warning("QQBot connect closed!");
         };
     }
 
@@ -244,10 +237,10 @@ public class QQBotService
 
         if (imgUrl != null)
             imgUrl = await _cosSvc.UploadImageAsync(imgUrl, ct);
-        
+
         try
         {
-            _log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
+            Log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
                 channelName, referenceMessageId ?? "", passiveMsgId, text ?? "");
             return await _qqApi
                 .GetMessageApi()
@@ -264,14 +257,17 @@ public class QQBotService
         {
             if (ex.Message.Contains("push message is waiting for audit now"))
             {
-                _log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
+                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
                 return null;
             }
             else
             {
-                throw new QQBotApiException(
-                    $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
+                throw new QQBotApiException($"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
             }
+        }
+        catch (ErrorResultException rex)
+        {
+            throw new QQBotApiException($"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", rex);
         }
     }
 
@@ -305,8 +301,8 @@ public class QQBotService
         string channelName,
         MessageMarkdown markdown,
         List<string>? otherImgs = null,
-        string? referenceMessageId = null, 
-        string? passiveMsgId = null, 
+        string? referenceMessageId = null,
+        string? passiveMsgId = null,
         string? passiveEventId = null,
         CancellationToken ct = default)
     {
@@ -317,7 +313,7 @@ public class QQBotService
 
         try
         {
-            _log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
+            Log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
                 channelName, referenceMessageId ?? "", passiveMsgId, JsonConvert.SerializeObject(markdown) ?? "");
             Message msg = await _qqApi
                 .GetMessageApi()
@@ -338,7 +334,7 @@ public class QQBotService
         {
             if (ex.Message.Contains("message is waiting for audit now"))
             {
-                _log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
+                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
                 return null;
             }
             else
@@ -358,7 +354,7 @@ public class QQBotService
         await _limiter.AcquireAsync(1, ct);
         try
         {
-            _log.Information("Posting QQ channel thread...\nChannelName: {channelName}\nTitle: {title}\nText: {text}",
+            Log.Information("Posting QQ channel thread...\nChannelName: {channelName}\nTitle: {title}\nText: {text}",
                 channelName, title, text);
             return await _qqApi
                 .GetForumApi()
@@ -368,7 +364,7 @@ public class QQBotService
         {
             if (ex.Message.Contains("(304023)"))
             {
-                _log.Information(ex.Message);
+                Log.Information(ex.Message);
                 return null;
             }
             else

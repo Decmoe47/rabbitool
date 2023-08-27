@@ -17,7 +17,7 @@ public class ErrorNotifierTest
     }
 
     [Fact()]
-    public async Task SendAsyncTestShouldReceivedAsync()
+    public void SendTestShouldReceived()
     {
         try
         {
@@ -26,12 +26,12 @@ public class ErrorNotifierTest
         catch (ArgumentException ex)
         {
             for (int i = 0; i < 6; i++)
-                await _notifier.NotifyAsync(ex);
+                _notifier.Notify(ex.ToString(), ex.ToString());
         }
     }
 
     [Fact()]
-    public async Task SendAsyncTestShouldNotReceivedAsync()
+    public void SendAsyncTestShouldNotReceived()
     {
         try
         {
@@ -40,7 +40,7 @@ public class ErrorNotifierTest
         catch (ArgumentException ex)
         {
             for (int i = 0; i < 5; i++)
-                await _notifier.NotifyAsync(ex);
+                _notifier.Notify(ex.ToString(), ex.ToString());
         }
     }
 }

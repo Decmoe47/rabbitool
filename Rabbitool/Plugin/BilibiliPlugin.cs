@@ -1,6 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
-using Coravel;
+﻿using Coravel;
 using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
@@ -181,14 +179,16 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct));
-            Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
-                dy.Uname, dy.Uid);
+            tasks.Add(new Task(async () =>
+            {
+                await _qbSvc.PushCommonMsgAsync(
+                    channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
+                Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
+                    dy.Uname, dy.Uid);
+            }));
         }
 
         await Task.WhenAll(tasks);
-        return;
     }
 
     private (string title, string text, List<string>? imgUrls) DynamicToStr(BaseDynamic dy)
@@ -665,14 +665,16 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.LivePush == false) continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct));
-            Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
-                live.Uname, live.Uid);
+            tasks.Add(new Task(async () =>
+            {
+                await _qbSvc.PushCommonMsgAsync(
+                    channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct);
+                Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
+                    live.Uname, live.Uid);
+            }));
         }
 
         await Task.WhenAll(tasks);
-        return;
     }
 
     private (string title, string text) LiveToStr(Live live)

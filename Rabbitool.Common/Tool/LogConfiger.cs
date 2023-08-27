@@ -20,7 +20,7 @@ public static class LogConfiger
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 1024 * 1024 * 3)
+                fileSizeLimitBytes: 1024 * 1024)
             .CreateLogger();
     }
 
@@ -40,7 +40,7 @@ public static class LogConfiger
                 restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
                 rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 1024 * 1024 * 3)
+                fileSizeLimitBytes: 1024 * 1024)
             .WriteTo.Mail(errorNotifierOptions)
             .CreateLogger();
     }

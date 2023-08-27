@@ -1,5 +1,4 @@
-﻿using Flurl;
-using Flurl.Http;
+﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Extension;
 using Rabbitool.Model.Entity.Subscribe;

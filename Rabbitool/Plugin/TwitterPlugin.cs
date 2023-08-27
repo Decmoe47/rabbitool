@@ -138,21 +138,26 @@ public class TwitterPlugin : BasePlugin, IPlugin
                 continue;
             if (config.PushToThread)
             {
-                tasks.Add(_qbSvc.PostThreadAsync(
-                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct));
-                Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
-                    tweet.Author, tweet.AuthorScreenName);
+                tasks.Add(new Task(async () =>
+                {
+                    await _qbSvc.PostThreadAsync(
+                        channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
+                    Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
+                        tweet.Author, tweet.AuthorScreenName);
+                }));
                 continue;
             }
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct));
-            Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
-                tweet.Author, tweet.AuthorScreenName);
+            tasks.Add(new Task(async () =>
+            {
+                await _qbSvc.PushCommonMsgAsync(
+                    channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct);
+                Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
+                    tweet.Author, tweet.AuthorScreenName);
+            }));
         }
 
         await Task.WhenAll(tasks);
-        return;
     }
 
     private async Task<(string title, string text)> TweetToStrAsync(Tweet tweet, CancellationToken ct = default)

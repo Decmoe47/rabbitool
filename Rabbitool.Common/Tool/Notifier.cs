@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MimeKit;
 using Rabbitool.Common.Util;
 using Serilog;
@@ -53,51 +52,21 @@ public class Notifier : ILogEventSink, IDisposable
             return;
 
         string message = logEvent.RenderMessage(_formatProvider);
+        string textToCount = message;
         if (logEvent.Exception != null)
+        {
             message += "\n\n" + logEvent.Exception.ToString();
+            textToCount += "\n\n" + logEvent.Exception.GetType().Name;
+        }
 
-        Notify(message);
+        Notify(message, textToCount);
     }
 
-    public async Task NotifyAsync(System.Exception ex, CancellationToken ct = default)
+    public void Notify(string textToSend, string textToCount)
     {
-        await NotifyAsync(ex.ToString(), ct);
-    }
-
-    public async Task NotifyAsync(string text, CancellationToken ct = default)
-    {
-        if (!Allow(text))
+        if (!Allow(textToCount))
             return;
-        await SendAsync(text, ct);
-    }
-
-    private async Task SendAsync(string text, CancellationToken ct = default)
-    {
-        if (!_client.IsConnected)
-            await _client.ConnectAsync(_host, _port, _ssl, ct);
-        if (!_client.IsAuthenticated)
-            await _client.AuthenticateAsync(_username, _password, ct);
-
-        MimeMessage msg = new();
-        msg.From.Add(new MailboxAddress(_from, _from));
-        foreach (string to in _to)
-            msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
-        msg.Body = new TextPart() { Text = text };
-
-        await _client.SendAsync(msg);
-    }
-
-    public void Notify(System.Exception ex)
-    {
-        Notify(ex.ToString());
-    }
-
-    public void Notify(string text)
-    {
-        if (!Allow(text))
-            return;
-        Send(text);
+        Send(textToSend);
     }
 
     private void Send(string text, bool isRecoverd = false)
@@ -144,7 +113,7 @@ public class Notifier : ILogEventSink, IDisposable
             error.Alerting = true;
             return true;
         }
-        
+
         return false;
     }
 
@@ -161,7 +130,7 @@ public class Notifier : ILogEventSink, IDisposable
         }
 
         foreach (int index in indexesToRemove)
-            _errors.RemoveAt(index);  
+            _errors.RemoveAt(index);
     }
 
     public void Dispose()
@@ -175,13 +144,12 @@ public class ErrorCounter
 {
     public int Count { get; set; }
     public List<int> Last5Count { get; set; } = new();
-    public required string Text { get; set; }
-    public required long TimeStampToRefresh { get; set; }
-    public required Timer Timer { get; set; }
+    public string Text { get; set; }
+    public long TimeStampToRefresh { get; set; }
+    public Timer Timer { get; set; }
     public bool Alerting { get; set; }
     public bool Disposed { get; set; }
 
-    [SetsRequiredMembers]
     public ErrorCounter(string text, long timeStampToRefresh)
     {
         Text = text;
@@ -192,7 +160,7 @@ public class ErrorCounter
                 return;
 
             Last5Count.Add(Count);
-            if (Last5Count.Count > 5) 
+            if (Last5Count.Count > 5)
                 Last5Count.RemoveAt(0);
 
             if (Last5Count.All(c => c == Last5Count[0]))
@@ -208,16 +176,16 @@ public class ErrorCounter
 public class ErrorNotifierOptions
 {
     public required string Host { get; set; }
-    public required int Port { get; set; }
-    public required bool Ssl { get; set; }
+    public int Port { get; set; }
+    public bool Ssl { get; set; }
     public required string Username { get; set; }
     public required string Password { get; set; }
 
     public required string From { get; set; }
     public required string[] To { get; set; }
 
-    public required int Interval { get; set; }
-    public required int AllowedAmount { get; set; }
+    public int Interval { get; set; }
+    public int AllowedAmount { get; set; }
 }
 
 public static class ErrorNotifierExtension

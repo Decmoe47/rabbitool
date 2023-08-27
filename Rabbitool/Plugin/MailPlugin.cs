@@ -158,15 +158,24 @@ public class MailPlugin : BasePlugin, IPlugin
             }
 
             if (config.Detail)
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}", ct: ct));
+            {
+                tasks.Add(new Task(async () =>
+                {
+                    await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}", ct: ct);
+                    Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+                }));
+            }
             else
-                tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct));
-
-            Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+            {
+                tasks.Add(new Task(async () =>
+                {
+                    await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
+                    Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+                }));
+            }
         }
 
         await Task.WhenAll(tasks);
-        return;
     }
 
     private (string title, string text, string detailText) MailToStr(Mail mail)

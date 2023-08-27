@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using Flurl.Http;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;

@@ -92,7 +92,7 @@ public static class ImageUtil
 
         if (!Directory.Exists("./tmp"))
             Directory.CreateDirectory("./tmp");
-        File.WriteAllBytes("./tmp/"+fileName, image);
+        File.WriteAllBytes("./tmp/" + fileName, image);
 
         FileInfo fileInfo = new("./tmp/" + fileName);
         return fileInfo.Length > _allowedMaxImageSize;

@@ -230,21 +230,23 @@ public class YoutubePlugin : BasePlugin, IPlugin
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            tasks.Add(_qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct));
-            if (item.Type == YoutubeTypeEnum.Video)
+            tasks.Add(new Task(async () =>
             {
-                Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
-                    item.Author, item.ChannelId);
-            }
-            else if (item.Type == YoutubeTypeEnum.Live || item.Type == YoutubeTypeEnum.UpcomingLive)
-            {
-                Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
-                    item.Author, item.ChannelId);
-            }
+                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
+                if (item.Type == YoutubeTypeEnum.Video)
+                {
+                    Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
+                        item.Author, item.ChannelId);
+                }
+                else if (item.Type == YoutubeTypeEnum.Live || item.Type == YoutubeTypeEnum.UpcomingLive)
+                {
+                    Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+                        item.Author, item.ChannelId);
+                }
+            }));
         }
 
         await Task.WhenAll(tasks);
-        return;
     }
 
     private (string title, string text, string imgUrl) ItemToStr<T>(T item) where T : YoutubeItem

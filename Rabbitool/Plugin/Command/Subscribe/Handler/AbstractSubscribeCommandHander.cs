@@ -68,13 +68,13 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         try
         {
             (name, errMsg) = await CheckId(cmd.SubscribeId, ct);
-        } 
+        }
         catch (FlurlHttpException ex)
         {
             Log.Error(ex, "Failed to check id {id}", cmd.SubscribeId);
             return "在检查id时发生http错误！";
         }
-        
+
         if (errMsg != null)
             return errMsg;
 
