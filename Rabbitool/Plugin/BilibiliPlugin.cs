@@ -13,11 +13,11 @@ namespace Rabbitool.Plugin;
 
 public class BilibiliPlugin : BasePlugin, IPlugin
 {
-    private readonly BilibiliService _svc;
-    private readonly BilibiliSubscribeRepository _repo;
     private readonly BilibiliSubscribeConfigRepository _configRepo;
+    private readonly BilibiliSubscribeRepository _repo;
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
+    private readonly BilibiliService _svc;
 
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -32,23 +32,23 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         await RefreshCookiesAsync(ct);
 
         services.UseScheduler(scheduler =>
-            scheduler
-                .ScheduleAsync(async () =>
-                {
-                    TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30));
-                    Log.Debug($"[BilibiliPlugin] Sleep {sleepTime.TotalSeconds}s...");
-                    Thread.Sleep(sleepTime);
-
-                    bool wait = await CheckAllAsync(ct);
-                    if (wait)
+                scheduler
+                    .ScheduleAsync(async () =>
                     {
-                        Log.Debug("[BilibiliPlugin] Wait 5 minutes...");
-                        Thread.Sleep(TimeSpan.FromMinutes(5));
-                    }
-                })
-                .EverySeconds(5)
-                .PreventOverlapping("BilibiliPlugin"))
-                .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
+                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30));
+                        Log.Debug($"[BilibiliPlugin] Sleep {sleepTime.TotalSeconds}s...");
+                        Thread.Sleep(sleepTime);
+
+                        bool wait = await CheckAllAsync(ct);
+                        if (wait)
+                        {
+                            Log.Debug("[BilibiliPlugin] Wait 5 minutes...");
+                            Thread.Sleep(TimeSpan.FromMinutes(5));
+                        }
+                    })
+                    .EverySeconds(5)
+                    .PreventOverlapping("BilibiliPlugin"))
+            .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
     }
 
     public async Task RefreshCookiesAsync(CancellationToken ct = default)
@@ -71,8 +71,9 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             tasks.Add(CheckDynamicAsync(record, ct));
             tasks.Add(CheckLiveAsync(record, ct));
         }
+
         bool[] result = await Task.WhenAll(tasks);
-        return result.Any(r => r == true);
+        return result.Any(r => r);
     }
 
     private async Task<bool> CheckDynamicAsync(BilibiliSubscribeEntity record, CancellationToken ct = default)
@@ -85,7 +86,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             if (dy.DynamicUploadTime <= record.LastDynamicTime)
             {
-                Log.Debug("No new dynamic from the bilibili user {uname}(uid: {uid}).", dy.Uname, dy.Uid);
+                Log.Debug("No new dynamic from the bilibili user {uname}(uid: {uid}).",
+                    dy.Uname, dy.Uid);
                 return false;
             }
 
@@ -102,7 +104,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             // 宵禁时间发不出去，攒着
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 5)
+            if (now.Hour is >= 0 and <= 5)
             {
                 if (!_storedDynamics.ContainsKey(dy.Uid))
                     _storedDynamics[dy.Uid] = new Dictionary<DateTime, BaseDynamic>();
@@ -116,7 +118,6 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             // 过了宵禁把攒的先发了
             if (_storedDynamics.TryGetValue(dy.Uid, out Dictionary<DateTime, BaseDynamic>? storedDys)
-                && storedDys != null
                 && storedDys.Count != 0)
             {
                 List<DateTime> uploadTimes = storedDys.Keys.ToList();
@@ -126,6 +127,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     await FnAsync(storedDys[uploadTime]);
                     _storedDynamics[dy.Uid].Remove(uploadTime);
                 }
+
                 return false;
             }
 
@@ -138,16 +140,11 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         }
         catch (BilibiliApiException bex)
         {
-            if (bex.Code == -401 || bex.Code == -509 || bex.Code == -799)
-            {
-                return true;
-            }
-            else
-            {
-                Log.Error(bex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
+            if (bex.Code is -401 or -509 or -799) return true;
+
+            Log.Error(bex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
-                return false;
-            }
+            return false;
         }
         catch (Exception ex)
         {
@@ -162,7 +159,6 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     {
         (string title, string text, List<string>? imgUrls) = DynamicToStr(dy);
 
-        List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
@@ -173,22 +169,17 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 continue;
             }
 
-            BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
+            BilibiliSubscribeConfigEntity config = configs.First(
+                c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.DynamicPush == false)
                 continue;
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
-            tasks.Add(new Task(async () =>
-            {
-                await _qbSvc.PushCommonMsgAsync(
-                    channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
-                Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
-                    dy.Uname, dy.Uid);
-            }));
+            await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
+            Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
+                dy.Uname, dy.Uid);
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private (string title, string text, List<string>? imgUrls) DynamicToStr(BaseDynamic dy)
@@ -202,11 +193,11 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             case VideoDynamic v:
                 (title, text) = VideoDynamicToStr(v);
-                return (title, text, new List<string>() { v.VideoThumbnailUrl });
+                return (title, text, new List<string> { v.VideoThumbnailUrl });
 
             case ArticleDynamic a:
                 (title, text) = ArticleDynamicToStr(a);
-                return (title, text, new List<string>() { a.ArticleThumbnailUrl });
+                return (title, text, new List<string> { a.ArticleThumbnailUrl });
 
             case ForwardDynamic f:
                 return ForwardDynamicToStr(f);
@@ -222,24 +213,20 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         string text;
 
         if (dy.Reserve == null)
-        {
             text = $"""
-                {dy.Text.AddRedirectToUrls()}
-                ——————————
-                动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                """;
-        }
+                    {dy.Text.AddRedirectToUrls()}
+                    ——————————
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                    """;
         else
-        {
             text = $"""
-                {dy.Text.AddRedirectToUrls()}
+                    {dy.Text.AddRedirectToUrls()}
 
-                {dy.Reserve.Title}
-                预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
-                ——————————
-                动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                """;
-        }
+                    {dy.Reserve.Title}
+                    预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
+                    ——————————
+                    动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                    """;
 
         return (title, text);
     }
@@ -249,23 +236,19 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         string title = "【新b站视频】来自 " + dy.Uname;
         string text;
         if (dy.DynamicText == "")
-        {
             text = $"""
-                {dy.VideoTitle}
-                ——————————
-                视频链接：{dy.VideoUrl.AddRedirectToUrls()}
-                """;
-        }
+                    {dy.VideoTitle}
+                    ——————————
+                    视频链接：{dy.VideoUrl.AddRedirectToUrls()}
+                    """;
         else
-        {
             text = $"""
-                {dy.VideoTitle}
+                    {dy.VideoTitle}
 
-                {dy.DynamicText}
-                ——————————
-                视频链接：{dy.VideoUrl.AddRedirectToUrls()}
-                """;
-        }
+                    {dy.DynamicText}
+                    ——————————
+                    视频链接：{dy.VideoUrl.AddRedirectToUrls()}
+                    """;
 
         return (title, text);
     }
@@ -274,10 +257,10 @@ public class BilibiliPlugin : BasePlugin, IPlugin
     {
         string title = "【新专栏】来自 " + dy.Uname;
         string text = $"""
-            {dy.ArticleTitle}
-            ——————————
-            专栏链接：{dy.ArticleUrl.AddRedirectToUrls()}
-            """;
+                       {dy.ArticleTitle}
+                       ——————————
+                       专栏链接：{dy.ArticleUrl.AddRedirectToUrls()}
+                       """;
 
         return (title, text);
     }
@@ -292,84 +275,80 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         {
             case string:
                 text = $"""
-                    {dy.DynamicText.AddRedirectToUrls()}
-                    ——————————
-                    动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                    ====================
-                    （原动态已被删除）
-                    """;
+                        {dy.DynamicText.AddRedirectToUrls()}
+                        ——————————
+                        动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                        ====================
+                        （原动态已被删除）
+                        """;
                 break;
 
             case CommonDynamic cOrigin:
                 if (cOrigin.Reserve == null)
-                {
                     text = $"""
-                        {dy.DynamicText.AddRedirectToUrls()}
-                        ——————————
-                        动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                        ====================
-                        【原动态】来自 {cOrigin.Uname}
+                            {dy.DynamicText.AddRedirectToUrls()}
+                            ——————————
+                            动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                            ====================
+                            【原动态】来自 {cOrigin.Uname}
 
-                        {cOrigin.Text.AddRedirectToUrls()}
-                        """;
-                }
+                            {cOrigin.Text.AddRedirectToUrls()}
+                            """;
                 else
-                {
                     text = $"""
-                        {dy.DynamicText.AddRedirectToUrls()}
-                        ——————————
-                        动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                        ====================
-                        【原动态】来自 {cOrigin.Uname}
+                            {dy.DynamicText.AddRedirectToUrls()}
+                            ——————————
+                            动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                            ====================
+                            【原动态】来自 {cOrigin.Uname}
 
-                        {cOrigin.Text.AddRedirectToUrls()}
+                            {cOrigin.Text.AddRedirectToUrls()}
 
-                        {cOrigin.Reserve.Title}
-                        预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-                        """;
-                }
+                            {cOrigin.Reserve.Title}
+                            预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                            """;
                 if (cOrigin.ImageUrls?.Count is int and not 0)
                     imgUrls = cOrigin.ImageUrls;
                 break;
 
             case VideoDynamic vOrigin:
                 text = $"""
-                    {dy.DynamicText.AddRedirectToUrls()}
-                    ——————————
-                    动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                    ====================
-                    【视频】来自 {vOrigin.Uname}
+                        {dy.DynamicText.AddRedirectToUrls()}
+                        ——————————
+                        动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                        ====================
+                        【视频】来自 {vOrigin.Uname}
 
-                    {vOrigin.VideoTitle}
+                        {vOrigin.VideoTitle}
 
-                    视频链接：{vOrigin.VideoUrl.AddRedirectToUrls()}
-                    """;
-                imgUrls = new List<string>() { vOrigin.VideoThumbnailUrl };
+                        视频链接：{vOrigin.VideoUrl.AddRedirectToUrls()}
+                        """;
+                imgUrls = new List<string> { vOrigin.VideoThumbnailUrl };
                 break;
 
             case ArticleDynamic aOrigin:
                 text = $"""
-                    ====================
-                    【专栏】来自 {aOrigin.Uname}
+                        ====================
+                        【专栏】来自 {aOrigin.Uname}
 
-                    {aOrigin.ArticleTitle}
+                        {aOrigin.ArticleTitle}
 
-                    专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls()}
-                    """;
-                imgUrls = new List<string>() { aOrigin.ArticleThumbnailUrl };
+                        专栏链接：{aOrigin.ArticleUrl.AddRedirectToUrls()}
+                        """;
+                imgUrls = new List<string> { aOrigin.ArticleThumbnailUrl };
                 break;
 
             case LiveCardDynamic lOrigin:
                 text = $"""
-                    {dy.DynamicText.AddRedirectToUrls()}
-                    动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
-                    ====================
-                    【直播】来自 {lOrigin.Uname}
+                        {dy.DynamicText.AddRedirectToUrls()}
+                        动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
+                        ====================
+                        【直播】来自 {lOrigin.Uname}
 
-                    标题：{lOrigin.Title}
-                    开始时间：{lOrigin.LiveStartTime}
-                    链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls()}
-                    """;
+                        标题：{lOrigin.Title}
+                        开始时间：{lOrigin.LiveStartTime}
+                        链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls()}
+                        """;
                 break;
 
             default:
@@ -389,7 +368,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             VideoDynamic v => await VideoDynamicToMarkdownAsync(v),
             ArticleDynamic a => await ArticleDynamicToMarkdownAsync(a),
             ForwardDynamic f => await ForwardDynamicToMarkdownAsync(f),
-            _ => throw new NotImplementedException(),
+            _ => throw new NotImplementedException()
         };
     }
 
@@ -407,14 +386,12 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         };
 
         if (dy.Reserve != null)
-        {
             templateParams.Text = $"""
-                {dy.Text.AddRedirectToUrls()}
+                                   {dy.Text.AddRedirectToUrls()}
 
-                {dy.Reserve.Title}
-                预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
-                """;
-        }
+                                   {dy.Reserve.Title}
+                                   预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
+                                   """;
 
         List<string> otherImgs = new();
         if (dy.ImageUrls?.Count > 1)
@@ -427,7 +404,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         }
 
         return (
-            new MessageMarkdown()
+            new MessageMarkdown
             {
                 CustomTemplateId = dy.ImageUrls != null && dy.ImageUrls.Count != 0
                     ? Configs.R.QQBot.MarkdownTemplateIds!.WithImage
@@ -451,7 +428,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 : dy.VideoTitle + "\n" + dy.DynamicText
         };
         return (
-            new MessageMarkdown()
+            new MessageMarkdown
             {
                 CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
@@ -471,7 +448,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             Text = dy.ArticleTitle
         };
         return (
-            new MessageMarkdown()
+            new MessageMarkdown
             {
                 CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
@@ -504,7 +481,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                 templateId = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
                     ? Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage
                     : Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly;
-                templateParams.Origin = new()
+                templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "动态",
                     From = cOrigin.Uname,
@@ -512,7 +489,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     Text = cOrigin.Text,
                     ImageUrl = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
                         ? await _cosSvc.UploadImageAsync(cOrigin.ImageUrls[0])
-                        : null,
+                        : null
                 };
                 if (cOrigin.ImageUrls?.Count > 1)
                 {
@@ -522,11 +499,12 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     string[] urls = await Task.WhenAll(tasks);
                     otherImgs = urls.ToList();
                 }
+
                 break;
 
             case VideoDynamic vOrigin:
                 templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
-                templateParams.Origin = new()
+                templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "视频",
                     From = vOrigin.Uname,
@@ -540,7 +518,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             case ArticleDynamic aOrigin:
                 templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
-                templateParams.Origin = new()
+                templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "",
                     From = aOrigin.Uname,
@@ -552,24 +530,25 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
             case LiveCardDynamic lOrigin:
                 templateId = Configs.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
-                templateParams.Origin = new()
+                templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "直播",
                     From = lOrigin.Uname,
                     Url = $"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls(),
                     Text = $"""
-                        标题：{lOrigin.Title}
-                        开始时间：{lOrigin.LiveStartTime}
-                        """,
+                            标题：{lOrigin.Title}
+                            开始时间：{lOrigin.LiveStartTime}
+                            """,
                     ImageUrl = await _cosSvc.UploadImageAsync(lOrigin.CoverUrl)
                 };
                 break;
         }
+
         return (
-            new MessageMarkdown()
+            new MessageMarkdown
             {
                 CustomTemplateId = templateId,
-                Params = templateParams.ToMessageMarkdownParams(),
+                Params = templateParams.ToMessageMarkdownParams()
             },
             otherImgs
         );
@@ -581,26 +560,23 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         {
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
-            Live? live = await _svc.GetLiveAsync(record.Uid, ct: ct);
+            Live? live = await _svc.GetLiveAsync(record.Uid, ct);
             if (live == null)
                 return false;
 
             async Task FnAsync(Live live)
             {
-                if (now.Hour >= 0 && now.Hour <= 5)
-                {
+                if (now.Hour is >= 0 and <= 5)
                     // 由于开播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
                     Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
-                       record.Uname, record.Uid);
-                }
+                        record.Uname, record.Uid);
                 else
-                {
                     await PushLiveMsgAsync(live, record, ct);
-                }
 
                 record.LastLiveStatus = live.LiveStatus;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.", live.Uname, live.Uid);
+                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                    live.Uname, live.Uid);
             }
 
             if (record.LastLiveStatus != LiveStatusEnum.Streaming)
@@ -627,16 +603,11 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         }
         catch (BilibiliApiException bex)
         {
-            if (bex.Code == -401 || bex.Code == -509 || bex.Code == -799)
-            {
-                return true;
-            }
-            else
-            {
-                Log.Error(bex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
-                    record.Uname, record.Uid);
-                return false;
-            }
+            if (bex.Code is -401 or -509 or -799) return true;
+
+            Log.Error(bex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
+                record.Uname, record.Uid);
+            return false;
         }
         catch (Exception ex)
         {
@@ -646,12 +617,10 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         }
     }
 
-    private async Task PushLiveMsgAsync(
-        Live live, BilibiliSubscribeEntity record, CancellationToken ct = default)
+    private async Task PushLiveMsgAsync(Live live, BilibiliSubscribeEntity record, CancellationToken ct = default)
     {
         (string title, string text) = LiveToStr(live);
 
-        List<Task> tasks = new();
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
@@ -665,26 +634,21 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.LivePush == false) continue;
 
-            tasks.Add(new Task(async () =>
-            {
-                await _qbSvc.PushCommonMsgAsync(
-                    channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct);
-                Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
-                    live.Uname, live.Uid);
-            }));
+            await _qbSvc.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct);
+            Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
+                live.Uname, live.Uid);
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private (string title, string text) LiveToStr(Live live)
     {
         string title = "【b站开播】来自 " + live.Uname;
         string text = $"""
-            标题：{live.Title}
-            开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-            链接：{("https://live.bilibili.com/" + live.RoomId).AddRedirectToUrls()}
-            """;
+                       标题：{live.Title}
+                       开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                       链接：{("https://live.bilibili.com/" + live.RoomId).AddRedirectToUrls()}
+                       """;
 
         return (title, text);
     }
@@ -697,15 +661,15 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             From = live.Uname,
             Url = ("https://live.bilibili.com/" + live.RoomId).AddRedirectToUrls(),
             Text = $"""
-                标题：{live.Title}
-                开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
-                """,
+                    标题：{live.Title}
+                    开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                    """,
             ImageUrl = await _cosSvc.UploadImageAsync(live.CoverUrl!)
         };
-        return new MessageMarkdown()
+        return new MessageMarkdown
         {
             CustomTemplateId = Configs.R.QQBot.MarkdownTemplateIds!.WithImage,
-            Params = templateParams.ToMessageMarkdownParams(),
+            Params = templateParams.ToMessageMarkdownParams()
         };
     }
 }

@@ -6,17 +6,16 @@ using Serilog;
 
 Configs conf = Configs.Load("configs.yml");
 
-if (conf.Notifier != null)
-    Log.Logger = LogConfiger.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
-else
-    Log.Logger = LogConfiger.New(conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
+Log.Logger = conf.Notifier != null
+    ? LogConfiger.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel)
+    : LogConfiger.New(conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
 
 Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
 
-if (conf.InTestEnvironment && conf.Proxy != null)
+if (conf is { InTestEnvironment: true, Proxy: not null })
 {
-    System.Environment.SetEnvironmentVariable("http_proxy", conf.Proxy.Http);
-    System.Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.Https);
+    Environment.SetEnvironmentVariable("http_proxy", conf.Proxy.Http);
+    Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.Https);
 }
 
 CosService cosSvc = new();

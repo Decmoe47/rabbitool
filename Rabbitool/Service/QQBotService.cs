@@ -20,7 +20,7 @@ namespace Rabbitool.Service;
 
 public class QQBotService
 {
-    public bool IsOnline = false;
+    public bool IsOnline;
 
     private readonly QQChannelApi _qqApi;
     private readonly ChannelBot _qqBot;
@@ -83,7 +83,7 @@ public class QQBotService
             string text = await fn(message, ct);
             try
             {
-                Channel channel = await GetChannelAsync(message.ChannelId);
+                Channel channel = await GetChannelAsync(message.ChannelId, ct);
                 await PostMessageAsync(
                     channelId: message.ChannelId,
                     channelName: channel.Name,
@@ -210,7 +210,7 @@ public class QQBotService
     {
         try
         {
-            Channel channel = await GetChannelAsync(channelId);
+            await GetChannelAsync(channelId);
             return true;
         }
         catch (HttpApiException ex)
@@ -314,7 +314,7 @@ public class QQBotService
         try
         {
             Log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
-                channelName, referenceMessageId ?? "", passiveMsgId, JsonConvert.SerializeObject(markdown) ?? "");
+                channelName, referenceMessageId ?? "", passiveMsgId, JsonConvert.SerializeObject(markdown));
             Message msg = await _qqApi
                 .GetMessageApi()
                 .SendMessageAsync(
@@ -323,11 +323,10 @@ public class QQBotService
                     referenceMessageId: referenceMessageId,
                     passiveMsgId: passiveMsgId,
                     passiveEventId: passiveEventId);
-            if (otherImgs != null && otherImgs.Count > 0)
-            {
-                foreach (string imgUrl in otherImgs)
-                    await PostMessageAsync(channelId, channelName, imgUrl, ct: ct);
-            }
+            if (otherImgs is not { Count: > 0 }) 
+                return msg;
+            foreach (string imgUrl in otherImgs)
+                await PostMessageAsync(channelId, channelName, imgUrl, ct: ct);
             return msg;
         }
         catch (MessageAuditException ex)
@@ -441,7 +440,7 @@ public class QQBotService
         // 空白行
         for (int i = 0; i < paras.Count; i++)
         {
-            if (paras[i].Elems is List<Elem> elems)
+            if (paras[i].Elems is { } elems)
             {
                 foreach (Elem elem in elems)
                 {

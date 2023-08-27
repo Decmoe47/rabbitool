@@ -16,16 +16,16 @@ namespace Rabbitool.Plugin;
 
 public class MailPlugin : BasePlugin, IPlugin
 {
-    private readonly List<MailService> _services = new();
-    private readonly MailSubscribeRepository _repo;
     private readonly MailSubscribeConfigRepository _configRepo;
+    private readonly MailSubscribeRepository _repo;
+    private readonly List<MailService> _services = new();
 
-    private Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
+    private readonly Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
 
     /// <summary>
-    /// 会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent"/>
-    /// 和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent"/>
-    /// 和<see cref="Console.CancelKeyPress"/>事件。
+    ///     会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent" />
+    ///     和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent" />
+    ///     和<see cref="Console.CancelKeyPress" />事件。
     /// </summary>
     public MailPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -41,11 +41,11 @@ public class MailPlugin : BasePlugin, IPlugin
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         services.UseScheduler(scheduler =>
-            scheduler
-                .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(5)
-                .PreventOverlapping("MailPlugin"))
-                .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
+                scheduler
+                    .ScheduleAsync(async () => await CheckAllAsync(ct))
+                    .EverySeconds(5)
+                    .PreventOverlapping("MailPlugin"))
+            .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
@@ -70,6 +70,7 @@ public class MailPlugin : BasePlugin, IPlugin
 
             tasks.Add(CheckAsync(svc, record, ct));
         }
+
         await Task.WhenAll(tasks);
     }
 
@@ -91,23 +92,23 @@ public class MailPlugin : BasePlugin, IPlugin
                 record.LastMailTime = mail.Time;
                 await _repo.SaveAsync(ct);
                 Log.Debug("Succeeded to updated the mail user {username}'s record.", record.Username);
-            };
+            }
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-            if (now.Hour >= 0 && now.Hour <= 5)
+            if (now.Hour is >= 0 and <= 5)
             {
                 if (!_storedMails.ContainsKey(record.Username))
                     _storedMails[record.Username] = new Dictionary<DateTime, Mail>();
                 if (!_storedMails[record.Username].ContainsKey(mail.Time))
                     _storedMails[record.Username][mail.Time] = mail;
 
-                Log.Debug("Mail message of the user {userrname} is skipped because it's curfew time now.",
+                Log.Debug("Mail message of the user {username} is skipped because it's curfew time now.",
                     record.Username);
                 return;
             }
 
             if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, Mail>? storedMails)
-                && storedMails != null && storedMails.Count != 0)
+                && storedMails.Count != 0)
             {
                 List<DateTime> times = storedMails.Keys.ToList();
                 times.Sort();
@@ -116,6 +117,7 @@ public class MailPlugin : BasePlugin, IPlugin
                     await FnAsync(storedMails[time]);
                     _storedMails[record.Username].Remove(time);
                 }
+
                 return;
             }
 
@@ -135,7 +137,6 @@ public class MailPlugin : BasePlugin, IPlugin
         (string title, string text, string detailText) = MailToStr(mail);
 
         List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Address, ct: ct);
-        List<Task> tasks = new();
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (!await _qbSvc.ExistChannelAsync(channel.ChannelId))
@@ -151,31 +152,19 @@ public class MailPlugin : BasePlugin, IPlugin
                 RichText richText = config.Detail
                     ? QQBotService.TextToRichText(detailText)
                     : QQBotService.TextToRichText(text);
-                tasks.Add(_qbSvc.PostThreadAsync(
-                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct));
+                await _qbSvc.PostThreadAsync(
+                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
                 Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
                 continue;
             }
 
             if (config.Detail)
-            {
-                tasks.Add(new Task(async () =>
-                {
-                    await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}", ct: ct);
-                    Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
-                }));
-            }
+                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}",
+                    ct: ct);
             else
-            {
-                tasks.Add(new Task(async () =>
-                {
-                    await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
-                    Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
-                }));
-            }
+                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
+            Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private (string title, string text, string detailText) MailToStr(Mail mail)
@@ -192,20 +181,22 @@ public class MailPlugin : BasePlugin, IPlugin
         string text = mail.Text.AddRedirectToUrls();
 
         text = Regex.Replace(
-                text,
-                @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-                new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+            text,
+            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+            match => match.ToString().Replace(".", "*"));
 
         string detailText = $"""
-            Subject: {mail.Subject}
-            ——————————
-            {mail.Text.AddRedirectToUrls()}
-            """;
+                             Subject: {mail.Subject}
+                             To: {to}
+                             Time: {mail.Time:yyyy-M-d H:mm}
+                             ——————————
+                             {mail.Text.AddRedirectToUrls()}
+                             """;
 
         detailText = Regex.Replace(
-                detailText,
-                @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-                new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+            detailText,
+            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
+            match => match.ToString().Replace(".", "*"));
 
         return (title, text, detailText);
     }
@@ -221,7 +212,6 @@ public class MailPlugin : BasePlugin, IPlugin
     {
         MailService? svc = _services.FirstOrDefault(s => s.Username == address);
         if (svc != null)
-        {
             try
             {
                 await svc.DisconnectAsync(ct);
@@ -235,7 +225,6 @@ public class MailPlugin : BasePlugin, IPlugin
                 svc.Dispose();
                 _services.Remove(svc);
             }
-        }
     }
 
     private void DisposeAllServices(object? sender, EventArgs e)

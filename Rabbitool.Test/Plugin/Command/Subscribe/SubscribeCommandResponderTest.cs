@@ -13,20 +13,20 @@ public class SubscribeCommandResponderTest
 
     public SubscribeCommandResponderTest(ITestOutputHelper output)
     {
-        System.Environment.SetEnvironmentVariable("http_proxy", "http://127.0.0.1:7890");
-        System.Environment.SetEnvironmentVariable("https_proxy", "http://127.0.0.1:7890");
+        Environment.SetEnvironmentVariable("http_proxy", "http://127.0.0.1:7890");
+        Environment.SetEnvironmentVariable("https_proxy", "http://127.0.0.1:7890");
 
-        Serilog.Log.Logger = new LoggerConfiguration()
+        Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Verbose()
             .WriteTo.TestOutput(output)
             .CreateLogger();
 
         Configs configs = Configs.Load("configs.yml");
-        _qSvc = new QQBotService();
+        _qSvc = new QQBotService(new CosService());
         SubscribeCommandResponder.Init(_qSvc);
     }
 
-    [Theory()]
+    [Theory]
     [InlineData("b站", "2920960")]
     [InlineData("b站", "4415701")]
     [InlineData("b站", "488976342")]
@@ -41,15 +41,15 @@ public class SubscribeCommandResponderTest
         Guild guild = (await _qSvc.GetAllGuildsAsync())[0];
         Channel channel = await _qSvc.GetChannelByNameAsync("默认", guild.Id);
         string result1 = await SubscribeCommandResponder.RespondToAddOrUpdateSubscribeCommandAsync(
-            new List<string> { "/订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
+            new List<string> { "/订阅", platform, id }, new Message { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("成功", result1);
 
         string result2 = await SubscribeCommandResponder.RespondToListSubscribeCommandAsync(
-            new List<string> { "/列出订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
+            new List<string> { "/列出订阅", platform, id }, new Message { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("=", result2);
 
         string result3 = await SubscribeCommandResponder.RespondToDeleteSubscribeCommandAsync(
-            new List<string> { "/取消订阅", platform, id }, new Message() { Id = channel.Id, GuildId = guild.Id });
+            new List<string> { "/取消订阅", platform, id }, new Message { Id = channel.Id, GuildId = guild.Id });
         Assert.Contains("成功", result3);
     }
 }

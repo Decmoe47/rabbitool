@@ -11,11 +11,11 @@ namespace Rabbitool.Plugin;
 
 public class YoutubePlugin : BasePlugin, IPlugin
 {
-    private readonly YoutubeService _svc;
-    private readonly YoutubeSubscribeRepository _repo;
     private readonly YoutubeSubscribeConfigRepository _configRepo;
+    private readonly YoutubeSubscribeRepository _repo;
 
     private readonly Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
+    private readonly YoutubeService _svc;
 
     public YoutubePlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -29,11 +29,11 @@ public class YoutubePlugin : BasePlugin, IPlugin
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         services.UseScheduler(scheduler =>
-            scheduler
-                .ScheduleAsync(async () => await CheckAllAsync(ct))
-                .EverySeconds(5)
-                .PreventOverlapping("YoutubePlugin"))
-                .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
+                scheduler
+                    .ScheduleAsync(async () => await CheckAllAsync(ct))
+                    .EverySeconds(5)
+                    .PreventOverlapping("YoutubePlugin"))
+            .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
@@ -51,6 +51,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
             tasks.Add(CheckAsync(record, ct));
             tasks.Add(CheckUpcomingLiveAsync(record, ct));
         }
+
         await Task.WhenAll(tasks);
     }
 
@@ -58,25 +59,26 @@ public class YoutubePlugin : BasePlugin, IPlugin
     {
         try
         {
-            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(record.ChannelId, ct: ct);
+            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(record.ChannelId, ct);
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             switch (item)
             {
                 case YoutubeLive live:
-                    if (live.Type == YoutubeTypeEnum.UpcomingLive && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
+                    switch (live.Type)
                     {
-                        record.AllUpcomingLiveRoomIds.Add(live.Id);
-                        await _repo.SaveAsync(ct);
-                        Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
-                            live.Author, live.ChannelId);
+                        case YoutubeTypeEnum.UpcomingLive when !record.AllUpcomingLiveRoomIds.Contains(live.Id):
+                            record.AllUpcomingLiveRoomIds.Add(live.Id);
+                            await _repo.SaveAsync(ct);
+                            Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+                                live.Author, live.ChannelId);
 
-                        await PushUpcomingLiveAsync(live, record, ct);
-                    }
-                    else if (live.Type == YoutubeTypeEnum.Live && live.Id != record.LastLiveRoomId
-                        && !record.AllUpcomingLiveRoomIds.Contains(live.Id))
-                    {
-                        await PushLiveAndUpdateDatabaseAsync(live, record, ct: ct);
+                            await PushUpcomingLiveAsync(live, record, ct);
+                            break;
+                        case YoutubeTypeEnum.Live when live.Id != record.LastLiveRoomId
+                                                       && !record.AllUpcomingLiveRoomIds.Contains(live.Id):
+                            await PushLiveAndUpdateDatabaseAsync(live, record, ct: ct);
+                            break;
                     }
 
                     break;
@@ -89,20 +91,21 @@ public class YoutubePlugin : BasePlugin, IPlugin
                         return;
                     }
 
-                    if (now.Hour >= 0 && now.Hour <= 5)
+                    if (now.Hour is >= 0 and <= 5)
                     {
                         if (!_storedVideos.ContainsKey(video.ChannelId))
                             _storedVideos[video.ChannelId] = new Dictionary<DateTime, YoutubeVideo>();
                         if (!_storedVideos[video.ChannelId].ContainsKey(video.PubTime))
                             _storedVideos[video.ChannelId][video.PubTime] = video;
 
-                        Log.Debug("Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                        Log.Debug(
+                            "Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                             video.Author, video.ChannelId);
                         return;
                     }
 
                     if (_storedVideos.TryGetValue(video.ChannelId, out Dictionary<DateTime, YoutubeVideo>? storedVideos)
-                        && storedVideos != null && storedVideos.Count != 0)
+                        && storedVideos.Count != 0)
                     {
                         List<DateTime> pubTimes = storedVideos.Keys.ToList();
                         pubTimes.Sort();
@@ -111,6 +114,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
                             await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record, ct);
                             _storedVideos[video.ChannelId].Remove(pubTime);
                         }
+
                         return;
                     }
 
@@ -136,13 +140,12 @@ public class YoutubePlugin : BasePlugin, IPlugin
         List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
         foreach (string roomId in allUpcomingLiveRoomIdsTmp)
         {
-            if (await _svc.IsStreamingAsync(roomId, ct) is YoutubeLive live)
-            {
-                Log.Debug("Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
-                await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
-                record.AllUpcomingLiveRoomIds.Remove(roomId);
-                await _repo.SaveAsync(ct);
-            }
+            if (await _svc.IsStreamingAsync(roomId, ct) is not { } live)
+                continue;
+            Log.Debug("Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
+            await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
+            record.AllUpcomingLiveRoomIds.Remove(roomId);
+            await _repo.SaveAsync(ct);
         }
     }
 
@@ -150,15 +153,17 @@ public class YoutubePlugin : BasePlugin, IPlugin
         YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken ct = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-        if (now.Hour >= 0 && now.Hour <= 5)
+        if (now.Hour is >= 0 and <= 5)
         {
-            Log.Debug("Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+            Log.Debug(
+                "Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
         }
         else
         {
             await PushMsgAsync(live, record, ct);
-            Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+            Log.Information(
+                "Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                 live.Author, live.ChannelId);
         }
 
@@ -179,15 +184,12 @@ public class YoutubePlugin : BasePlugin, IPlugin
         YoutubeLive live, YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
-        if (now.Hour >= 0 && now.Hour <= 5)
-        {
-            Log.Debug("Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+        if (now.Hour is >= 0 and <= 5)
+            Log.Debug(
+                "Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
-        }
         else
-        {
             await PushMsgAsync(live, record, ct);
-        }
     }
 
     private async Task PushVideoAndUpdateDatabaseAsync(
@@ -207,9 +209,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
     {
         (string title, string text, string imgUrl) = ItemToStr(item);
 
-        List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(
-            item.ChannelId, ct: ct);
-        List<Task> tasks = new();
+        List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(item.ChannelId, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
             if (!await _qbSvc.ExistChannelAsync(channel.ChannelId))
@@ -221,32 +221,33 @@ public class YoutubePlugin : BasePlugin, IPlugin
 
             YoutubeSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
 
-            if (item.Type == YoutubeTypeEnum.Video && !config.VideoPush)
-                continue;
-            if (item.Type == YoutubeTypeEnum.Live && !config.LivePush)
-                continue;
-            if (item.Type == YoutubeTypeEnum.UpcomingLive && !config.UpcomingLivePush)
-                continue;
+            switch (item.Type)
+            {
+                case YoutubeTypeEnum.Video when !config.VideoPush:
+                case YoutubeTypeEnum.Live when !config.LivePush:
+                case YoutubeTypeEnum.UpcomingLive when !config.UpcomingLivePush:
+                    continue;
+            }
+
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            tasks.Add(new Task(async () =>
+            await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
+            switch (item.Type)
             {
-                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
-                if (item.Type == YoutubeTypeEnum.Video)
-                {
-                    Log.Information("Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
+                case YoutubeTypeEnum.Video:
+                    Log.Information(
+                        "Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
                         item.Author, item.ChannelId);
-                }
-                else if (item.Type == YoutubeTypeEnum.Live || item.Type == YoutubeTypeEnum.UpcomingLive)
-                {
-                    Log.Information("Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+                    break;
+                case YoutubeTypeEnum.Live:
+                case YoutubeTypeEnum.UpcomingLive:
+                    Log.Information(
+                        "Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                         item.Author, item.ChannelId);
-                }
-            }));
+                    break;
+            }
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private (string title, string text, string imgUrl) ItemToStr<T>(T item) where T : YoutubeItem
@@ -270,23 +271,21 @@ public class YoutubePlugin : BasePlugin, IPlugin
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $"""
-                标题：{live.Title}
-                开播时间：{actualStartTime}
-                链接：{live.Url.AddRedirectToUrls()}
-                """;
+                    标题：{live.Title}
+                    开播时间：{actualStartTime}
+                    链接：{live.Url.AddRedirectToUrls()}
+                    """;
         }
-        else
-        {
-            string scheduledStartTime = TimeZoneInfo
-                .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
-                .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
-            return $"""
+        string scheduledStartTime = TimeZoneInfo
+            .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
+            .ToString("yyyy-MM-dd HH:mm:ss zzz");
+
+        return $"""
                 标题：{live.Title}
                 预定开播时间：{scheduledStartTime}
                 链接：{live.Url.AddRedirectToUrls()}
                 """;
-        }
     }
 
     private string VideoToStr(YoutubeVideo video)
@@ -296,9 +295,9 @@ public class YoutubePlugin : BasePlugin, IPlugin
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         return $"""
-            标题：{video.Title}
-            发布时间：{pubTimeStr}
-            链接：{video.Url.AddRedirectToUrls()}
-            """;
+                标题：{video.Title}
+                发布时间：{pubTimeStr}
+                链接：{video.Url.AddRedirectToUrls()}
+                """;
     }
 }
