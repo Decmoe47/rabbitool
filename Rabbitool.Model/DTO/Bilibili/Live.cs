@@ -6,7 +6,7 @@ public enum LiveStatusEnum
     NoLiveStream = 0,
     Replay = 2
 }
-
+ 
 public class Live
 {
     public required uint Uid { get; set; }

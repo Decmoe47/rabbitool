@@ -5,6 +5,14 @@ namespace Rabbitool.Model.Entity.Subscribe;
 [Table("QQChannelSubscribe")]
 public class QQChannelSubscribeEntity : BaseEntity
 {
+    public QQChannelSubscribeEntity(string guildId, string guildName, string channelId, string channelName)
+    {
+        GuildId = guildId;
+        GuildName = guildName;
+        ChannelId = channelId;
+        ChannelName = channelName;
+    }
+
     public string GuildId { get; set; }
     public string GuildName { get; set; }
     public string ChannelId { get; set; }
@@ -13,14 +21,6 @@ public class QQChannelSubscribeEntity : BaseEntity
     public List<TwitterSubscribeEntity>? TwitterSubscribes { get; set; }
     public List<YoutubeSubscribeEntity>? YoutubeSubscribes { get; set; }
     public List<MailSubscribeEntity>? MailSubscribes { get; set; }
-
-    public QQChannelSubscribeEntity(string guildId, string guildName, string channelId, string channelName)
-    {
-        GuildId = guildId;
-        GuildName = guildName;
-        ChannelId = channelId;
-        ChannelName = channelName;
-    }
 
     public List<T>? GetSubscribeProp<T>() where T : ISubscribeEntity
     {
@@ -74,21 +74,28 @@ public class QQChannelSubscribeEntity : BaseEntity
 
     public void RemoveSubscribe<T>(T subscribe) where T : ISubscribeEntity
     {
-        if (subscribe is BilibiliSubscribeEntity b)
-            BilibiliSubscribes?.RemoveAll(b => b.GetId() == subscribe.GetId());
-        else if (subscribe is TwitterSubscribeEntity t)
-            TwitterSubscribes?.RemoveAll(t => t.GetId() == subscribe.GetId());
-        else if (subscribe is YoutubeSubscribeEntity y)
-            YoutubeSubscribes?.RemoveAll(y => y.GetId() == subscribe.GetId());
-        else if (subscribe is MailSubscribeEntity m)
-            MailSubscribes?.RemoveAll(m => m.GetId() == subscribe.GetId());
+        switch (subscribe)
+        {
+            case BilibiliSubscribeEntity:
+                BilibiliSubscribes?.RemoveAll(b => b.GetId() == subscribe.GetId());
+                break;
+            case TwitterSubscribeEntity:
+                TwitterSubscribes?.RemoveAll(t => t.GetId() == subscribe.GetId());
+                break;
+            case YoutubeSubscribeEntity:
+                YoutubeSubscribes?.RemoveAll(y => y.GetId() == subscribe.GetId());
+                break;
+            case MailSubscribeEntity:
+                MailSubscribes?.RemoveAll(m => m.GetId() == subscribe.GetId());
+                break;
+        }
     }
 
     public bool SubscribesAreAllEmpty()
     {
         return (BilibiliSubscribes == null || BilibiliSubscribes.Count == 0)
-            && (TwitterSubscribes == null || TwitterSubscribes.Count == 0)
-            && (YoutubeSubscribes == null || YoutubeSubscribes.Count == 0)
-            && (MailSubscribes == null || MailSubscribes.Count == 0);
+               && (TwitterSubscribes == null || TwitterSubscribes.Count == 0)
+               && (YoutubeSubscribes == null || YoutubeSubscribes.Count == 0)
+               && (MailSubscribes == null || MailSubscribes.Count == 0);
     }
 }

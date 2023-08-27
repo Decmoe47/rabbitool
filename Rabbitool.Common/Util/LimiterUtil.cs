@@ -2,8 +2,8 @@
 
 public class LimiterUtil
 {
-    private readonly float _rate;
     private readonly int _capacity;
+    private readonly float _rate;
     private float _currentAmount;
     private long _lastTriedTime;
 
@@ -17,7 +17,7 @@ public class LimiterUtil
         _lastTriedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
-    public bool Allow(int consume = 1)
+    private bool Allow(int consume = 1)
     {
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         float increment = (now - _lastTriedTime) * _rate;

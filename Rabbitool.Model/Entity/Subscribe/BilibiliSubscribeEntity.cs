@@ -6,6 +6,12 @@ namespace Rabbitool.Model.Entity.Subscribe;
 [Table("BilibiliSubscribe")]
 public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 {
+    public BilibiliSubscribeEntity(uint uid, string uname)
+    {
+        Uid = uid;
+        Uname = uname;
+    }
+
     public uint Uid { get; set; }
     public string Uname { get; set; }
 
@@ -15,20 +21,13 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public LiveStatusEnum LastLiveStatus { get; set; } = LiveStatusEnum.NoLiveStream;
 
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
 
-    [NotMapped]
-    public string PropName { get; set; } = "BilibiliSubscribes";
-
-    public BilibiliSubscribeEntity(uint uid, string uname)
-    {
-        Uid = uid;
-        Uname = uname;
-    }
+    [NotMapped] public string PropName { get; set; } = "BilibiliSubscribes";
 
     public string GetInfo(string separator)
     {
-        string result = "uid=" + Uid.ToString() + separator;
+        string result = "uid=" + Uid + separator;
         result += "uname=" + Uname;
         return result;
     }
@@ -42,20 +41,16 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 [Table("BilibiliSubscribeConfig")]
 public class BilibiliSubscribeConfigEntity : BaseSubscribeConfigEntity<BilibiliSubscribeEntity>, ISubscribeConfigEntity
 {
-    public bool LivePush { get; set; } = true;
-    public bool DynamicPush { get; set; } = true;
-    public bool PureForwardDynamicPush { get; set; } = false;
-
-    private BilibiliSubscribeConfigEntity()
-    {
-    }
-
     public BilibiliSubscribeConfigEntity(
         QQChannelSubscribeEntity qqChannel,
         BilibiliSubscribeEntity subscribe
     ) : base(qqChannel, subscribe)
     {
     }
+
+    public bool LivePush { get; set; } = true;
+    public bool DynamicPush { get; set; } = true;
+    public bool PureForwardDynamicPush { get; set; }
 
     public string GetConfigs(string separator)
     {

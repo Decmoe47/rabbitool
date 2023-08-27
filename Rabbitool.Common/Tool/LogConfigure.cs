@@ -3,7 +3,7 @@ using Serilog.Events;
 
 namespace Rabbitool.Common.Tool;
 
-public static class LogConfiger
+public static class LogConfigure
 {
     public static ILogger New(
         string consoleMinLevel = "verbose",
@@ -13,11 +13,11 @@ public static class LogConfiger
         return new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Console(
-                restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
-                outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                ConvertLevelFromString(consoleMinLevel),
+                "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 $"log/{fileName}.log",
-                restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
+                ConvertLevelFromString(fileMinLevel),
                 rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)
@@ -33,11 +33,11 @@ public static class LogConfiger
         return new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Console(
-                restrictedToMinimumLevel: ConvertLevelFromString(consoleMinLevel),
-                outputTemplate: "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                ConvertLevelFromString(consoleMinLevel),
+                "[{Timestamp:yyyy-MM-ddTHH:mm:sszzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 $"log/{fileName}.log",
-                restrictedToMinimumLevel: ConvertLevelFromString(fileMinLevel),
+                ConvertLevelFromString(fileMinLevel),
                 rollingInterval: RollingInterval.Day,
                 rollOnFileSizeLimit: true,
                 fileSizeLimitBytes: 1024 * 1024)

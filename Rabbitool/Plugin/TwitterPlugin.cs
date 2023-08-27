@@ -17,9 +17,9 @@ public class TwitterPlugin : BasePlugin, IPlugin
 {
     private readonly TwitterSubscribeConfigRepository _configRepo;
     private readonly TwitterSubscribeRepository _repo;
-    private readonly TwitterService _svc;
 
     private readonly Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
+    private readonly TwitterService _svc;
 
     public TwitterPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -127,7 +127,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
         List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(subscribe.ScreenName, ct: ct);
         foreach (QQChannelSubscribeEntity channel in subscribe.QQChannels)
         {
-            if (!await _qbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -139,14 +139,14 @@ public class TwitterPlugin : BasePlugin, IPlugin
                 continue;
             if (config.PushToThread)
             {
-                await _qbSvc.PostThreadAsync(
+                await QbSvc.PostThreadAsync(
                     channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
                 Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                     tweet.Author, tweet.AuthorScreenName);
                 continue;
             }
 
-            await _qbSvc.PushCommonMsgAsync(
+            await QbSvc.PushCommonMsgAsync(
                 channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct);
             Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                 tweet.Author, tweet.AuthorScreenName);
@@ -205,7 +205,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
 
         if (videoUrl != null)
         {
-            videoUrl = await _cosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
+            videoUrl = await CosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
             text += $"\n\n视频下载直链：{videoUrl}";
         }
 
@@ -303,13 +303,13 @@ public class TwitterPlugin : BasePlugin, IPlugin
 
         if (videoUrl != null)
         {
-            videoUrl = await _cosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
+            videoUrl = await CosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
             templateParams.Text += $"\n\n[视频下载直链]({videoUrl})";
         }
 
         if (coverUrl != null)
         {
-            coverUrl = await _cosSvc.UploadImageAsync(coverUrl, ct);
+            coverUrl = await CosSvc.UploadImageAsync(coverUrl, ct);
             templateParams.ImageUrl = coverUrl;
         }
 
@@ -329,17 +329,17 @@ public class TwitterPlugin : BasePlugin, IPlugin
 
         if (tweet.ImageUrls != null)
             result.Paragraphs.AddRange(
-                await QQBotService.ImagesToParagraphsAsync(tweet.ImageUrls, _cosSvc, ct));
+                await QQBotService.ImagesToParagraphsAsync(tweet.ImageUrls, CosSvc, ct));
         else if (tweet.Origin?.ImageUrls != null)
             result.Paragraphs.AddRange(
-                await QQBotService.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, _cosSvc, ct));
+                await QQBotService.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, CosSvc, ct));
 
         if (tweet.VideoUrl != null)
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.VideoUrl, tweet.PubTime, _cosSvc, ct));
+                await QQBotService.VideoToParagraphsAsync(tweet.VideoUrl, tweet.PubTime, CosSvc, ct));
         else if (tweet.Origin?.VideoUrl != null)
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.Origin.VideoUrl, tweet.Origin.PubTime, _cosSvc, ct));
+                await QQBotService.VideoToParagraphsAsync(tweet.Origin.VideoUrl, tweet.Origin.PubTime, CosSvc, ct));
 
         return result;
     }

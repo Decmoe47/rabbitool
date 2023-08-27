@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Util;
 public static partial class CommonUtil
 {
     /// <summary>
-    /// 不存在的属性名会被忽略
+    ///     不存在的属性名会被忽略
     /// </summary>
     /// <exception cref="NullReferenceException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -30,7 +30,8 @@ public static partial class CommonUtil
     }
 
     public static List<T> CombineLists<T>(
-        List<T> lst1, List<T> lst2, List<T>? lst3 = null, List<T>? lst4 = null, List<T>? lst5 = null, List<T>? lst6 = null)
+        List<T> lst1, List<T> lst2, List<T>? lst3 = null, List<T>? lst4 = null, List<T>? lst5 = null,
+        List<T>? lst6 = null)
     {
         IEnumerable<T> lst = lst1.Concat(lst2);
         if (lst3 != null)
@@ -44,6 +45,6 @@ public static partial class CommonUtil
         return lst.ToList();
     }
 
-    [GeneratedRegex("(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?")]
+    [GeneratedRegex(@"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?")]
     private static partial Regex MyRegex();
 }

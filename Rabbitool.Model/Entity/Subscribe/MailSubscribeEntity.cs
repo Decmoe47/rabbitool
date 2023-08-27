@@ -5,23 +5,9 @@ namespace Rabbitool.Model.Entity.Subscribe;
 [Table("MailSubscribe")]
 public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 {
-    public string Username { get; set; }
-    public string Address { get; set; }
-    public string Password { get; set; }
-    public string Mailbox { get; set; }
-    public string Host { get; set; }
-    public int Port { get; set; }
-    public bool Ssl { get; set; } = false;
-
-    public DateTime LastMailTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
-
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
-
-    [NotMapped]
-    public string PropName { get; set; } = "MailSubscribes";
-
     public MailSubscribeEntity(
-        string username, string address, string password, string host, int port, string mailbox = "INBOX", bool ssl = false)
+        string username, string address, string password, string host, int port, string mailbox = "INBOX",
+        bool ssl = false)
     {
         Username = username;
         Address = address;
@@ -32,12 +18,26 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
         Ssl = ssl;
     }
 
+    public string Username { get; set; }
+    public string Address { get; set; }
+    public string Password { get; set; }
+    public string Mailbox { get; set; }
+    public string Host { get; set; }
+    public int Port { get; set; }
+    public bool Ssl { get; set; }
+
+    public DateTime LastMailTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
+
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
+
+    [NotMapped] public string PropName { get; set; } = "MailSubscribes";
+
     public string GetInfo(string separator)
     {
         string result = "username=" + Username + separator;
         result += "address=" + Address + separator;
         result += "host=" + Host.Replace(".", "*") + separator;
-        result += "port=" + Port.ToString() + separator;
+        result += "port=" + Port + separator;
         result += "mailbox=" + Mailbox + separator;
         result += "ssl=" + Ssl.ToString().ToLower();
 
@@ -53,18 +53,14 @@ public class MailSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 [Table("MailSubscribeConfig")]
 public class MailSubscribeConfigEntity : BaseSubscribeConfigEntity<MailSubscribeEntity>, ISubscribeConfigEntity
 {
-    public bool Detail { get; set; } = false;
-    public bool PushToThread { get; set; } = false;
-
-    private MailSubscribeConfigEntity()
-    {
-    }
-
     public MailSubscribeConfigEntity(
         QQChannelSubscribeEntity qqChannel,
         MailSubscribeEntity subscribe) : base(qqChannel, subscribe)
     {
     }
+
+    public bool Detail { get; set; }
+    public bool PushToThread { get; set; }
 
     public string GetConfigs(string separator)
     {

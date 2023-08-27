@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using QQChannelFramework.Models.MessageModels;
+﻿using QQChannelFramework.Models.MessageModels;
 
 namespace Rabbitool.Model.DTO.QQBot;
+
 public class MarkdownTemplateParams
 {
     public required string Info { get; set; }
@@ -20,23 +16,23 @@ public class MarkdownTemplateParams
     {
         List<MessageMarkdownParams> messageParams = new()
         {
-            new("info", Info),
-            new("from", From),
-            new("text", Text.Replace("\n","\u200B")),
-            new("link", Url)
+            new MessageMarkdownParams("info", Info),
+            new MessageMarkdownParams("from", From),
+            new MessageMarkdownParams("text", Text.Replace("\n", "\u200B")),
+            new MessageMarkdownParams("link", Url)
         };
         if (ImageUrl != null)
-            messageParams.Add(new("image", Text));
+            messageParams.Add(new MessageMarkdownParams("image", Text));
         if (Origin?.Info != null)
-            messageParams.Add(new("origin_info", Origin.Info));
+            messageParams.Add(new MessageMarkdownParams("origin_info", Origin.Info));
         if (Origin?.From != null)
-            messageParams.Add(new("origin_from", Origin.From));
+            messageParams.Add(new MessageMarkdownParams("origin_from", Origin.From));
         if (Origin?.Text != null)
-            messageParams.Add(new("origin_text", Origin.Text.Replace("\n", "\u200B")));
+            messageParams.Add(new MessageMarkdownParams("origin_text", Origin.Text.Replace("\n", "\u200B")));
         if (Origin?.Url != null)
-            messageParams.Add(new("origin_link", Origin.Url));
+            messageParams.Add(new MessageMarkdownParams("origin_link", Origin.Url));
         if (Origin?.ImageUrl != null)
-            messageParams.Add(new("origin_image", Origin.ImageUrl));
+            messageParams.Add(new MessageMarkdownParams("origin_image", Origin.ImageUrl));
 
         return messageParams;
     }

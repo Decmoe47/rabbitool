@@ -5,21 +5,20 @@ namespace Rabbitool.Model.Entity.Subscribe;
 [Table("TwitterSubscribe")]
 public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 {
-    public string Name { get; set; }
-    public string ScreenName { get; set; }
-    public string LastTweetId { get; set; } = string.Empty;
-    public DateTime LastTweetTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
-
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new List<QQChannelSubscribeEntity>();
-
-    [NotMapped]
-    public string PropName { get; set; } = "TwitterSubscribes";
-
     public TwitterSubscribeEntity(string screenName, string name)
     {
         Name = name;
         ScreenName = screenName;
     }
+
+    public string Name { get; set; }
+    public string ScreenName { get; set; }
+    public string LastTweetId { get; set; } = string.Empty;
+    public DateTime LastTweetTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
+
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
+
+    [NotMapped] public string PropName { get; set; } = "TwitterSubscribes";
 
     public string GetInfo(string separator)
     {
@@ -37,18 +36,14 @@ public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 [Table("TwitterSubscribeConfig")]
 public class TwitterSubscribeConfigEntity : BaseSubscribeConfigEntity<TwitterSubscribeEntity>, ISubscribeConfigEntity
 {
-    public bool RtPush { get; set; } = false;
-    public bool PushToThread { get; set; } = false;
-
-    private TwitterSubscribeConfigEntity()
-    {
-    }
-
     public TwitterSubscribeConfigEntity(
         QQChannelSubscribeEntity qqChannel,
         TwitterSubscribeEntity subscribe) : base(qqChannel, subscribe)
     {
     }
+
+    public bool RtPush { get; set; }
+    public bool PushToThread { get; set; }
 
     public string GetConfigs(string separator)
     {

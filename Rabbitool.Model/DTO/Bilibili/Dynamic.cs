@@ -9,9 +9,9 @@ public enum DynamicTypeEnum
     Video = 8,
     Article = 64,
     Forward = 1,
-    PureForward = 3,    // 自己定义的，不是api里有的
+    PureForward = 3, // 自己定义的，不是api里有的
     WebActivity = 2042,
-    LiveCard = 4200     // 目前来看，只会出现在origin里
+    LiveCard = 4200 // 目前来看，只会出现在origin里
 }
 
 public abstract class BaseDynamic
@@ -54,15 +54,14 @@ public class ArticleDynamic : BaseDynamic, IOriginDynamic
 
 public class ForwardDynamic : BaseDynamic
 {
+    private object _origin = new();
     public required string DynamicText { get; set; }
 
-    private object _origin = new();
-
     /// <summary>
-    /// 类型可以为<see cref="CommonDynamic"/>、
-    /// <see cref="VideoDynamic"/>、
-    /// <see cref="ArticleDynamic"/>、
-    /// <see cref="string"/>。
+    ///     类型可以为<see cref="CommonDynamic" />、
+    ///     <see cref="VideoDynamic" />、
+    ///     <see cref="ArticleDynamic" />、
+    ///     <see cref="string" />。
     /// </summary>
     public required object Origin
     {
@@ -70,14 +69,15 @@ public class ForwardDynamic : BaseDynamic
         set => _origin = value switch
         {
             IOriginDynamic or string => value,
-            _ => throw new InvalidProperityTypeException(
-                    $"The type {value.GetType().Name} of Origin is invalid"),
+            _ => throw new InvalidPropertyTypeException(
+                $"The type {value.GetType().Name} of Origin is invalid")
         };
     }
 }
 
 public interface IOriginDynamic
-{ }
+{
+}
 
 public class LiveCardDynamic : BaseDynamic, IOriginDynamic
 {

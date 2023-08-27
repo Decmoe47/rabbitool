@@ -17,20 +17,16 @@ public class TwitterService
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromMinutes(1),
         TokenLimit = 11,
-        TokensPerPeriod = 11,
-    });     // See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
+        TokensPerPeriod = 11
+    }); // See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
 
     private readonly RateLimiter _userApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromMinutes(1),
         TokenLimit = 1,
-        TokensPerPeriod = 1,
+        TokensPerPeriod = 1
     });
-
-    public TwitterService()
-    {
-    }
 
     public async Task<Tweet> GetLatestTweetAsync(string screenName, CancellationToken ct = default)
     {
@@ -38,17 +34,18 @@ public class TwitterService
 
         string resp;
         if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
-        {
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
                 .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-                .SetQueryParams(new Dictionary<string, string>()
+                .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },
                     { "screen_name", screenName },
                     { "exclude_replies", "true" },
                     { "include_rts", "true" },
-                    { "tweet_mode", "extended" }    // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
+                    {
+                        "tweet_mode", "extended"
+                    } // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
                 })
                 .WithHeaders(new Dictionary<string, string>
                 {
@@ -56,13 +53,11 @@ public class TwitterService
                     { "Cookie", Configs.R.Twitter.Cookie }
                 })
                 .GetStringAsync(ct);
-        }
         else
-        {
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
                 .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-                .SetQueryParams(new Dictionary<string, string>()
+                .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },
                     { "screen_name", screenName },
@@ -71,20 +66,20 @@ public class TwitterService
                     { "tweet_mode", "extended" }
                 })
                 .GetStringAsync(ct);
-        }
         if (resp.Contains("errors"))
         {
             JObject errBody = JObject.Parse(resp).RemoveNullAndEmptyProperties();
             string error = (int)errBody["errors"]![0]!["code"]! + (string)errBody["errors"]![0]!["message"]!;
             throw new TwitterApiException(error);
         }
+
         JArray body = JArray.Parse(resp);
 
-        JObject tweet = (JObject)body[0]!;
+        JObject tweet = (JObject)body[0];
         Tweet result = Parse(tweet);
 
         Tweet? origin = null;
-        if ((JObject?)tweet["retweeted_status"] is JObject retweetedStatus)
+        if ((JObject?)tweet["retweeted_status"] is { } retweetedStatus)
         {
             result.Type = TweetTypeEnum.RT;
             origin = Parse(retweetedStatus);
@@ -111,9 +106,9 @@ public class TwitterService
 
         List<string>? imgUrls = null;
         string? videoUrl = null;
-        if ((JArray?)tweet["extended_entities"]?["media"] is JArray media)
+        if ((JArray?)tweet["extended_entities"]?["media"] is { } media)
             (text, imgUrls, videoUrl) = GetImageAndVideo(media, text, id);
-        if ((JArray?)tweet["entities"]?["urls"] is JArray urls)
+        if ((JArray?)tweet["entities"]?["urls"] is { } urls)
             text = ReplaceUrlWithExpandedUrl(urls, text);
 
         string screenName = (string)tweet["user"]!["screen_name"]!;
@@ -124,7 +119,7 @@ public class TwitterService
                 DateTimeFormatInfo.InvariantInfo,
                 DateTimeStyles.AdjustToUniversal)
             .ToUniversalTime();
-        return new()
+        return new Tweet
         {
             Id = id,
             Type = TweetTypeEnum.Common,
@@ -134,11 +129,11 @@ public class TwitterService
             AuthorScreenName = screenName,
             Text = text,
             ImageUrls = imgUrls,
-            VideoUrl = videoUrl,
+            VideoUrl = videoUrl
         };
     }
 
-    private string ReplaceUrlWithExpandedUrl(JArray urls, string text)
+    private static string ReplaceUrlWithExpandedUrl(JArray urls, string text)
     {
         foreach (JToken url in urls)
             text = text.Replace((string)url["url"]!, (string)url["expanded_url"]!);
@@ -152,7 +147,6 @@ public class TwitterService
         List<string> imgUrls = new();
 
         foreach (JToken medium in media)
-        {
             try
             {
                 string mediaType = (string)medium["type"]!;
@@ -161,30 +155,30 @@ public class TwitterService
                 if (mediaType == "video")
                 {
                     JArray videoUrls = (JArray)medium["video_info"]!["variants"]!;
-                    int maxBitrate = (int)videoUrls[0]!["bitrate"]!;
+                    int maxBitrate = (int)videoUrls[0]["bitrate"]!;
                     int maxBitrateIndex = 0;
                     for (int i = 1; i < videoUrls.Count; i++)
                     {
-                        int bitrate = (int?)videoUrls[i]?["bitrate"] ?? 0;
+                        int bitrate = (int?)videoUrls[i]["bitrate"] ?? 0;
                         if (bitrate > maxBitrate)
                         {
                             maxBitrate = bitrate;
                             maxBitrateIndex = i;
                         }
                     }
+
                     videoUrl = (string?)videoUrls[maxBitrateIndex]["url"];
                 }
 
                 // 获取原始尺寸大小
-                imgUrls.Add(string.Join(".", ((string)medium["media_url_https"]!).Split('.')[..^1]) + "?format=jpg&name=large");
+                imgUrls.Add(string.Join(".", ((string)medium["media_url_https"]!).Split('.')[..^1]) +
+                            "?format=jpg&name=large");
                 text = text.Replace((string)medium["url"]!, "");
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Failed to get image url!\nTweetId: {tweetId}", tweetId);
-                continue;
             }
-        }
 
         return (text, imgUrls.Count != 0 ? imgUrls : null, videoUrl);
     }

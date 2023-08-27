@@ -33,37 +33,29 @@ public static class SubscribeEntityHelper
         {
             if (subscribe is BilibiliSubscribeEntity s)
                 return (TConfig)(object)new BilibiliSubscribeConfigEntity(qqChannel, s);
-            else
-                goto Mismatched;
         }
         else if (typeof(TConfig) == typeof(TwitterSubscribeConfigEntity))
         {
             if (subscribe is TwitterSubscribeEntity s)
                 return (TConfig)(object)new TwitterSubscribeConfigEntity(qqChannel, s);
-            else
-                goto Mismatched;
         }
         else if (typeof(TConfig) == typeof(YoutubeSubscribeConfigEntity))
         {
             if (subscribe is YoutubeSubscribeEntity s)
                 return (TConfig)(object)new YoutubeSubscribeConfigEntity(qqChannel, s);
-            else
-                goto Mismatched;
         }
         else if (typeof(TConfig) == typeof(MailSubscribeConfigEntity))
         {
             if (subscribe is MailSubscribeEntity s)
                 return (TConfig)(object)new MailSubscribeConfigEntity(qqChannel, s);
-            else
-                goto Mismatched;
         }
         else
         {
             throw new NotSupportedException(
-                $"The type TConfig which is {typeof(TConfig)} cann't be generated in this function!");
+                $"The type TConfig which is {typeof(TConfig)} can't be generated in this function!");
         }
 
-    Mismatched: throw new ArgumentException(
-        $"The type TSubscribe {typeof(TSubscribe)} isn't match to type TConfig {typeof(TConfig)}");
+        throw new ArgumentException(
+            $"The type TSubscribe {typeof(TSubscribe)} isn't match to type TConfig {typeof(TConfig)}");
     }
 }

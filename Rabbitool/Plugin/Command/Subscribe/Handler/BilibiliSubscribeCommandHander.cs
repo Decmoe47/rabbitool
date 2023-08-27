@@ -10,7 +10,8 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe;
 
 public class BilibiliSubscribeCommandHandler
-    : AbstractSubscribeCommandHandler<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity, BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>
+    : AbstractSubscribeCommandHandler<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity,
+        BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>
 {
     private CookieJar? _jar;
 
@@ -35,15 +36,15 @@ public class BilibiliSubscribeCommandHandler
         {
             _jar = new CookieJar();
             _ = await "https://bilibili.com"
-                    .WithCookies(_jar)
-                    .GetAsync();
+                .WithCookies(_jar)
+                .GetAsync(ct);
         }
 
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid);
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
-                .WithCookies(_jar)
-                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
-                .GetStringAsync(ct);
+            .WithCookies(_jar)
+            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .GetStringAsync(ct);
 
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
 

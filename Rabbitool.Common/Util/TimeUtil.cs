@@ -1,6 +1,6 @@
 ﻿namespace Rabbitool.Common.Util;
 
-public class TimeUtil
+public static class TimeUtil
 {
-    public static TimeZoneInfo CST = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+    public static readonly TimeZoneInfo CST = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
 }

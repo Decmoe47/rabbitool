@@ -6,16 +6,6 @@ namespace Rabbitool.Repository.Subscribe;
 
 public class SubscribeDbContext : DbContext
 {
-    public DbSet<QQChannelSubscribeEntity> QQChannelSubscribeEntity => Set<QQChannelSubscribeEntity>();
-    public DbSet<BilibiliSubscribeEntity> BibiliSubscribeEntity => Set<BilibiliSubscribeEntity>();
-    public DbSet<BilibiliSubscribeConfigEntity> BibiliSubscribeConfigEntity => Set<BilibiliSubscribeConfigEntity>();
-    public DbSet<TwitterSubscribeEntity> TwitterSubscribeEntity => Set<TwitterSubscribeEntity>();
-    public DbSet<TwitterSubscribeConfigEntity> TwitterSubscribeConfigEntity => Set<TwitterSubscribeConfigEntity>();
-    public DbSet<YoutubeSubscribeEntity> YoutubeSubscribeEntity => Set<YoutubeSubscribeEntity>();
-    public DbSet<YoutubeSubscribeConfigEntity> YoutubeSubscribeConfigEntity => Set<YoutubeSubscribeConfigEntity>();
-    public DbSet<MailSubscribeEntity> MailSubscribeEntity => Set<MailSubscribeEntity>();
-    public DbSet<MailSubscribeConfigEntity> MailSubscribeConfigEntity => Set<MailSubscribeConfigEntity>();
-
     private readonly string _dbPath;
 
     public SubscribeDbContext()
@@ -27,6 +17,16 @@ public class SubscribeDbContext : DbContext
     {
         _dbPath = dbPath;
     }
+
+    public DbSet<QQChannelSubscribeEntity> QQChannelSubscribeEntity => Set<QQChannelSubscribeEntity>();
+    public DbSet<BilibiliSubscribeEntity> BilibiliSubscribeEntity => Set<BilibiliSubscribeEntity>();
+    public DbSet<BilibiliSubscribeConfigEntity> BilibiliSubscribeConfigEntity => Set<BilibiliSubscribeConfigEntity>();
+    public DbSet<TwitterSubscribeEntity> TwitterSubscribeEntity => Set<TwitterSubscribeEntity>();
+    public DbSet<TwitterSubscribeConfigEntity> TwitterSubscribeConfigEntity => Set<TwitterSubscribeConfigEntity>();
+    public DbSet<YoutubeSubscribeEntity> YoutubeSubscribeEntity => Set<YoutubeSubscribeEntity>();
+    public DbSet<YoutubeSubscribeConfigEntity> YoutubeSubscribeConfigEntity => Set<YoutubeSubscribeConfigEntity>();
+    public DbSet<MailSubscribeEntity> MailSubscribeEntity => Set<MailSubscribeEntity>();
+    public DbSet<MailSubscribeConfigEntity> MailSubscribeConfigEntity => Set<MailSubscribeConfigEntity>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

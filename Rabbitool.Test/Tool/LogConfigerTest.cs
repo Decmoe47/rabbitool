@@ -1,5 +1,5 @@
 ﻿using Rabbitool.Conf;
-using Log = Serilog.Log;
+using Serilog;
 
 namespace Rabbitool.Common.Tool.Test;
 
@@ -11,10 +11,10 @@ public class LogConfigTest
         ErrorNotifierOptions opts = configs.Notifier!.ToOptions();
         opts.Interval = 60;
         opts.AllowedAmount = 25;
-        Log.Logger = LogConfiger.New(opts);
+        Log.Logger = LogConfigure.New(opts);
     }
 
-    [Fact()]
+    [Fact]
     public void LogToEmailShouldReceivedTest()
     {
         try
@@ -28,7 +28,7 @@ public class LogConfigTest
         }
     }
 
-    [Fact()]
+    [Fact]
     public void LogToEmailShouldNotReceivedTest()
     {
         try

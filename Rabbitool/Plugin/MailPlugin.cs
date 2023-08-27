@@ -139,7 +139,7 @@ public class MailPlugin : BasePlugin, IPlugin
         List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Address, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (!await _qbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -152,17 +152,17 @@ public class MailPlugin : BasePlugin, IPlugin
                 RichText richText = config.Detail
                     ? QQBotService.TextToRichText(detailText)
                     : QQBotService.TextToRichText(text);
-                await _qbSvc.PostThreadAsync(
+                await QbSvc.PostThreadAsync(
                     channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
                 Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
                 continue;
             }
 
             if (config.Detail)
-                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}",
+                await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}",
                     ct: ct);
             else
-                await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
+                await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
             Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
         }
     }

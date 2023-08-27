@@ -1,8 +1,8 @@
 ﻿namespace Rabbitool.Common.Exception;
 
-public class InvalidProperityTypeException : System.Exception
+public class InvalidPropertyTypeException : System.Exception
 {
-    public InvalidProperityTypeException(string message) : base(message)
+    public InvalidPropertyTypeException(string message) : base(message)
     {
     }
 }

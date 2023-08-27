@@ -8,7 +8,8 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe;
 
 public class YoutubeSubscribeCommandHandler
-    : AbstractSubscribeCommandHandler<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity, YoutubeSubscribeRepository, YoutubeSubscribeConfigRepository>
+    : AbstractSubscribeCommandHandler<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity, YoutubeSubscribeRepository,
+        YoutubeSubscribeConfigRepository>
 {
     public YoutubeSubscribeCommandHandler(
         QQBotService qbSvc,
@@ -24,19 +25,14 @@ public class YoutubeSubscribeCommandHandler
         string resp;
         try
         {
-            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}".GetStringAsync();
+            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}".GetStringAsync(ct);
         }
         catch (FlurlHttpException ex)
         {
-            if (ex.StatusCode == 404)
-            {
-                Log.Warning(ex, "The youtube user(channelId: {channelId} doesn't exist!", channelId);
-                return ("", $"错误：channelId为 {channelId} 的用户在油管上不存在！");
-            }
-            else
-            {
-                throw ex;
-            }
+            if (ex.StatusCode != 404)
+                throw;
+            Log.Warning(ex, "The youtube user(channelId: {channelId} doesn't exist!", channelId);
+            return ("", $"错误：channelId为 {channelId} 的用户在油管上不存在！");
         }
 
         Feed feed = FeedReader.ReadFromString(resp);

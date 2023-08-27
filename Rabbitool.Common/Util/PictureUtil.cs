@@ -3,17 +3,19 @@
 namespace Rabbitool.Common.Util;
 
 /// <summary>
-/// <see cref="https://www.leavescn.com/Articles/Content/1299"/>
+///     <see>
+///         <cref>https://www.leavescn.com/Articles/Content/1299</cref>
+///     </see>
 /// </summary>
 public static class ImageUtil
 {
     /// <summary>
-    /// Byte
+    ///     Byte
     /// </summary>
-    private static readonly int _allowedMaxImageSize = 2000000;
+    private const int AllowedMaxImageSize = 2000000;
 
     /// <summary>
-    /// 压缩图片
+    ///     压缩图片
     /// </summary>
     /// <param name="source">原文件位置</param>
     /// <param name="target">生成目标文件位置</param>
@@ -29,11 +31,12 @@ public static class ImageUtil
         decimal height = bitmap.Height;
         decimal newWidth = width;
         decimal newHeight = height;
-        if (maxWidth is decimal v && width > maxWidth)
+        if (maxWidth is { } v && width > maxWidth)
         {
             newWidth = v;
             newHeight = height / width * v;
         }
+
         SKBitmap resized = bitmap.Resize(new SKImageInfo((int)newWidth, (int)newHeight), SKFilterQuality.Medium);
 
         if (resized != null)
@@ -46,7 +49,7 @@ public static class ImageUtil
     }
 
     /// <summary>
-    /// 压缩图片
+    ///     压缩图片
     /// </summary>
     /// <param name="image">图片字节</param>
     /// <param name="quality">图片质量，范围0-100，默认70</param>
@@ -62,7 +65,7 @@ public static class ImageUtil
         decimal newWidth = width;
         decimal newHeight = height;
         using SKBitmap resized = bitmap.Resize(new SKImageInfo((int)newWidth, (int)newHeight), SKFilterQuality.Medium)
-            ?? throw new CompressPictureException();
+                                 ?? throw new CompressPictureException();
 
         using SKImage img = SKImage.FromBitmap(resized);
         using MemoryStream compressedImg = new();
@@ -73,7 +76,8 @@ public static class ImageUtil
         {
             newWidth = width * (decimal)0.85;
             newHeight = height / width * newWidth;
-            using SKBitmap resized2 = bitmap.Resize(new SKImageInfo((int)newWidth, (int)newHeight), SKFilterQuality.Medium)
+            using SKBitmap resized2 =
+                bitmap.Resize(new SKImageInfo((int)newWidth, (int)newHeight), SKFilterQuality.Medium)
                 ?? throw new CompressPictureException();
 
             using SKImage img2 = SKImage.FromBitmap(resized);
@@ -86,7 +90,7 @@ public static class ImageUtil
         return result;
     }
 
-    public static bool IsLargerThanAllowed(byte[] image)
+    private static bool IsLargerThanAllowed(byte[] image)
     {
         string fileName = $"img_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
@@ -95,13 +99,10 @@ public static class ImageUtil
         File.WriteAllBytes("./tmp/" + fileName, image);
 
         FileInfo fileInfo = new("./tmp/" + fileName);
-        return fileInfo.Length > _allowedMaxImageSize;
+        return fileInfo.Length > AllowedMaxImageSize;
     }
 }
 
 public class CompressPictureException : System.Exception
 {
-    public CompressPictureException()
-    {
-    }
 }

@@ -19,8 +19,8 @@ public class BilibiliService
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromSeconds(1),
         TokenLimit = 1,
-        TokensPerPeriod = 1,
-    });     // QPS 1
+        TokensPerPeriod = 1
+    }); // QPS 1
 
     public BilibiliService()
     {
@@ -42,12 +42,12 @@ public class BilibiliService
 
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
-                .WithTimeout(10)
-                .WithCookies(_jar)
-                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
-                .GetStringAsync(ct);
+            .WithTimeout(10)
+            .WithCookies(_jar)
+            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
-        if ((int?)body["code"] is int code and not 0)
+        if ((int?)body["code"] is { } code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 
         string uname = (string)body["data"]!["name"]!;
@@ -67,7 +67,7 @@ public class BilibiliService
             .WithHeader("User-Agent", RandomUa.RandomUserAgent)
             .GetStringAsync(ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
-        if ((int?)body2["code"] is int code2 and not 0)
+        if ((int?)body2["code"] is { } code2 and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code2, body2);
 
         int liveStatus = (int)body2["data"]!["room_info"]!["live_status"]!;
@@ -75,28 +75,28 @@ public class BilibiliService
         switch (liveStatus)
         {
             case (int)LiveStatusEnum.NoLiveStream:
-                return new Live()
+                return new Live
                 {
                     Uid = uid,
                     Uname = uname,
                     RoomId = roomId,
-                    LiveStatus = LiveStatusEnum.NoLiveStream,
+                    LiveStatus = LiveStatusEnum.NoLiveStream
                 };
 
             case (int)LiveStatusEnum.Replay:
-                return new Live()
+                return new Live
                 {
                     Uid = uid,
                     Uname = uname,
                     RoomId = roomId,
-                    LiveStatus = LiveStatusEnum.Replay,
+                    LiveStatus = LiveStatusEnum.Replay
                 };
 
             case (int)LiveStatusEnum.Streaming:
                 DateTime liveStartTime = DateTimeOffset
                     .FromUnixTimeSeconds((long)body2["data"]!["room_info"]!["live_start_time"]!)
                     .UtcDateTime;
-                return new Live()
+                return new Live
                 {
                     Uid = uid,
                     Uname = uname,
@@ -109,12 +109,11 @@ public class BilibiliService
 
             default:
                 throw new NotSupportedException(
-                    $"Unknow live status {liveStatus} from the bilibili user {uname}(uid: {uid})");
+                    $"Unknown live status {liveStatus} from the bilibili user {uname}(uid: {uid})");
         }
     }
 
     /// <summary>
-    ///
     /// </summary>
     /// <param name="uid"></param>
     /// <param name="offsetDynamic"></param>
@@ -131,23 +130,24 @@ public class BilibiliService
         await _limiter.AcquireAsync(1, ct);
 
         string resp = await "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
-                .SetQueryParam("offsetDynamic", offsetDynamic)
-                .SetQueryParam("needTop", needTop)
-                .SetQueryParam("host_uid", uid)
-                .WithTimeout(10)
-                .WithCookies(_jar)
-                .WithHeader("User-Agent", RandomUa.RandomUserAgent)
-                .GetStringAsync(ct);
+            .SetQueryParam("offsetDynamic", offsetDynamic)
+            .SetQueryParam("needTop", needTop)
+            .SetQueryParam("host_uid", uid)
+            .WithTimeout(10)
+            .WithCookies(_jar)
+            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
-        if ((int?)body["code"] is int code and not 0)
+        if ((int?)body["code"] is { } code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
 
         JToken? dy = body["data"]?["cards"]?[0];
         if (dy == null)
         {
-            Log.Debug("The {uid} is invaild or the user hasn't any dynamic yet!", uid);
+            Log.Debug("The {uid} is invalid or the user hasn't any dynamic yet!", uid);
             return null;
         }
+
         UnmarshalCard(dy);
         int type = (int)dy["desc"]!["type"]!;
 
@@ -158,7 +158,7 @@ public class BilibiliService
             (int)DynamicTypeEnum.Video => ToVideoDynamic(dy),
             (int)DynamicTypeEnum.Article => ToArticleDynamic(dy),
             (int)DynamicTypeEnum.Forward => await ToForwardDynamicAsync(dy, ct),
-            _ => throw new NotSupportedException($"Not supported dynamic type {type}\nDynamic: {dy}"),
+            _ => throw new NotSupportedException($"Not supported dynamic type {type}\nDynamic: {dy}")
         };
     }
 
@@ -166,14 +166,14 @@ public class BilibiliService
     {
         uint uid = (uint?)dy["desc"]?["uid"] ?? 0;
         string cardStr = (string?)dy["card"]
-            ?? throw new JsonUnmarshalException($"Failed to unmarshal the card!(uid: {uid})");
+                         ?? throw new JsonUnmarshalException($"Failed to unmarshal the card!(uid: {uid})");
         JObject card = JObject.Parse(cardStr).RemoveNullAndEmptyProperties();
 
-        if ((string?)card["origin"] is string origin)
+        if ((string?)card["origin"] is { } origin)
             card["origin"] = JObject.Parse(origin).RemoveNullAndEmptyProperties();
-        if ((string?)card["origin_extend_json"] is string originExtendJson)
+        if ((string?)card["origin_extend_json"] is { } originExtendJson)
             card["origin_extend_json"] = JObject.Parse(originExtendJson).RemoveNullAndEmptyProperties();
-        if ((string?)card["ctrl"] is string ctrl)
+        if ((string?)card["ctrl"] is { } ctrl)
             card["ctrl"] = JObject.Parse(ctrl).RemoveNullAndEmptyProperties();
 
         dy["card"] = card;
@@ -182,45 +182,38 @@ public class BilibiliService
     private static Reserve? GetReserve(JToken dy)
     {
         if ((int?)dy["display"]?["origin"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] == 6)
-        {
-            return new Reserve()
+            return new Reserve
             {
                 Title = (string)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["title"]!,
                 StartTime = DateTimeOffset.FromUnixTimeSeconds(
-                    (long)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
+                        (long)dy["display"]!["origin"]!["add_on_card_info"]![0]!["reserve_attach_card"]![
+                            "livePlanStartTime"]!)
                     .UtcDateTime
             };
-        }
-        else if ((int?)dy["display"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] == 6)
-        {
-            return new Reserve()
+
+        if ((int?)dy["display"]?["add_on_card_info"]?[0]?["add_on_card_show_type"] == 6)
+            return new Reserve
             {
                 Title = (string)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["title"]!,
                 StartTime = DateTimeOffset.FromUnixTimeSeconds(
-                    (long)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
+                        (long)dy["display"]!["add_on_card_info"]![0]!["reserve_attach_card"]!["livePlanStartTime"]!)
                     .UtcDateTime
             };
-        }
-        else
-        {
-            return null;
-        }
+        return null;
     }
 
     private static CommonDynamic ToCommonDynamic(JToken dy)
     {
         List<string>? imgUrls = null;
-        if ((JArray?)dy["card"]?["item"]?["pictures"] is JArray pics)
+        if ((JArray?)dy["card"]?["item"]?["pictures"] is { } pics)
         {
             imgUrls = new List<string>();
             foreach (JToken? img in pics)
-            {
-                if ((string?)img["img_src"] is string src)
+                if ((string?)img["img_src"] is { } src)
                     imgUrls.Add(src);
-            }
         }
 
-        return new CommonDynamic()
+        return new CommonDynamic
         {
             Uid = (uint)dy["desc"]!["uid"]!,
             Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
@@ -229,7 +222,7 @@ public class BilibiliService
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime,
             Text = (string?)dy["card"]?["item"]?["description"]
-                ?? (string)dy["card"]!["item"]!["content"]!,
+                   ?? (string)dy["card"]!["item"]!["content"]!,
             ImageUrls = imgUrls,
             Reserve = GetReserve(dy)
         };
@@ -237,7 +230,7 @@ public class BilibiliService
 
     private static VideoDynamic ToVideoDynamic(JToken dy)
     {
-        return new VideoDynamic()
+        return new VideoDynamic
         {
             Uid = (uint)dy["desc"]!["uid"]!,
             Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
@@ -254,7 +247,7 @@ public class BilibiliService
 
     private static ArticleDynamic ToArticleDynamic(JToken dy)
     {
-        return new ArticleDynamic()
+        return new ArticleDynamic
         {
             Uid = (uint)dy["desc"]!["uid"]!,
             Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
@@ -273,11 +266,11 @@ public class BilibiliService
         DateTime dynamicUploadTime = DateTimeOffset.FromUnixTimeSeconds((long)dy["desc"]!["timestamp"]!).UtcDateTime;
         string dynamicText = (string)dy["card"]!["item"]!["content"]!;
         DynamicTypeEnum dynamicType = IsPureForwardDynamic(dynamicText)
-            ? DynamicTypeEnum.PureForward : DynamicTypeEnum.Forward;
+            ? DynamicTypeEnum.PureForward
+            : DynamicTypeEnum.Forward;
 
         if ((string?)dy["card"]!["item"]!["tips"] == "源动态已被作者删除")
-        {
-            return new ForwardDynamic()
+            return new ForwardDynamic
             {
                 Uid = (uint)dy["desc"]!["uid"]!,
                 Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
@@ -288,7 +281,6 @@ public class BilibiliService
                 DynamicText = dynamicText,
                 Origin = "源动态已被作者删除"
             };
-        }
 
         object origin;
         uint originUid = (uint)dy["desc"]!["origin"]!["uid"]!;
@@ -304,17 +296,15 @@ public class BilibiliService
         {
             case (int)DynamicTypeEnum.TextOnly or (int)DynamicTypeEnum.WithImage or (int)DynamicTypeEnum.WebActivity:
                 List<string>? imgUrls = null;
-                if ((JArray?)dy["card"]?["origin"]?["item"]?["pictures"] is JArray pics)
+                if ((JArray?)dy["card"]?["origin"]?["item"]?["pictures"] is { } pics)
                 {
                     imgUrls = new List<string>();
                     foreach (JToken? img in pics)
-                    {
-                        if ((string?)img["img_src"] is string src)
+                        if ((string?)img["img_src"] is { } src)
                             imgUrls.Add(src);
-                    }
                 }
 
-                origin = new CommonDynamic()
+                origin = new CommonDynamic
                 {
                     Uid = originUid,
                     Uname = originUname,
@@ -323,14 +313,14 @@ public class BilibiliService
                     DynamicUrl = originDynamicUrl,
                     DynamicUploadTime = originDynamicUploadTime,
                     Text = (string?)dy["card"]?["origin"]?["item"]!["description"]
-                        ?? (string)dy["card"]!["origin"]!["item"]!["content"]!,
+                           ?? (string)dy["card"]!["origin"]!["item"]!["content"]!,
                     ImageUrls = imgUrls,
-                    Reserve = GetReserve(dy),
+                    Reserve = GetReserve(dy)
                 };
                 break;
 
             case (int)DynamicTypeEnum.Video:
-                origin = new VideoDynamic()
+                origin = new VideoDynamic
                 {
                     Uid = originUid,
                     Uname = originUname,
@@ -346,7 +336,7 @@ public class BilibiliService
                 break;
 
             case (int)DynamicTypeEnum.Article:
-                origin = new ArticleDynamic()
+                origin = new ArticleDynamic
                 {
                     Uid = originUid,
                     Uname = originUname,
@@ -361,7 +351,7 @@ public class BilibiliService
                 break;
 
             case (int)DynamicTypeEnum.LiveCard:
-                origin = new LiveCardDynamic()
+                origin = new LiveCardDynamic
                 {
                     Uid = originUid,
                     Uname = originUname,
@@ -384,7 +374,7 @@ public class BilibiliService
                     $"Not supported origin dynamic type {originDynamicType} for origin dynamic from the bilibili user (uid: {originUid})!");
         }
 
-        return new ForwardDynamic()
+        return new ForwardDynamic
         {
             Uid = (uint)dy["desc"]!["uid"]!,
             Uname = (string)dy["desc"]!["user_profile"]!["info"]!["uname"]!,
@@ -393,7 +383,7 @@ public class BilibiliService
             DynamicUrl = "https://t.bilibili.com/" + (string)dy["desc"]!["dynamic_id_str"]!,
             DynamicUploadTime = dynamicUploadTime,
             DynamicText = dynamicText,
-            Origin = origin,
+            Origin = origin
         };
     }
 
@@ -408,7 +398,7 @@ public class BilibiliService
             .WithHeader("User-Agent", RandomUa.RandomUserAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
-        if ((int?)body["code"] is int code && code != 0)
+        if ((int?)body["code"] is { } code && code != 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);
 
         return (string)body["data"]!["name"]!;

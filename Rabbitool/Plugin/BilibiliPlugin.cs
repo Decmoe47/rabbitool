@@ -162,7 +162,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) == false)
+            if (await QbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -176,7 +176,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             if (dy.DynamicType == DynamicTypeEnum.PureForward && config.PureForwardDynamicPush == false)
                 continue;
 
-            await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
+            await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
             Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
                 dy.Uname, dy.Uid);
         }
@@ -380,7 +380,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             From = dy.Uname,
             Url = dy.DynamicUrl.AddRedirectToUrls(),
             ImageUrl = dy.ImageUrls != null && dy.ImageUrls.Count > 0
-                ? await _cosSvc.UploadImageAsync(dy.ImageUrls[0])
+                ? await CosSvc.UploadImageAsync(dy.ImageUrls[0])
                 : null,
             Text = dy.Text.AddRedirectToUrls()
         };
@@ -398,7 +398,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         {
             List<Task<string>> tasks = new();
             foreach (string url in dy.ImageUrls)
-                tasks.Add(_cosSvc.UploadImageAsync(url));
+                tasks.Add(CosSvc.UploadImageAsync(url));
             string[] urls = await Task.WhenAll(tasks);
             otherImgs = urls.ToList();
         }
@@ -422,7 +422,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             Info = "新b站视频",
             From = dy.Uname,
             Url = dy.VideoUrl.AddRedirectToUrls(),
-            ImageUrl = await _cosSvc.UploadImageAsync(dy.VideoThumbnailUrl),
+            ImageUrl = await CosSvc.UploadImageAsync(dy.VideoThumbnailUrl),
             Text = dy.DynamicText == ""
                 ? dy.VideoTitle
                 : dy.VideoTitle + "\n" + dy.DynamicText
@@ -444,7 +444,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             Info = "新专栏",
             From = dy.Uname,
             Url = dy.ArticleUrl.AddRedirectToUrls(),
-            ImageUrl = await _cosSvc.UploadImageAsync(dy.ArticleThumbnailUrl),
+            ImageUrl = await CosSvc.UploadImageAsync(dy.ArticleThumbnailUrl),
             Text = dy.ArticleTitle
         };
         return (
@@ -488,14 +488,14 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     Url = cOrigin.DynamicUrl.AddRedirectToUrls(),
                     Text = cOrigin.Text,
                     ImageUrl = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
-                        ? await _cosSvc.UploadImageAsync(cOrigin.ImageUrls[0])
+                        ? await CosSvc.UploadImageAsync(cOrigin.ImageUrls[0])
                         : null
                 };
                 if (cOrigin.ImageUrls?.Count > 1)
                 {
                     List<Task<string>> tasks = new();
                     foreach (string url in cOrigin.ImageUrls)
-                        tasks.Add(_cosSvc.UploadImageAsync(url));
+                        tasks.Add(CosSvc.UploadImageAsync(url));
                     string[] urls = await Task.WhenAll(tasks);
                     otherImgs = urls.ToList();
                 }
@@ -512,7 +512,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     Text = vOrigin.DynamicText == ""
                         ? vOrigin.VideoTitle
                         : vOrigin.VideoTitle + "\n" + vOrigin.DynamicText,
-                    ImageUrl = await _cosSvc.UploadImageAsync(vOrigin.VideoThumbnailUrl)
+                    ImageUrl = await CosSvc.UploadImageAsync(vOrigin.VideoThumbnailUrl)
                 };
                 break;
 
@@ -524,7 +524,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     From = aOrigin.Uname,
                     Url = aOrigin.ArticleUrl.AddRedirectToUrls(),
                     Text = aOrigin.ArticleTitle,
-                    ImageUrl = await _cosSvc.UploadImageAsync(aOrigin.ArticleThumbnailUrl)
+                    ImageUrl = await CosSvc.UploadImageAsync(aOrigin.ArticleThumbnailUrl)
                 };
                 break;
 
@@ -539,7 +539,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                             标题：{lOrigin.Title}
                             开始时间：{lOrigin.LiveStartTime}
                             """,
-                    ImageUrl = await _cosSvc.UploadImageAsync(lOrigin.CoverUrl)
+                    ImageUrl = await CosSvc.UploadImageAsync(lOrigin.CoverUrl)
                 };
                 break;
         }
@@ -624,7 +624,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         List<BilibiliSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Uid, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (await _qbSvc.ExistChannelAsync(channel.ChannelId) == false)
+            if (await QbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -634,7 +634,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
             BilibiliSubscribeConfigEntity config = configs.First(c => c.QQChannel.ChannelId == channel.ChannelId);
             if (config.LivePush == false) continue;
 
-            await _qbSvc.PushCommonMsgAsync(
+            await QbSvc.PushCommonMsgAsync(
                 channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct);
             Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
                 live.Uname, live.Uid);
@@ -664,7 +664,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
                     标题：{live.Title}
                     开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
                     """,
-            ImageUrl = await _cosSvc.UploadImageAsync(live.CoverUrl!)
+            ImageUrl = await CosSvc.UploadImageAsync(live.CoverUrl!)
         };
         return new MessageMarkdown
         {

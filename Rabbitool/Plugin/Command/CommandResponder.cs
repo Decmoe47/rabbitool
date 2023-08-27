@@ -13,13 +13,13 @@ public static class CommandResponder
         new CommandInfo
         {
             Name = "/帮助",
-            Format = new string[1]{ "/帮助" },
+            Format = new[] { "/帮助" },
             Example = "/帮助",
             Responder = RespondToHelpCommandAsync
         }
     };
 
-    private static readonly List<CommandInfo> _allCommands = CommonUtil.CombineLists(
+    private static readonly List<CommandInfo> AllCommands = CommonUtil.CombineLists(
         _baseCommands,
         SubscribeCommandResponder.AllSubscribeCommands);
 
@@ -31,7 +31,7 @@ public static class CommandResponder
         {
             cmd = msg.Content.Replace("\xa0", " ").Split(" ", StringSplitOptions.RemoveEmptyEntries)[1..].ToList();
 
-            CommandInfo? cmdInfo = _allCommands.Find(c => c.Name == cmd[0]);
+            CommandInfo? cmdInfo = AllCommands.Find(c => c.Name == cmd[0]);
             return cmdInfo == null
                 ? "错误：指令错误！\n输入 /帮助 获取指令列表"
                 : await cmdInfo.Responder(cmd, msg, ct);
@@ -47,7 +47,7 @@ public static class CommandResponder
         List<string> cmd, Message msg, CancellationToken ct)
     {
         string commands = "";
-        foreach (CommandInfo v in _allCommands)
+        foreach (CommandInfo v in AllCommands)
             commands += string.Join(" ", v.Format) + "\n";
         return $"支持的命令：\n{commands}\n详细设置请前往项目主页。";
     }

@@ -1,5 +1,4 @@
-﻿using Flurl;
-using Flurl.Http;
+﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Conf;
 using Rabbitool.Model.Entity.Subscribe;
@@ -10,7 +9,8 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe;
 
 public class TwitterSubscribeCommandHandler
-    : AbstractSubscribeCommandHandler<TwitterSubscribeEntity, TwitterSubscribeConfigEntity, TwitterSubscribeRepository, TwitterSubscribeConfigRepository>
+    : AbstractSubscribeCommandHandler<TwitterSubscribeEntity, TwitterSubscribeConfigEntity, TwitterSubscribeRepository,
+        TwitterSubscribeConfigRepository>
 {
     public TwitterSubscribeCommandHandler(
         QQBotService qbSvc,
@@ -27,17 +27,18 @@ public class TwitterSubscribeCommandHandler
         try
         {
             if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
-            {
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
                     .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-                    .SetQueryParams(new Dictionary<string, string>()
+                    .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },
                         { "screen_name", screenName },
                         { "exclude_replies", "true" },
                         { "include_rts", "true" },
-                        { "tweet_mode", "extended" }    // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
+                        {
+                            "tweet_mode", "extended"
+                        } // https://stackoverflow.com/questions/38717816/twitter-api-text-field-value-is-truncated
                     })
                     .WithHeaders(new Dictionary<string, string>
                     {
@@ -45,37 +46,29 @@ public class TwitterSubscribeCommandHandler
                         { "Cookie", Configs.R.Twitter.Cookie }
                     })
                     .GetStringAsync(ct);
-            }
             else
-            {
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
                     .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
-                    .SetQueryParams(new Dictionary<string, string>()
+                    .SetQueryParams(new Dictionary<string, string>
                     {
-                    { "count", "5" },
-                    { "screen_name", screenName },
-                    { "exclude_replies", "true" },
-                    { "include_rts", "true" },
-                    { "tweet_mode", "extended" }
+                        { "count", "5" },
+                        { "screen_name", screenName },
+                        { "exclude_replies", "true" },
+                        { "include_rts", "true" },
+                        { "tweet_mode", "extended" }
                     })
                     .GetStringAsync(ct);
-            }
         }
         catch (FlurlHttpException ex)
         {
-            if (ex.StatusCode == 404)
-            {
-                Log.Warning(ex, "The twitter user(screenName: {screenName} doesn't exist!", screenName);
-                return ("", $"错误：screenName为 {screenName} 的用户在推特上不存在！");
-            }
-            else
-            {
-                throw ex;
-            }
+            if (ex.StatusCode != 404)
+                throw;
+            Log.Warning(ex, "The twitter user(screenName: {screenName} doesn't exist!", screenName);
+            return ("", $"错误：screenName为 {screenName} 的用户在推特上不存在！");
         }
 
         JArray body = JArray.Parse(resp);
-        return ((string)body[0]!["user"]!["name"]!, null);
+        return ((string)body[0]["user"]!["name"]!, null);
     }
 }

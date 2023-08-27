@@ -7,8 +7,8 @@ using Serilog;
 Configs conf = Configs.Load("configs.yml");
 
 Log.Logger = conf.Notifier != null
-    ? LogConfiger.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel)
-    : LogConfiger.New(conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
+    ? LogConfigure.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel)
+    : LogConfigure.New(conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
 
 Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
 

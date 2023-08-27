@@ -10,21 +10,21 @@ namespace Rabbitool.Common.Tool;
 
 public class Notifier : ILogEventSink, IDisposable
 {
-    private readonly SmtpClient _client;
-
-    private readonly string _from;
-    private readonly string[] _to;
-    private readonly string _host;
-    private readonly int _port;
-    private readonly bool _ssl;
-    private readonly string _username;
-    private readonly string _password;
-
-    private readonly int _intervalMinutes;
     private readonly int _allowedAmount;
+    private readonly SmtpClient _client;
     private readonly List<ErrorCounter> _errors = new();
 
     private readonly IFormatProvider? _formatProvider;
+
+    private readonly string _from;
+    private readonly string _host;
+
+    private readonly int _intervalMinutes;
+    private readonly string _password;
+    private readonly int _port;
+    private readonly bool _ssl;
+    private readonly string[] _to;
+    private readonly string _username;
 
     public Notifier(ErrorNotifierOptions opts, IFormatProvider? formatProvider = null)
     {
@@ -46,6 +46,12 @@ public class Notifier : ILogEventSink, IDisposable
         Console.CancelKeyPress += (sender, e) => Dispose();
     }
 
+    public void Dispose()
+    {
+        _client.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     public void Emit(LogEvent logEvent)
     {
         if (logEvent.Level != LogEventLevel.Error && logEvent.Level != LogEventLevel.Fatal)
@@ -55,7 +61,7 @@ public class Notifier : ILogEventSink, IDisposable
         string textToCount = message;
         if (logEvent.Exception != null)
         {
-            message += "\n\n" + logEvent.Exception.ToString();
+            message += "\n\n" + logEvent.Exception;
             textToCount += "\n\n" + logEvent.Exception.GetType().Name;
         }
 
@@ -69,7 +75,7 @@ public class Notifier : ILogEventSink, IDisposable
         Send(textToSend);
     }
 
-    private void Send(string text, bool isRecoverd = false)
+    private void Send(string text, bool isRecovered = false)
     {
         if (!_client.IsConnected)
             _client.Connect(_host, _port, _ssl);
@@ -80,11 +86,11 @@ public class Notifier : ILogEventSink, IDisposable
         msg.From.Add(new MailboxAddress(_from, _from));
         foreach (string to in _to)
             msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = isRecoverd
+        msg.Subject = isRecovered
             ? $"Alert Cleared from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}"
             : $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
 
-        msg.Body = new TextPart() { Text = text };
+        msg.Body = new TextPart { Text = text };
 
         _client.Send(msg);
     }
@@ -97,24 +103,22 @@ public class Notifier : ILogEventSink, IDisposable
         ErrorCounter? error = _errors.FirstOrDefault(e => e.Text == text && !e.Disposed);
         if (error == null)
         {
-            error = new(text, now + (_intervalMinutes * 60));
+            error = new ErrorCounter(text, now + _intervalMinutes * 60);
             _errors.Add(error);
         }
 
         error.Count++;
         if (now > error.TimeStampToRefresh)
         {
-            error.TimeStampToRefresh = now + (_intervalMinutes * 60);
+            error.TimeStampToRefresh = now + _intervalMinutes * 60;
             error.Count = 1;
         }
 
-        if (error.Count > _allowedAmount)
-        {
-            error.Alerting = true;
-            return true;
-        }
+        if (error.Count <= _allowedAmount)
+            return false;
 
-        return false;
+        error.Alerting = true;
+        return true;
     }
 
     private void ClearDisposedErrorCounter()
@@ -122,34 +126,19 @@ public class Notifier : ILogEventSink, IDisposable
         List<int> indexesToRemove = new();
         for (int i = 0; i < _errors.Count; i++)
         {
-            if (_errors[i].Disposed)
-            {
-                Send("【The error below is no longer happened】\n\n" + _errors[i].Text);
-                indexesToRemove.Add(i);
-            }
+            if (!_errors[i].Disposed)
+                continue;
+            Send("【The error below is no longer happened】\n\n" + _errors[i].Text);
+            indexesToRemove.Add(i);
         }
 
         foreach (int index in indexesToRemove)
             _errors.RemoveAt(index);
     }
-
-    public void Dispose()
-    {
-        _client?.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }
 
 public class ErrorCounter
 {
-    public int Count { get; set; }
-    public List<int> Last5Count { get; set; } = new();
-    public string Text { get; set; }
-    public long TimeStampToRefresh { get; set; }
-    public Timer Timer { get; set; }
-    public bool Alerting { get; set; }
-    public bool Disposed { get; set; }
-
     public ErrorCounter(string text, long timeStampToRefresh)
     {
         Text = text;
@@ -171,6 +160,14 @@ public class ErrorCounter
             }
         }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
+
+    public int Count { get; set; }
+    private List<int> Last5Count { get; } = new();
+    public string Text { get; set; }
+    public long TimeStampToRefresh { get; set; }
+    public Timer Timer { get; set; }
+    public bool Alerting { get; set; }
+    public bool Disposed { get; private set; }
 }
 
 public class ErrorNotifierOptions

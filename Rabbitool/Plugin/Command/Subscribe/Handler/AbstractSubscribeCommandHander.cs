@@ -16,11 +16,11 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
     where TSubscribeRepo : ISubscribeRepository<TSubscribe>
     where TConfigRepo : ISubscribeConfigRepository<TSubscribe, TConfig>
 {
-    protected readonly QQBotService _qbSvc;
+    protected readonly TConfigRepo _configRepo;
     protected readonly SubscribeDbContext _dbCtx;
+    protected readonly QQBotService _qbSvc;
     protected readonly QQChannelSubscribeRepository _qsRepo;
     protected readonly TSubscribeRepo _repo;
-    protected readonly TConfigRepo _configRepo;
 
     public AbstractSubscribeCommandHandler(
         QQBotService qbSvc,
@@ -43,13 +43,12 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         {
             List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
             if (subscribes != null)
-            {
                 foreach (TSubscribe subscribe in subscribes)
                 {
                     subscribe.QQChannels.RemoveAll(q => q.ChannelId == channel.ChannelId);
                     await _configRepo.DeleteAsync(channel.ChannelId, subscribe.GetId(), ct);
                 }
-            }
+
             _qsRepo.Delete(channel);
         }
 
@@ -64,7 +63,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             return $"请输入 {cmd.Platform} 对应的id！";
 
         string name;
-        string? errMsg = null;
+        string? errMsg;
         try
         {
             (name, errMsg) = await CheckId(cmd.SubscribeId, ct);
@@ -93,12 +92,12 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         }
 
         (QQChannelSubscribeEntity channel, bool added) = await _qsRepo.AddSubscribeAsync(
-            guildId: cmd.QQChannel.GuildId,
-            guildName: cmd.QQChannel.GuildName,
-            channelId: cmd.QQChannel.Id,
-            channelName: cmd.QQChannel.Name,
-            subscribe: record,
-            ct: ct);
+            cmd.QQChannel.GuildId,
+            cmd.QQChannel.GuildName,
+            cmd.QQChannel.Id,
+            cmd.QQChannel.Name,
+            record,
+            ct);
         await _configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
 
         await _dbCtx.SaveChangesAsync(ct);
@@ -220,7 +219,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         result = Regex.Replace(
             result,
             @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            new MatchEvaluator((match) => match.ToString().Replace(".", "*")));     // 邮箱地址会被识别为链接导致无法过审
+            match => match.ToString().Replace(".", "*")); // 邮箱地址会被识别为链接导致无法过审
 
         return $"【子频道：{channelName}】\n" + result;
     }
@@ -235,16 +234,17 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         if (errCommandMsg != null)
             return errCommandMsg;
 
-        TSubscribe? subscribe = subscribes.Find(s => s.GetId() == cmd.SubscribeId); ;
+        TSubscribe? subscribe = subscribes.Find(s => s.GetId() == cmd.SubscribeId);
         if (subscribe == null)
         {
-            Log.Warning("The subscribe which id is {subscribeId} doesn't exist in the channel subscribe!\nInfo: {info}",
+            Log.Warning(
+                "The subscribe which id is {subscribeId} doesn't exist in the channel (id: {channelId}) subscribe!\nInfo: {info}",
                 cmd.SubscribeId, cmd.QQChannel.Id, logInfo);
             return $"错误：id为 {cmd.SubscribeId} 的用户未在 {cmd.QQChannel.Name} 子频道订阅过！";
         }
 
         TConfig? config = await _configRepo.GetOrDefaultAsync(
-                cmd.QQChannel.Id, cmd.SubscribeId!, ct: ct);
+            cmd.QQChannel.Id, cmd.SubscribeId!, ct: ct);
         string result = config == null
             ? subscribe.GetInfo("，")
             : subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n";
@@ -252,7 +252,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         result = Regex.Replace(
             result,
             @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            new MatchEvaluator((match) => match.ToString().Replace(".", "*")));
+            match => match.ToString().Replace(".", "*"));
 
         return result;
     }

@@ -212,7 +212,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
         List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(item.ChannelId, ct: ct);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (!await _qbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -232,7 +232,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            await _qbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
+            await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
             switch (item.Type)
             {
                 case YoutubeTypeEnum.Video:

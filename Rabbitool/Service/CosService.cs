@@ -9,8 +9,8 @@ namespace Rabbitool.Service;
 
 public class CosService
 {
-    private readonly CosXml _client;
     private readonly string _baseUrl;
+    private readonly CosXml _client;
 
     public CosService()
     {
@@ -28,7 +28,7 @@ public class CosService
         string partOfUrl = url.Split("/").Last();
         string filename = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-        if (partOfUrl.IndexOf("?") is int i and not -1)
+        if (partOfUrl.IndexOf("?", StringComparison.Ordinal) is var i and not -1)
             filename = partOfUrl[..i];
 
         if (!filename.EndsWith(".jpg") && !filename.EndsWith(".png"))
@@ -45,18 +45,16 @@ public class CosService
         string fileName = pubTime.ToString(@"yyyyMMdd_HHmmsszz") + ".mp4";
         string filePath = "./tmp/" + fileName;
 
-        using Process p = new()
+        using Process p = new();
+        p.StartInfo = new ProcessStartInfo
         {
-            StartInfo = new ProcessStartInfo()
-            {
-                FileName = "youtube-dl",
-                Arguments = $"-o {filePath} {url}",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-            }
+            FileName = "youtube-dl",
+            Arguments = $"-o {filePath} {url}",
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true
         };
 
         p.Start();
@@ -68,13 +66,13 @@ public class CosService
         return Upload(fileName, filePath, "/data/videos/");
     }
 
-    public string Upload(string fileName, string filePath, string pathInCos)
+    private string Upload(string fileName, string filePath, string pathInCos)
     {
         using FileStream file = File.OpenRead(filePath);
         try
         {
             PutObjectRequest request = new(Configs.R.Cos.BucketName, pathInCos + fileName, file, 0, file.Length);
-            PutObjectResult result = _client.PutObject(request);
+            _client.PutObject(request);
             return _baseUrl + pathInCos + fileName;
         }
         finally
@@ -83,7 +81,7 @@ public class CosService
         }
     }
 
-    public string Upload(string fileName, byte[] file, string pathInCos)
+    private string Upload(string fileName, byte[] file, string pathInCos)
     {
         PutObjectRequest request = new(Configs.R.Cos.BucketName, pathInCos + fileName, file);
         _ = _client.PutObject(request);

@@ -9,7 +9,8 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe;
 
 public class MailSubscribeCommandHandler
-    : AbstractSubscribeCommandHandler<MailSubscribeEntity, MailSubscribeConfigEntity, MailSubscribeRepository, MailSubscribeConfigRepository>
+    : AbstractSubscribeCommandHandler<MailSubscribeEntity, MailSubscribeConfigEntity, MailSubscribeRepository,
+        MailSubscribeConfigRepository>
 {
     public MailSubscribeCommandHandler(
         QQBotService qbSvc,
@@ -32,9 +33,7 @@ public class MailSubscribeCommandHandler
         if (cmd.SubscribeId == null)
             return $"请输入 {cmd.Platform} 对应的id！";
 
-        string address;
-        string? errMsg = null;
-        (address, errMsg) = await CheckId(cmd.SubscribeId, ct);
+        (string address, _) = await CheckId(cmd.SubscribeId, ct);
 
         if (cmd.Configs == null)
             return "错误：需指定邮箱地址！";
@@ -55,13 +54,13 @@ public class MailSubscribeCommandHandler
             cmd.Configs.TryGetValue("mailbox", out string? mailbox);
             cmd.Configs.TryGetValue("ssl", out bool? ssl);
             record = new MailSubscribeEntity(
-                username: username,
-                address: address,
-                password: password,
-                host: host,
-                port: (int)port,
-                mailbox: mailbox ?? "INBOX",
-                ssl: ssl ?? false
+                username,
+                address,
+                password,
+                host,
+                (int)port,
+                mailbox ?? "INBOX",
+                ssl ?? false
             );
             await _repo.AddAsync(record, ct);
 
@@ -73,12 +72,12 @@ public class MailSubscribeCommandHandler
         }
 
         (QQChannelSubscribeEntity channel, bool added) = await _qsRepo.AddSubscribeAsync(
-            guildId: cmd.QQChannel.GuildId,
-            guildName: cmd.QQChannel.GuildName,
-            channelId: cmd.QQChannel.Id,
-            channelName: cmd.QQChannel.Name,
-            subscribe: record,
-            ct: ct);
+            cmd.QQChannel.GuildId,
+            cmd.QQChannel.GuildName,
+            cmd.QQChannel.Id,
+            cmd.QQChannel.Name,
+            record,
+            ct);
         await _configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
 
         await _dbCtx.SaveChangesAsync(ct);
@@ -89,10 +88,8 @@ public class MailSubscribeCommandHandler
                 record.Host, record.Port, record.Ssl, record.Address, record.Password, record.Mailbox);
             return $"成功：已添加订阅到 {cmd.QQChannel.Name} 子频道！";
         }
-        else
-        {
-            return $"成功：已更新在 {cmd.QQChannel.Name} 子频道中的此订阅的配置！";
-        }
+
+        return $"成功：已更新在 {cmd.QQChannel.Name} 子频道中的此订阅的配置！";
     }
 
     public override async Task<string> Delete(SubscribeCommand cmd, CancellationToken ct = default)

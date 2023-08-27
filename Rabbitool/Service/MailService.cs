@@ -8,14 +8,14 @@ namespace Rabbitool.Service;
 public class MailService : IDisposable
 {
     private readonly ImapClient _client;
-    private IMailFolder? _folder;
-    private readonly int _port;
     private readonly string _password;
+    private readonly int _port;
     private readonly bool _usingSsl;
-
-    public readonly string Username;
     public readonly string Host;
     public readonly string MailBox;
+
+    public readonly string Username;
+    private IMailFolder? _folder;
 
     public MailService(string host, int port, bool usingSsl, string username, string password, string mailbox = "INBOX")
     {
@@ -26,6 +26,12 @@ public class MailService : IDisposable
         Username = username;
         _password = password;
         MailBox = mailbox;
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public async Task DisconnectAsync(CancellationToken ct = default)
@@ -51,7 +57,7 @@ public class MailService : IDisposable
             await _client.IdentifyAsync(clientImpl, ct);
         }
 
-        if (_folder == null || !_folder.IsOpen)
+        if (_folder is not { IsOpen: true })
         {
             _folder = await _client.GetFolderAsync(MailBox, ct);
             await _folder.OpenAsync(FolderAccess.ReadOnly, ct);
@@ -62,11 +68,11 @@ public class MailService : IDisposable
         List<AddressInfo> from = new();
         List<AddressInfo> to = new();
         foreach (InternetAddress address in msg.From)
-            from.Add(new AddressInfo() { Address = address.ToString(), Name = address.Name });
+            from.Add(new AddressInfo { Address = address.ToString() ?? string.Empty, Name = address.Name });
         foreach (InternetAddress address in msg.To)
-            to.Add(new AddressInfo() { Address = address.ToString(), Name = address.Name });
+            to.Add(new AddressInfo { Address = address.ToString() ?? string.Empty, Name = address.Name });
 
-        return new()
+        return new Mail
         {
             From = from,
             To = to,
@@ -74,11 +80,5 @@ public class MailService : IDisposable
             Time = msg.Date.UtcDateTime,
             Text = msg.TextBody
         };
-    }
-
-    public void Dispose()
-    {
-        _client.Dispose();
-        GC.SuppressFinalize(this);
     }
 }
