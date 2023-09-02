@@ -38,16 +38,23 @@ public class YoutubeService
             .List(new Repeatable<string>(new[] { "contentDetails" }));
         playListReq.PlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
         await _limiter.AcquireAsync(1, ct);
-        PlaylistItem item = (await playListReq.ExecuteAsync(ct)).Items[0];
+        IList<PlaylistItem> playlistItems = (await playListReq.ExecuteAsync(ct)).Items;
 
-        // https://developers.google.com/youtube/v3/docs/videos
-        VideosResource.ListRequest videosReq = _ytb.Videos
-            .List(new Repeatable<string>(new[] { "snippet", "liveStreamingDetails" }));
-        videosReq.Id = item.ContentDetails.VideoId;
-        await _limiter.AcquireAsync(1, ct);
-        Video video = (await videosReq.ExecuteAsync(ct)).Items[0];
+        Video video = new();
+        foreach (PlaylistItem playlistItem in playlistItems)
+        {
+            // https://developers.google.com/youtube/v3/docs/videos
+            VideosResource.ListRequest videosReq = _ytb.Videos
+                .List(new Repeatable<string>(new[] { "snippet", "liveStreamingDetails" }));
+            videosReq.Id = playlistItem.ContentDetails.VideoId;
+            await _limiter.AcquireAsync(1, ct);
+            video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
-        return CreateDto(channelId, item.ContentDetails.VideoId, video);
+            if (video.LiveStreamingDetails.ScheduledStartTime != null)
+                break;
+        }
+        
+        return CreateDto(channelId, video.Id, video);
     }
 
     public async Task<YoutubeLive?> IsStreamingAsync(string liveRoomId, CancellationToken ct = default)
