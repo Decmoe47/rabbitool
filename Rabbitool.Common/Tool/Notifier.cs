@@ -114,7 +114,7 @@ public class Notifier : ILogEventSink, IDisposable
             error.Count = 1;
         }
 
-        if (error.Count <= _allowedAmount)
+        if (error.Count <= _allowedAmount || error.Alerting)
             return false;
 
         error.Alerting = true;

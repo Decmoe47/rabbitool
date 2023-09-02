@@ -25,8 +25,10 @@ public class ErrorNotifierTest
         }
         catch (ArgumentException ex)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 10; i++)
                 _notifier.Notify(ex.ToString(), ex.ToString());
+            Thread.Sleep(TimeSpan.FromMinutes(7));
+            _notifier.Notify("recovered", "recovered");
         }
     }
 
