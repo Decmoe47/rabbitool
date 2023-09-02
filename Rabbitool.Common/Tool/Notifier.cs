@@ -128,7 +128,7 @@ public class Notifier : ILogEventSink, IDisposable
         {
             if (!_errors[i].Disposed)
                 continue;
-            Send("【The error below is no longer happened】\n\n" + _errors[i].Text);
+            Send("【The error below is no longer happened】\n\n" + _errors[i].Text, true);
             indexesToRemove.Add(i);
         }
 
@@ -152,7 +152,7 @@ public class ErrorCounter
             if (Last5Count.Count > 5)
                 Last5Count.RemoveAt(0);
 
-            if (Last5Count.All(c => c == Last5Count[0]))
+            if (Last5Count.Count == 5 && Last5Count.All(c => c == Last5Count[0]))
             {
                 Timer? t = (Timer?)state;
                 t?.Dispose();
