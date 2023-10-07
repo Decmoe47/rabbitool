@@ -50,7 +50,7 @@ public class YoutubeService
             await _limiter.AcquireAsync(1, ct);
             video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
-            if (video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset != null)
+            if (video.LiveStreamingDetails?.ScheduledStartTimeDateTimeOffset != null)
                 break;
         }
         
