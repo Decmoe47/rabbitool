@@ -50,7 +50,7 @@ public class YoutubeService
             await _limiter.AcquireAsync(1, ct);
             video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
-            if (video.LiveStreamingDetails.ScheduledStartTime != null)
+            if (video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset != null)
                 break;
         }
         
@@ -85,7 +85,7 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                ActualStartTime = video.LiveStreamingDetails.ActualStartTime?.ToUniversalTime() ?? DateTime.UtcNow
+                ActualStartTime = video.LiveStreamingDetails.ActualStartTimeDateTimeOffset?.DateTime.ToUniversalTime() ?? DateTime.UtcNow
             },
             "upcoming" => new YoutubeLive
             {
@@ -96,7 +96,7 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                ScheduledStartTime = video.LiveStreamingDetails.ScheduledStartTime?.ToUniversalTime()
+                ScheduledStartTime = video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset?.DateTime.ToUniversalTime()
                                      ?? throw new YoutubeApiException(
                                          "Failed to get the scheduled start time of the latest live room!", channelId)
             },
@@ -109,7 +109,7 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                PubTime = video.Snippet.PublishedAt?.ToUniversalTime()
+                PubTime = video.Snippet.PublishedAtDateTimeOffset?.DateTime.ToUniversalTime()
                           ?? throw new YoutubeApiException("Failed to get the pubTime of the latest video!",
                               channelId) // https://developers.google.com/youtube/v3/docs/videos#snippet.publishedAt
             }

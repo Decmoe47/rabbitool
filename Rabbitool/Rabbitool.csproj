@@ -25,12 +25,12 @@
 
   <ItemGroup>
     <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6" />
-    <PackageReference Include="Coravel" Version="4.2.1" />
+    <PackageReference Include="Coravel" Version="5.0.2" />
     <PackageReference Include="Flurl" Version="3.0.7" />
     <PackageReference Include="Flurl.Http" Version="3.2.4" />
-    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.60.0.3064" />
-    <PackageReference Include="MailKit" Version="4.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.7">
+    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.62.0.3169" />
+    <PackageReference Include="MailKit" Version="4.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.11">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -39,10 +39,10 @@
     <PackageReference Include="MyBot" Version="1.5.0.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="RandomUserAgent" Version="1.1.2" />
-    <PackageReference Include="Serilog" Version="2.12.0" />
-    <PackageReference Include="System.Threading.RateLimiting" Version="7.0.0" />
-    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.34" />
-    <PackageReference Include="YamlDotNet" Version="13.1.0" />
+    <PackageReference Include="Serilog" Version="3.0.1" />
+    <PackageReference Include="System.Threading.RateLimiting" Version="7.0.1" />
+    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.35" />
+    <PackageReference Include="YamlDotNet" Version="13.5.2" />
   </ItemGroup>
 
   <ItemGroup>
