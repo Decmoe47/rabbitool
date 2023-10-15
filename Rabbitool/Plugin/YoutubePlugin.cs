@@ -1,4 +1,5 @@
 ﻿using Coravel;
+using Coravel.Invocable;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
 using Rabbitool.Model.DTO.Youtube;
@@ -9,8 +10,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class YoutubePlugin : BasePlugin, IPlugin
+public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
+    public CancellationToken CancellationToken { get; set; }
+    
     private readonly YoutubeSubscribeConfigRepository _configRepo;
     private readonly YoutubeSubscribeRepository _repo;
 
@@ -38,6 +41,9 @@ public class YoutubePlugin : BasePlugin, IPlugin
 
     public async Task CheckAllAsync(CancellationToken ct = default)
     {
+        if (CancellationToken.IsCancellationRequested)
+            return;
+        
         List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {

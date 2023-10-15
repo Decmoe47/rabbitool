@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Coravel;
+using Coravel.Invocable;
 using Newtonsoft.Json;
 using QQChannelFramework.Models.Forum;
 using Rabbitool.Common.Util;
@@ -14,8 +15,10 @@ using Mail = Rabbitool.Model.DTO.Mail.Mail;
 
 namespace Rabbitool.Plugin;
 
-public class MailPlugin : BasePlugin, IPlugin
+public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
+    public CancellationToken CancellationToken { get; set; }
+    
     private readonly MailSubscribeConfigRepository _configRepo;
     private readonly MailSubscribeRepository _repo;
     private readonly List<MailService> _services = new();
@@ -50,6 +53,9 @@ public class MailPlugin : BasePlugin, IPlugin
 
     public async Task CheckAllAsync(CancellationToken ct = default)
     {
+        if (CancellationToken.IsCancellationRequested)
+            return;
+        
         List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {

@@ -1,4 +1,5 @@
 ﻿using Coravel;
+using Coravel.Invocable;
 using Newtonsoft.Json;
 using QQChannelFramework.Models.Forum;
 using QQChannelFramework.Models.MessageModels;
@@ -13,8 +14,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class TwitterPlugin : BasePlugin, IPlugin
+public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
+    public CancellationToken CancellationToken { get; set; }
+    
     private readonly TwitterSubscribeConfigRepository _configRepo;
     private readonly TwitterSubscribeRepository _repo;
 
@@ -42,6 +45,9 @@ public class TwitterPlugin : BasePlugin, IPlugin
 
     public async Task CheckAllAsync(CancellationToken ct = default)
     {
+        if (CancellationToken.IsCancellationRequested)
+            return;
+        
         List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {

@@ -1,4 +1,5 @@
 ﻿using Coravel;
+using Coravel.Invocable;
 using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
@@ -11,8 +12,10 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class BilibiliPlugin : BasePlugin, IPlugin
+public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
+    public CancellationToken CancellationToken { get; set; }
+    
     private readonly BilibiliSubscribeConfigRepository _configRepo;
     private readonly BilibiliSubscribeRepository _repo;
 
@@ -58,6 +61,9 @@ public class BilibiliPlugin : BasePlugin, IPlugin
 
     public async Task<bool> CheckAllAsync(CancellationToken ct = default)
     {
+        if (CancellationToken.IsCancellationRequested)
+            return false;
+        
         List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
