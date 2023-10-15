@@ -8,6 +8,9 @@ public class Configs
     // env
     [Required]
     public required string RedirectUrl { get; set; }
+    
+    [Required]
+    public required string UserAgent { get; set; }
 
     public bool InTestEnvironment { get; set; } = false;
 

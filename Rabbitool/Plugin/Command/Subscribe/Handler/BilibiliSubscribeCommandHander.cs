@@ -1,6 +1,7 @@
 ﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Extension;
+using Rabbitool.Conf;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -43,7 +44,7 @@ public class BilibiliSubscribeCommandHandler
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid);
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
-            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .WithHeader("User-Agent", Configs.R.UserAgent)
             .GetStringAsync(ct);
 
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();

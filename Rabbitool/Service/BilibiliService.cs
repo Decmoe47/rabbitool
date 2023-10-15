@@ -4,6 +4,7 @@ using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
+using Rabbitool.Conf;
 using Rabbitool.Model.DTO.Bilibili;
 using RandomUserAgent;
 using Serilog;
@@ -12,7 +13,7 @@ namespace Rabbitool.Service;
 
 public class BilibiliService
 {
-    private readonly CookieJar _jar;
+    private readonly CookieJar _jar = new();
 
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
@@ -21,11 +22,6 @@ public class BilibiliService
         TokenLimit = 1,
         TokensPerPeriod = 1
     }); // QPS 1
-
-    public BilibiliService()
-    {
-        _jar = new CookieJar();
-    }
 
     public async Task RefreshCookiesAsync(CancellationToken ct = default)
     {
@@ -44,7 +40,7 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .WithHeader("User-Agent", Configs.R.UserAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
@@ -64,7 +60,7 @@ public class BilibiliService
             .SetQueryParam("room_id", roomId)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .WithHeader("User-Agent", Configs.R.UserAgent)
             .GetStringAsync(ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
         if ((int?)body2["code"] is { } code2 and not 0)
@@ -135,7 +131,7 @@ public class BilibiliService
             .SetQueryParam("host_uid", uid)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .WithHeader("User-Agent", Configs.R.UserAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
@@ -395,7 +391,7 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
             .WithTimeout(10)
-            .WithHeader("User-Agent", RandomUa.RandomUserAgent)
+            .WithHeader("User-Agent", Configs.R.UserAgent)
             .GetStringAsync(ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code && code != 0)
