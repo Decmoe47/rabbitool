@@ -5,7 +5,6 @@ using Rabbitool.Conf;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
-using RandomUserAgent;
 using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe;

@@ -14,18 +14,11 @@ using QQChannelFramework.Models.WsModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Conf;
 using Serilog;
-using Channel = QQChannelFramework.Models.Channel;
 
 namespace Rabbitool.Service;
 
 public class QQBotService
 {
-    public bool IsOnline;
-
-    private readonly QQChannelApi _qqApi;
-    private readonly ChannelBot _qqBot;
-    private string _sandboxGuildId = "";
-    private string _botId = "";
     private readonly CosService _cosSvc;
 
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
@@ -33,8 +26,14 @@ public class QQBotService
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromSeconds(1),
         TokenLimit = 5,
-        TokensPerPeriod = 5,
-    });     // See https://bot.q.qq.com/wiki/develop/api/openapi/message/post_messages.html
+        TokensPerPeriod = 5
+    }); // See https://bot.q.qq.com/wiki/develop/api/openapi/message/post_messages.html
+
+    private readonly QQChannelApi _qqApi;
+    private readonly ChannelBot _qqBot;
+    private string _botId = "";
+    private string _sandboxGuildId = "";
+    public bool IsOnline;
 
     public QQBotService(CosService cosSvc)
     {
@@ -46,7 +45,7 @@ public class QQBotService
             BotToken = Configs.R.QQBot.Token,
             BotSecret = ""
         };
-        _qqApi = new(openApiAccessInfo);
+        _qqApi = new QQChannelApi(openApiAccessInfo);
         _qqApi.UseBotIdentity();
         if (Configs.R.InTestEnvironment)
             _qqApi.UseSandBoxMode();
@@ -70,14 +69,15 @@ public class QQBotService
         CancellationToken ct = default)
     {
         _qqBot.RegisterAtMessageEvent();
-        _qqBot.ReceivedAtMessage += async (message) =>
+        _qqBot.ReceivedAtMessage += async message =>
         {
             // 在沙箱频道里@bot，正式环境里的bot不会响应
             if (!Configs.R.InTestEnvironment && message.GuildId == _sandboxGuildId)
                 return;
             if (!message.Content.Contains("<@!" + _botId + ">"))
                 return;
-            Log.Information("Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
+            Log.Information(
+                "Received an @ message.\nMessageId: {messageId}\nGuildId: {guildId}\nChannelId: {channelId}\nContent: {content}",
                 message.Id, message.GuildId, message.ChannelId, message.Content);
 
             string text = await fn(message, ct);
@@ -85,9 +85,9 @@ public class QQBotService
             {
                 Channel channel = await GetChannelAsync(message.ChannelId, ct);
                 await PostMessageAsync(
-                    channelId: message.ChannelId,
-                    channelName: channel.Name,
-                    text: text,
+                    message.ChannelId,
+                    channel.Name,
+                    text,
                     referenceMessageId: message.Id,
                     ct: ct);
             }
@@ -103,7 +103,7 @@ public class QQBotService
         CancellationToken ct = default)
     {
         _qqBot.RegisterUserMessageEvent();
-        _qqBot.ReceivedUserMessage += (message) =>
+        _qqBot.ReceivedUserMessage += message =>
         {
             if (message.Content.Contains("<@" + _botId + ">"))
                 return;
@@ -115,15 +115,15 @@ public class QQBotService
         CancellationToken ct = default)
     {
         _qqBot.RegisterGuildsEvent();
-        _qqBot.BotBeRemoved += async (guild) => await handler(guild, ct); // TODO: bot被删除
+        _qqBot.BotBeRemoved += async guild => await handler(guild, ct); // TODO: bot被删除
     }
 
     private void RegisterMessageAuditEvent()
     {
         _qqBot.RegisterAuditEvent();
-        _qqBot.MessageAuditPass += (audit)
+        _qqBot.MessageAuditPass += audit
             => Log.Information("Message audit passed.\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
-        _qqBot.MessageAuditReject += (audit)
+        _qqBot.MessageAuditReject += audit
             => Log.Error("Message audit rejected!\nAuditInfo: {auditInfo}", JsonConvert.SerializeObject(audit));
     }
 
@@ -134,7 +134,7 @@ public class QQBotService
             IsOnline = true;
             Log.Debug("QQBot connected!");
         };
-        _qqBot.OnError += async (ex) =>
+        _qqBot.OnError += async ex =>
         {
             IsOnline = false;
             Log.Error(ex, "QQBot error: {message}", ex.Message);
@@ -240,14 +240,15 @@ public class QQBotService
 
         try
         {
-            Log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
+            Log.Debug(
+                "Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
                 channelName, referenceMessageId ?? "", passiveMsgId, text ?? "");
             return await _qqApi
                 .GetMessageApi()
                 .SendMessageAsync(
-                    channelId: channelId,
-                    content: text,
-                    imageUrl: imgUrl,
+                    channelId,
+                    text,
+                    imgUrl,
                     embed: embed,
                     ark: ark,
                     referenceMessageId: referenceMessageId,
@@ -257,17 +258,20 @@ public class QQBotService
         {
             if (ex.Message.Contains("push message is waiting for audit now"))
             {
-                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
+                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})",
+                    ex.AuditId);
                 return null;
             }
-            else
-            {
-                throw new QQBotApiException($"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", ex);
-            }
+
+            throw new QQBotApiException(
+                $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
+                ex);
         }
         catch (ErrorResultException rex)
         {
-            throw new QQBotApiException($"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}", rex);
+            throw new QQBotApiException(
+                $"Post message failed!\nChannelName: {channelName}\nImgUrl: {imgUrl}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nText: {text}",
+                rex);
         }
     }
 
@@ -313,7 +317,8 @@ public class QQBotService
 
         try
         {
-            Log.Debug("Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
+            Log.Debug(
+                "Posting QQ channel message...\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {markdown}",
                 channelName, referenceMessageId ?? "", passiveMsgId, JsonConvert.SerializeObject(markdown));
             Message msg = await _qqApi
                 .GetMessageApi()
@@ -323,7 +328,7 @@ public class QQBotService
                     referenceMessageId: referenceMessageId,
                     passiveMsgId: passiveMsgId,
                     passiveEventId: passiveEventId);
-            if (otherImgs is not { Count: > 0 }) 
+            if (otherImgs is not { Count: > 0 })
                 return msg;
             foreach (string imgUrl in otherImgs)
                 await PostMessageAsync(channelId, channelName, imgUrl, ct: ct);
@@ -333,14 +338,14 @@ public class QQBotService
         {
             if (ex.Message.Contains("message is waiting for audit now"))
             {
-                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})", ex.AuditId);
+                Log.Information("Message is pushed successfully and waiting for audit now. (authId: {authId})",
+                    ex.AuditId);
                 return null;
             }
-            else
-            {
-                throw new QQBotApiException(
-                    $"Post message failed!\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {JsonConvert.SerializeObject(markdown)}", ex);
-            }
+
+            throw new QQBotApiException(
+                $"Post message failed!\nChannelName: {channelName}\nReferenceMessageId: {referenceMessageId}\nPassiveMsgId: {passiveMsgId}\nMarkdown: {JsonConvert.SerializeObject(markdown)}",
+                ex);
         }
     }
 
@@ -357,7 +362,7 @@ public class QQBotService
                 channelName, title, text);
             return await _qqApi
                 .GetForumApi()
-                .Publish(title, channelId, new ThreadRichTextContent() { Content = text });
+                .Publish(title, channelId, new ThreadRichTextContent { Content = text });
         }
         catch (ErrorResultException ex)
         {
@@ -366,10 +371,9 @@ public class QQBotService
                 Log.Information(ex.Message);
                 return null;
             }
-            else
-            {
-                throw new QQBotApiException($"Post Thread Failed!\nChannelName: {channelName}\nTitle: {title}\nText: {text}", ex);
-            }
+
+            throw new QQBotApiException(
+                $"Post Thread Failed!\nChannelName: {channelName}\nTitle: {title}\nText: {text}", ex);
         }
     }
 
@@ -392,70 +396,60 @@ public class QQBotService
         }
 
         foreach (string line in newTextList)
-        {
             if (CommonUtil.ExistUrl(line))
             {
                 if (line.StartsWith("@isURL#"))
                 {
                     string url = line.Replace("@isURL#", "");
-                    paras[^1].Elems?.Add(new Elem()
+                    paras[^1].Elems?.Add(new Elem
                     {
-                        Url = new URLElem() { Url = url, Desc = url },
+                        Url = new URLElem { Url = url, Desc = url },
                         Type = ElemType.ELEM_TYPE_URL
                     });
                 }
                 else
                 {
-                    paras.Add(new Paragraph()
+                    paras.Add(new Paragraph
                     {
-                        Elems = new List<Elem>()
+                        Elems = new List<Elem>
                         {
-                            new Elem()
+                            new()
                             {
-                                Url = new URLElem() { Url = line, Desc = line },
+                                Url = new URLElem { Url = line, Desc = line },
                                 Type = ElemType.ELEM_TYPE_URL
                             }
                         },
-                        Props = new ParagraphProps() { Alignment = Alignment.ALIGNMENT_LEFT }
+                        Props = new ParagraphProps { Alignment = Alignment.ALIGNMENT_LEFT }
                     });
                 }
             }
             else
             {
-                paras.Add(new Paragraph()
+                paras.Add(new Paragraph
                 {
-                    Elems = new List<Elem>()
+                    Elems = new List<Elem>
                     {
-                        new Elem()
+                        new()
                         {
-                            Text = new TextElem() {Text = line },
-                            Type = ElemType.ELEM_TYPE_TEXT,
+                            Text = new TextElem { Text = line },
+                            Type = ElemType.ELEM_TYPE_TEXT
                         }
                     },
-                    Props = new ParagraphProps() { Alignment = Alignment.ALIGNMENT_LEFT }
+                    Props = new ParagraphProps { Alignment = Alignment.ALIGNMENT_LEFT }
                 });
             }
-        }
 
         // 空白行
         for (int i = 0; i < paras.Count; i++)
-        {
             if (paras[i].Elems is { } elems)
-            {
                 foreach (Elem elem in elems)
-                {
                     if (elem.Text?.Text == "")
-                    {
-                        paras[i] = new Paragraph()
+                        paras[i] = new Paragraph
                         {
-                            Props = new ParagraphProps() { Alignment = Alignment.ALIGNMENT_LEFT }
+                            Props = new ParagraphProps { Alignment = Alignment.ALIGNMENT_LEFT }
                         };
-                    }
-                }
-            }
-        }
 
-        return new RichText() { Paragraphs = paras };
+        return new RichText { Paragraphs = paras };
     }
 
     public static async Task<List<Paragraph>> ImagesToParagraphsAsync(
@@ -466,19 +460,19 @@ public class QQBotService
         foreach (string url in urls)
         {
             string uploadedUrl = await cosSvc.UploadImageAsync(url, ct);
-            imgElems.Add(new Elem()
+            imgElems.Add(new Elem
             {
-                Image = new ImageElem() { Url = uploadedUrl },
+                Image = new ImageElem { Url = uploadedUrl },
                 Type = ElemType.ELEM_TYPE_IMAGE
             });
         }
 
-        return new()
+        return new List<Paragraph>
         {
-            new Paragraph()
+            new()
             {
                 Elems = imgElems,
-                Props = new ParagraphProps() { Alignment = Alignment.ALIGNMENT_MIDDLE }
+                Props = new ParagraphProps { Alignment = Alignment.ALIGNMENT_MIDDLE }
             }
         };
     }
@@ -488,27 +482,27 @@ public class QQBotService
     {
         string url = await cosSvc.UploadVideoAsync(tweetUrl, pubTime, ct);
 
-        return new()
+        return new List<Paragraph>
         {
-            new Paragraph()
+            new()
             {
-                Elems = new List<Elem>()
+                Elems = new List<Elem>
                 {
-                    new Elem()
+                    new()
                     {
-                        Text = new TextElem() { Text = $"视频：{url}" },
-                        Type = ElemType.ELEM_TYPE_TEXT,
+                        Text = new TextElem { Text = $"视频：{url}" },
+                        Type = ElemType.ELEM_TYPE_TEXT
                     }
                 },
-                Props = new ParagraphProps() { Alignment = Alignment.ALIGNMENT_LEFT }
+                Props = new ParagraphProps { Alignment = Alignment.ALIGNMENT_LEFT }
             },
-            new Paragraph()
+            new()
             {
-                Elems = new List<Elem>()
+                Elems = new List<Elem>
                 {
-                    new Elem()
+                    new()
                     {
-                        Video = new VideoElem() { Url = url },
+                        Video = new VideoElem { Url = url },
                         Type = ElemType.ELEM_TYPE_VIDEO
                     }
                 }
@@ -517,21 +511,22 @@ public class QQBotService
     }
 
     /// <summary>
-    /// 查找url，遇到第一个url后以此url为分界限切割<paramref name="text"/>，
-    /// 返回此url，以及不包含此url的<paramref name="text"/>前半部分和后半部分。
-    /// <para></para>
-    /// 无url时<c>preceding</c>返回<paramref name="text"/>原样，<c>rest</c>和<c>url</c>返回<c>""</c>
+    ///     查找url，遇到第一个url后以此url为分界限切割<paramref name="text" />，
+    ///     返回此url，以及不包含此url的<paramref name="text" />前半部分和后半部分。
+    ///     <para></para>
+    ///     无url时<c>preceding</c>返回<paramref name="text" />原样，<c>rest</c>和<c>url</c>返回<c>""</c>
     /// </summary>
     /// <param name="text"></param>
     /// <returns></returns>
     private static (string preceding, string rest, string url) ExtractUrl(string text)
     {
-        Match matched = Regex.Match(text, @"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?");
+        Match matched = Regex.Match(text,
+            @"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?");
         int i = matched.Index;
         int length = matched.Length;
 
         return matched.Success
-            ? (text[0..i], text[(i + length)..^0], text[i..(i + length)])
+            ? (text[..i], text[(i + length)..], text[i..(i + length)])
             : (text, "", "");
     }
 }

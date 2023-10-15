@@ -53,7 +53,7 @@ public class YoutubeService
             if (video.LiveStreamingDetails?.ScheduledStartTimeDateTimeOffset != null)
                 break;
         }
-        
+
         return CreateDto(channelId, video.Id, video);
     }
 
@@ -85,7 +85,9 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                ActualStartTime = video.LiveStreamingDetails.ActualStartTimeDateTimeOffset?.DateTime.ToUniversalTime() ?? DateTime.UtcNow
+                ActualStartTime =
+                    video.LiveStreamingDetails.ActualStartTimeDateTimeOffset?.DateTime.ToUniversalTime() ??
+                    DateTime.UtcNow
             },
             "upcoming" => new YoutubeLive
             {
@@ -96,9 +98,10 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                ScheduledStartTime = video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset?.DateTime.ToUniversalTime()
-                                     ?? throw new YoutubeApiException(
-                                         "Failed to get the scheduled start time of the latest live room!", channelId)
+                ScheduledStartTime =
+                    video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset?.DateTime.ToUniversalTime()
+                    ?? throw new YoutubeApiException(
+                        "Failed to get the scheduled start time of the latest live room!", channelId)
             },
             _ => new YoutubeVideo
             {

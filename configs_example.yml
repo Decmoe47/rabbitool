@@ -1,6 +1,7 @@
 # 以下除非有说明“可选”，否则均为必填
 
 redirectUrl: # string，重定向链接用
+userAgent: # string
 inTestEnvironment: # bool，可选，同时会指定qqbot为sanbox mode
 defaultLogger:
   consoleLevel: "debug" # string  # （可选）
