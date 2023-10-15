@@ -14,13 +14,12 @@ namespace Rabbitool.Plugin;
 
 public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
-    public CancellationToken CancellationToken { get; set; }
-    
     private readonly BilibiliSubscribeConfigRepository _configRepo;
     private readonly BilibiliSubscribeRepository _repo;
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
     private readonly BilibiliService _svc;
+    private int _waitTime;
 
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -30,6 +29,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }
 
+    public CancellationToken CancellationToken { get; set; }
+
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         await RefreshCookiesAsync(ct);
@@ -38,18 +39,23 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 scheduler
                     .ScheduleAsync(async () =>
                     {
-                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30));
-                        Log.Debug($"[BilibiliPlugin] Sleep {sleepTime.TotalSeconds}s...");
+                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30) + 5);
+                        Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
                         Thread.Sleep(sleepTime);
 
                         bool wait = await CheckAllAsync(ct);
                         if (wait)
                         {
-                            Log.Debug("[BilibiliPlugin] Wait 5 minutes...");
-                            Thread.Sleep(TimeSpan.FromMinutes(5));
+                            Log.Warning($"[Bilibili] Touching off anti crawler! Wait {_waitTime} minutes...");
+                            Thread.Sleep(TimeSpan.FromMinutes(_waitTime));
+                            _waitTime += _waitTime <= 60 ? 2 : 0;
+                        }
+                        else
+                        {
+                            _waitTime = 2;
                         }
                     })
-                    .EverySeconds(5)
+                    .EverySeconds(10)
                     .PreventOverlapping("BilibiliPlugin"))
             .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
     }
@@ -63,11 +69,11 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         if (CancellationToken.IsCancellationRequested)
             return false;
-        
+
         List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Verbose("There isn't any bilibili subscribe yet!");
+            Log.Verbose("[Bilibili] There isn't any bilibili subscribe yet!");
             return false;
         }
 
@@ -92,7 +98,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
             if (dy.DynamicUploadTime <= record.LastDynamicTime)
             {
-                Log.Debug("No new dynamic from the bilibili user {uname}(uid: {uid}).",
+                Log.Debug("[Bilibili] No new dynamic from the bilibili user {uname}(uid: {uid}).",
                     dy.Uname, dy.Uid);
                 return false;
             }
@@ -104,7 +110,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 record.LastDynamicTime = dy.DynamicUploadTime;
                 record.LastDynamicType = dy.DynamicType;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                Log.Debug("[Bilibili] Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
                     dy.Uname, dy.Uid);
             }
 
@@ -117,7 +123,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 if (!_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
                     _storedDynamics[dy.Uid][dy.DynamicUploadTime] = dy;
 
-                Log.Debug("Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
+                Log.Debug(
+                    "[Bilibili] Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
                     dy.Uname, dy.Uid);
                 return false;
             }
@@ -148,13 +155,13 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (bex.Code is -401 or -509 or -799) return true;
 
-            Log.Error(bex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
+            Log.Error(bex, "[Bilibili] Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
+            Log.Error(ex, "[Bilibili] Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
         }
@@ -170,7 +177,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (await QbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
-                Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
+                Log.Warning("[Bilibili] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
                 continue;
             }
@@ -183,7 +190,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 continue;
 
             await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, title + "\n\n" + text, imgUrls, ct);
-            Log.Information("Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
+            Log.Information("[Bilibili] Succeeded to push the dynamic message from the user {uname}(uid: {uid}).",
                 dy.Uname, dy.Uid);
         }
     }
@@ -358,7 +365,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             default:
-                Log.Error("The type {type} of origin dynamic is invalid!", dy.Origin.GetType().Name);
+                Log.Error("[Bilibili] The type {type} of origin dynamic is invalid!", dy.Origin.GetType().Name);
                 text = "错误：内部错误！";
                 break;
         }
@@ -574,14 +581,15 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
             {
                 if (now.Hour is >= 0 and <= 5)
                     // 由于开播通知具有极强的时效性，没法及时发出去的话也就没有意义了，因此直接跳过
-                    Log.Debug("BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
+                    Log.Debug(
+                        "[Bilibili] BLive message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
                         record.Uname, record.Uid);
                 else
                     await PushLiveMsgAsync(live, record, ct);
 
                 record.LastLiveStatus = live.LiveStatus;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                Log.Debug("[Bilibili] Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
                     live.Uname, live.Uid);
             }
 
@@ -589,7 +597,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
             {
                 if (live.LiveStatus != LiveStatusEnum.Streaming)
                     // 未开播
-                    Log.Debug("No live now from the bilibili user {uname}(uid: {uid}).", live.Uname, live.Uid);
+                    Log.Debug("[Bilibili] No live now from the bilibili user {uname}(uid: {uid}).", live.Uname,
+                        live.Uid);
                 else
                     // 开播
                     await FnAsync(live);
@@ -598,7 +607,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
             {
                 if (live.LiveStatus == LiveStatusEnum.Streaming)
                     // 直播中
-                    Log.Debug("The bilibili user {uname}(uid: {uid}) is living.", live.Uname, live.Uid);
+                    Log.Debug("[Bilibili] The bilibili user {uname}(uid: {uid}) is living.", live.Uname, live.Uid);
             }
 
             return false;
@@ -611,13 +620,13 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (bex.Code is -401 or -509 or -799) return true;
 
-            Log.Error(bex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
+            Log.Error(bex, "[Bilibili] Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
+            Log.Error(ex, "[Bilibili] Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
         }
@@ -632,7 +641,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (await QbSvc.ExistChannelAsync(channel.ChannelId) == false)
             {
-                Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
+                Log.Warning("[Bilibili] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
                 continue;
             }
@@ -642,7 +651,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
             await QbSvc.PushCommonMsgAsync(
                 channel.ChannelId, channel.ChannelName, title + "\n\n" + text, live.CoverUrl, ct);
-            Log.Information("Succeeded to push the live message from the user {uname}(uid: {uid}).",
+            Log.Information("[Bilibili] Succeeded to push the live message from the user {uname}(uid: {uid}).",
                 live.Uname, live.Uid);
         }
     }

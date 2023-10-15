@@ -12,8 +12,6 @@ namespace Rabbitool.Plugin;
 
 public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
-    public CancellationToken CancellationToken { get; set; }
-    
     private readonly YoutubeSubscribeConfigRepository _configRepo;
     private readonly YoutubeSubscribeRepository _repo;
 
@@ -29,6 +27,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }
 
+    public CancellationToken CancellationToken { get; set; }
+
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         services.UseScheduler(scheduler =>
@@ -43,11 +43,11 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         if (CancellationToken.IsCancellationRequested)
             return;
-        
+
         List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Verbose("There isn't any youtube subscribe yet!");
+            Log.Verbose("[Youtube] There isn't any youtube subscribe yet!");
             return;
         }
 
@@ -76,7 +76,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                         case YoutubeTypeEnum.UpcomingLive when !record.AllUpcomingLiveRoomIds.Contains(live.Id):
                             record.AllUpcomingLiveRoomIds.Add(live.Id);
                             await _repo.SaveAsync(ct);
-                            Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+                            Log.Debug(
+                                "[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
                                 live.Author, live.ChannelId);
 
                             await PushUpcomingLiveAsync(live, record, ct);
@@ -92,7 +93,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                 case YoutubeVideo video:
                     if (video.PubTime <= record.LastVideoPubTime)
                     {
-                        Log.Debug("No new youtube video from the youtube user {name}(channelId: {channelId})",
+                        Log.Debug("[Youtube] No new youtube video from the youtube user {name}(channelId: {channelId})",
                             video.Author, video.ChannelId);
                         return;
                     }
@@ -105,7 +106,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                             _storedVideos[video.ChannelId][video.PubTime] = video;
 
                         Log.Debug(
-                            "Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                            "[Youtube] Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                             video.Author, video.ChannelId);
                         return;
                     }
@@ -136,7 +137,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push youtube message!\nName: {name}\nChannelId: {channelId}",
+            Log.Error(ex, "[Youtube] Failed to push youtube message!\nName: {name}\nChannelId: {channelId}",
                 record.Name, record.ChannelId);
         }
     }
@@ -148,7 +149,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (await _svc.IsStreamingAsync(roomId, ct) is not { } live)
                 continue;
-            Log.Debug("Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
+            Log.Debug("[Youtube] Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
             await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
             record.AllUpcomingLiveRoomIds.Remove(roomId);
             await _repo.SaveAsync(ct);
@@ -162,14 +163,14 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         if (now.Hour is >= 0 and <= 5)
         {
             Log.Debug(
-                "Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                "[Youtube] Youtube live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
         }
         else
         {
             await PushMsgAsync(live, record, ct);
             Log.Information(
-                "Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+                "[Youtube] Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                 live.Author, live.ChannelId);
         }
 
@@ -182,7 +183,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
 
         if (saving)
             await _repo.SaveAsync(ct);
-        Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+        Log.Debug("[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             live.Author, live.ChannelId);
     }
 
@@ -192,7 +193,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
         if (now.Hour is >= 0 and <= 5)
             Log.Debug(
-                "Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
+                "[Youtube] Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
         else
             await PushMsgAsync(live, record, ct);
@@ -206,7 +207,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         record.LastVideoId = video.Id;
         record.LastVideoPubTime = video.PubTime;
         await _repo.SaveAsync(ct);
-        Log.Debug("Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
+        Log.Debug("[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             video.Author, video.ChannelId);
     }
 
@@ -220,7 +221,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
-                Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
+                Log.Warning("[Youtube] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
                 continue;
             }
@@ -243,13 +244,13 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             {
                 case YoutubeTypeEnum.Video:
                     Log.Information(
-                        "Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
+                        "[Youtube] Succeeded to push the youtube message from the user {Author}.\nChannelId: {channelId}",
                         item.Author, item.ChannelId);
                     break;
                 case YoutubeTypeEnum.Live:
                 case YoutubeTypeEnum.UpcomingLive:
                     Log.Information(
-                        "Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
+                        "[Youtube] Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                         item.Author, item.ChannelId);
                     break;
             }

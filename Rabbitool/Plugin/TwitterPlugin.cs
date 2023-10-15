@@ -16,8 +16,6 @@ namespace Rabbitool.Plugin;
 
 public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
-    public CancellationToken CancellationToken { get; set; }
-    
     private readonly TwitterSubscribeConfigRepository _configRepo;
     private readonly TwitterSubscribeRepository _repo;
 
@@ -33,6 +31,8 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
     }
 
+    public CancellationToken CancellationToken { get; set; }
+
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         services.UseScheduler(scheduler =>
@@ -47,11 +47,11 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         if (CancellationToken.IsCancellationRequested)
             return;
-        
+
         List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Verbose("There isn't any twitter subscribe yet!");
+            Log.Verbose("[Twitter] There isn't any twitter subscribe yet!");
             return;
         }
 
@@ -68,7 +68,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
             Tweet tweet = await _svc.GetLatestTweetAsync(record.ScreenName, ct);
             if (tweet.PubTime <= record.LastTweetTime)
             {
-                Log.Debug("No new tweet from the twitter user {name}(screenName: {screenName}).",
+                Log.Debug("[Twitter] No new tweet from the twitter user {name}(screenName: {screenName}).",
                     tweet.Author, tweet.AuthorScreenName);
                 return;
             }
@@ -80,7 +80,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 record.LastTweetTime = tweet.PubTime;
                 record.LastTweetId = tweet.Id;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
+                Log.Debug("[Twitter] Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
                     tweet.Author, tweet.AuthorScreenName);
             }
 
@@ -93,7 +93,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     _storedTweets[tweet.AuthorScreenName][tweet.PubTime] = tweet;
 
                 Log.Debug(
-                    "Tweet message of the user {name}(screenName: {screenName}) is skipped because it's curfew time now.",
+                    "[Twitter] Tweet message of the user {name}(screenName: {screenName}) is skipped because it's curfew time now.",
                     tweet.Author, tweet.AuthorScreenName);
                 return;
             }
@@ -119,7 +119,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push tweet message!\nName: {name}\nScreenName: {screenName}",
+            Log.Error(ex, "[Twitter] Failed to push tweet message!\nName: {name}\nScreenName: {screenName}",
                 record.Name, record.ScreenName);
         }
     }
@@ -135,7 +135,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
-                Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
+                Log.Warning("[Twitter] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
                 continue;
             }
@@ -147,14 +147,16 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
             {
                 await QbSvc.PostThreadAsync(
                     channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
-                Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
+                Log.Information(
+                    "[Twitter] Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                     tweet.Author, tweet.AuthorScreenName);
                 continue;
             }
 
             await QbSvc.PushCommonMsgAsync(
                 channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct);
-            Log.Information("Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
+            Log.Information(
+                "[Twitter] Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                 tweet.Author, tweet.AuthorScreenName);
         }
     }

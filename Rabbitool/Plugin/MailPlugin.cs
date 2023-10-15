@@ -17,8 +17,6 @@ namespace Rabbitool.Plugin;
 
 public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
 {
-    public CancellationToken CancellationToken { get; set; }
-    
     private readonly MailSubscribeConfigRepository _configRepo;
     private readonly MailSubscribeRepository _repo;
     private readonly List<MailService> _services = new();
@@ -41,6 +39,8 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
         Console.CancelKeyPress += DisposeAllServices;
     }
 
+    public CancellationToken CancellationToken { get; set; }
+
     public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
     {
         services.UseScheduler(scheduler =>
@@ -55,11 +55,11 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         if (CancellationToken.IsCancellationRequested)
             return;
-        
+
         List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Verbose("There isn't any mail subscribe yet!");
+            Log.Verbose("[Mail] There isn't any mail subscribe yet!");
             return;
         }
 
@@ -87,7 +87,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
             Mail mail = await svc.GetLatestMailAsync(ct);
             if (mail.Time <= record.LastMailTime)
             {
-                Log.Debug("No new mail from the mail user {username}", record.Username);
+                Log.Debug("[Mail] No new mail from the mail user {username}", record.Username);
                 return;
             }
 
@@ -97,7 +97,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
                 record.LastMailTime = mail.Time;
                 await _repo.SaveAsync(ct);
-                Log.Debug("Succeeded to updated the mail user {username}'s record.", record.Username);
+                Log.Debug("[Mail] Succeeded to updated the mail user {username}'s record.", record.Username);
             }
 
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
@@ -108,7 +108,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 if (!_storedMails[record.Username].ContainsKey(mail.Time))
                     _storedMails[record.Username][mail.Time] = mail;
 
-                Log.Debug("Mail message of the user {username} is skipped because it's curfew time now.",
+                Log.Debug("[Mail] Mail message of the user {username} is skipped because it's curfew time now.",
                     record.Username);
                 return;
             }
@@ -134,7 +134,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to push mail message!\nAddress: {username}", record.Username);
+            Log.Error(ex, "[Mail] Failed to push mail message!\nAddress: {username}", record.Username);
         }
     }
 
@@ -147,7 +147,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
             {
-                Log.Warning("The channel {channelName}(id: {channelId}) doesn't exist!",
+                Log.Warning("[Mail] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
                 continue;
             }
@@ -160,7 +160,8 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     : QQBotService.TextToRichText(text);
                 await QbSvc.PostThreadAsync(
                     channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
-                Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+                Log.Information("[Mail] Succeeded to push the mail message from the user {username}).",
+                    record.Username);
                 continue;
             }
 
@@ -169,7 +170,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     ct: ct);
             else
                 await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
-            Log.Information("Succeeded to push the mail message from the user {username}).", record.Username);
+            Log.Information("[Mail] Succeeded to push the mail message from the user {username}).", record.Username);
         }
     }
 
@@ -224,7 +225,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to disconnect the mail client!\nUsername: {username}", svc.Username);
+                Log.Error(ex, "[Mail] Failed to disconnect the mail client!\nUsername: {username}", svc.Username);
             }
             finally
             {
