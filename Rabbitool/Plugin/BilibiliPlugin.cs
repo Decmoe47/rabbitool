@@ -61,7 +61,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin
         List<BilibiliSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Debug("There isn't any bilibili subscribe yet!");
+            Log.Verbose("There isn't any bilibili subscribe yet!");
             return false;
         }
 

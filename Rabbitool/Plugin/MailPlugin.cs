@@ -53,7 +53,7 @@ public class MailPlugin : BasePlugin, IPlugin
         List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Debug("There isn't any mail subscribe yet!");
+            Log.Verbose("There isn't any mail subscribe yet!");
             return;
         }
 

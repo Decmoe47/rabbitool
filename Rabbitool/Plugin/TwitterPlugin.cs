@@ -45,7 +45,7 @@ public class TwitterPlugin : BasePlugin, IPlugin
         List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Debug("There isn't any twitter subscribe yet!");
+            Log.Verbose("There isn't any twitter subscribe yet!");
             return;
         }
 

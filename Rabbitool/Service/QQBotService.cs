@@ -132,7 +132,7 @@ public class QQBotService
         _qqBot.OnConnected += () =>
         {
             IsOnline = true;
-            Log.Information("QQBot connected!");
+            Log.Debug("QQBot connected!");
         };
         _qqBot.OnError += async (ex) =>
         {
@@ -147,7 +147,7 @@ public class QQBotService
         _qqBot.OnClose += () =>
         {
             IsOnline = false;
-            Log.Warning("QQBot connect closed!");
+            Log.Debug("QQBot connect closed!");
         };
     }
 

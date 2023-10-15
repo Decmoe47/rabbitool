@@ -41,7 +41,7 @@ public class YoutubePlugin : BasePlugin, IPlugin
         List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
         if (records.Count == 0)
         {
-            Log.Debug("There isn't any youtube subscribe yet!");
+            Log.Verbose("There isn't any youtube subscribe yet!");
             return;
         }
 
