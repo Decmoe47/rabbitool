@@ -40,7 +40,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     .ScheduleAsync(async () => await CheckAllAsync(ct))
                     .EverySeconds(5)
                     .PreventOverlapping("TwitterPlugin"))
-            .OnError(ex => Log.Error(ex, "Exception from twitter plugin: {msg}", ex.Message));
+            .OnError(ex => Log.Error(ex, "[Twitter] {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)

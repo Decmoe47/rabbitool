@@ -57,7 +57,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     })
                     .EverySeconds(10)
                     .PreventOverlapping("BilibiliPlugin"))
-            .OnError(ex => Log.Error(ex, "Exception from bilibili plugin: {msg}", ex.Message));
+            .OnError(ex => Log.Error(ex, "[Bilibili] {msg}", ex.Message));
     }
 
     public async Task RefreshCookiesAsync(CancellationToken ct = default)

@@ -48,7 +48,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     .ScheduleAsync(async () => await CheckAllAsync(ct))
                     .EverySeconds(5)
                     .PreventOverlapping("MailPlugin"))
-            .OnError(ex => Log.Error(ex, "Exception from mail plugin: {msg}", ex.Message));
+            .OnError(ex => Log.Error(ex, "[Mail] {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)

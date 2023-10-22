@@ -36,7 +36,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                     .ScheduleAsync(async () => await CheckAllAsync(ct))
                     .EverySeconds(5)
                     .PreventOverlapping("YoutubePlugin"))
-            .OnError(ex => Log.Error(ex, "Exception from youtube plugin: {msg}", ex.Message));
+            .OnError(ex => Log.Error(ex, "[Youtube] {msg}", ex.Message));
     }
 
     public async Task CheckAllAsync(CancellationToken ct = default)
