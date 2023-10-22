@@ -63,7 +63,12 @@ public class YoutubeService
             .List(new Repeatable<string>(new[] { "snippet", "liveStreamingDetails" }));
         videosReq.Id = liveRoomId;
         await _limiter.AcquireAsync(1, ct);
-        Video video = (await videosReq.ExecuteAsync(ct)).Items[0];
+        IList<Video> videos = (await videosReq.ExecuteAsync(ct)).Items;
+        Video video;
+        if (videos?.Count is > 0)
+            video = videos[0];
+        else
+            return null;
 
         return video.Snippet.LiveBroadcastContent switch
         {
