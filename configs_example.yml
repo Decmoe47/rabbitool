@@ -34,9 +34,6 @@ qqbot:
   appId: # string
   token: # string
   sandboxGuildName: # string
-  logger: # （可选）
-    consoleLevel: "debug" # string  # （可选）
-    fileLevel: "info" # string  # （可选）
 youtube:  # （可选）
   apiKey: # string，官方api，参见官方说明
 twitter: # （可选）

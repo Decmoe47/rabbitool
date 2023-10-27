@@ -14,7 +14,5 @@ public class QQBot
     public required string SandboxGuildName { get; set; }
 
     public MarkdownTemplateIds? MarkdownTemplateIds { get; set; }
-
-    public Logger? Logger { get; set; }
 }
 
