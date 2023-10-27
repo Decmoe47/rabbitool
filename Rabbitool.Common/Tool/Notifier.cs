@@ -10,7 +10,6 @@ namespace Rabbitool.Common.Tool;
 
 public class Notifier : ILogEventSink, IDisposable
 {
-    private readonly int _allowedAmount;
     private readonly SmtpClient _client;
     private readonly List<ErrorCounter> _errors = new();
 
@@ -18,13 +17,15 @@ public class Notifier : ILogEventSink, IDisposable
 
     private readonly string _from;
     private readonly string _host;
-
-    private readonly int _intervalMinutes;
     private readonly string _password;
     private readonly int _port;
     private readonly bool _ssl;
     private readonly string[] _to;
     private readonly string _username;
+    
+    private readonly int _allowedAmount;
+    private readonly int _interval;
+    private readonly int _timeout;
 
     public Notifier(ErrorNotifierOptions opts, IFormatProvider? formatProvider = null)
     {
@@ -38,8 +39,9 @@ public class Notifier : ILogEventSink, IDisposable
         _username = opts.Username;
         _password = opts.Password;
 
-        _intervalMinutes = opts.Interval;
+        _interval = opts.Interval;
         _allowedAmount = opts.AllowedAmount;
+        _timeout = opts.Timeout;
 
         _formatProvider = formatProvider;
 
@@ -62,7 +64,10 @@ public class Notifier : ILogEventSink, IDisposable
         if (logEvent.Exception != null)
         {
             message += "\n\n" + logEvent.Exception;
-            textToCount += "\n\n" + logEvent.Exception.GetType().Name;
+            if (logEvent.Exception.InnerException != null)
+                textToCount += "\n\n" + logEvent.Exception.InnerException?.GetType().Name;
+            else
+                textToCount += "\n\n" + logEvent.Exception.GetType().Name;
         }
 
         Notify(message, textToCount);
@@ -74,7 +79,40 @@ public class Notifier : ILogEventSink, IDisposable
             return;
         Send(textToSend);
     }
+    
+    private bool Allow(string text)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        ErrorCounter? err = _errors.FirstOrDefault(e => e.Text == text);
+        if (err == null)
+        {
+            err = new ErrorCounter(text, now + _interval * 60, now + _timeout * 60);
+            _errors.Add(err);
+        }
+        
+        err.Count++;
+        // 已告警，等待超时清除
+        if (err.Alerted)
+        {
+            if (now > err.Timeout)
+                _errors.Remove(err);
+            return false;
+        }
+        // 未告警，但已过统计时长范围
+        if (now > err.TimeStampToReset)
+        {
+            _errors.Remove(err);
+            return false;
+        }
+        // 未达到告警的次数
+        if (err.Count <= _allowedAmount)
+            return false;
 
+        // 达到告警次数
+        err.Alerted = true;
+        return true;
+    }
+    
     private void Send(string text, bool isRecovered = false)
     {
         if (!_client.IsConnected)
@@ -84,90 +122,28 @@ public class Notifier : ILogEventSink, IDisposable
 
         MimeMessage msg = new();
         msg.From.Add(new MailboxAddress(_from, _from));
-        foreach (string to in _to)
-            msg.To.Add(new MailboxAddress(to, to));
-        msg.Subject = isRecovered
-            ? $"Alert Cleared from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}"
-            : $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
+        msg.To.AddRange(_to.Select(t => new MailboxAddress(t, t)));
+        msg.Subject = $"Alert from rabbitool on {TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST):yyyy-MM-ddTHH:mm:sszzz}";
 
         msg.Body = new TextPart { Text = text };
-
         _client.Send(msg);
-    }
-
-    private bool Allow(string text)
-    {
-        ClearDisposedErrorCounter();
-
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        ErrorCounter? error = _errors.FirstOrDefault(e => e.Text == text && !e.Disposed);
-        if (error == null)
-        {
-            error = new ErrorCounter(text, now + _intervalMinutes * 60);
-            _errors.Add(error);
-        }
-
-        error.Count++;
-        if (now > error.TimeStampToRefresh)
-        {
-            error.TimeStampToRefresh = now + _intervalMinutes * 60;
-            error.Count = 1;
-        }
-
-        if (error.Count <= _allowedAmount || error.Alerting)
-            return false;
-
-        error.Alerting = true;
-        return true;
-    }
-
-    private void ClearDisposedErrorCounter()
-    {
-        List<int> indexesToRemove = new();
-        for (int i = 0; i < _errors.Count; i++)
-        {
-            if (!_errors[i].Disposed)
-                continue;
-            Send("【The error below is no longer happened】\n\n" + _errors[i].Text, true);
-            indexesToRemove.Add(i);
-        }
-
-        foreach (int index in indexesToRemove)
-            _errors.RemoveAt(index);
     }
 }
 
 public class ErrorCounter
 {
-    public ErrorCounter(string text, long timeStampToRefresh)
+    public ErrorCounter(string text, long timeStampToReset, long timeout)
     {
         Text = text;
-        TimeStampToRefresh = timeStampToRefresh;
-        Timer = new Timer(state =>
-        {
-            if (!Alerting)
-                return;
-
-            Last5Count.Add(Count);
-            if (Last5Count.Count > 5)
-                Last5Count.RemoveAt(0);
-
-            if (Last5Count.Count == 5 && Last5Count.All(c => c == Last5Count[0]))
-            {
-                Timer? t = (Timer?)state;
-                t?.Dispose();
-                Disposed = true;
-            }
-        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        TimeStampToReset = timeStampToReset;
+        Timeout = timeout;
     }
 
     public int Count { get; set; }
-    private List<int> Last5Count { get; } = new();
     public string Text { get; set; }
-    public long TimeStampToRefresh { get; set; }
-    public Timer Timer { get; set; }
-    public bool Alerting { get; set; }
-    public bool Disposed { get; private set; }
+    public long TimeStampToReset { get; set; }
+    public long Timeout { get; set; }
+    public bool Alerted { get; set; }
 }
 
 public class ErrorNotifierOptions
@@ -183,6 +159,7 @@ public class ErrorNotifierOptions
 
     public int Interval { get; set; }
     public int AllowedAmount { get; set; }
+    public int Timeout { get; set; }
 }
 
 public static class ErrorNotifierExtension

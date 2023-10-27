@@ -8,10 +8,10 @@ public class Notifier
     public required string Host { get; set; }
 
     [Required]
-    public required int Port { get; set; }
+    public int Port { get; set; }
 
     [Required]
-    public required bool Ssl { get; set; }
+    public bool Ssl { get; set; }
 
     [Required]
     public required string UserName { get; set; }
@@ -26,10 +26,13 @@ public class Notifier
     public required string[] To { get; set; }
 
     [Required]
-    public required int Interval { get; set; }
+    public int Interval { get; set; }
 
     [Required]
-    public required int AllowedAmount { get; set; }
+    public int AllowedAmount { get; set; }
+    
+    [Required]
+    public int Timeout { get; set; }
 
     public Common.Tool.ErrorNotifierOptions ToOptions()
     {
@@ -43,7 +46,8 @@ public class Notifier
             From = From,
             To = To,
             Interval = Interval,
-            AllowedAmount = AllowedAmount
+            AllowedAmount = AllowedAmount,
+            Timeout = Timeout
         };
     }
 }
