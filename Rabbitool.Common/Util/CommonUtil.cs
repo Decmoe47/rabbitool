@@ -45,6 +45,6 @@ public static partial class CommonUtil
         return lst.ToList();
     }
 
-    [GeneratedRegex(@"(http|https)://[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?")]
+    [GeneratedRegex(@"((http|https)://){0,1}[\w\-_]+(\.[\w\-_]+)+([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?")]
     private static partial Regex MyRegex();
 }
