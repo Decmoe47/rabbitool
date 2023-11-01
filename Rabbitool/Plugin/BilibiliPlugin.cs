@@ -19,7 +19,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
     private readonly BilibiliService _svc;
-    private int _waitTime;
+    private int _waitTime = 5;
 
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -39,7 +39,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 scheduler
                     .ScheduleAsync(async () =>
                     {
-                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(30) + 5);
+                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(10) + 5);
                         Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
                         Thread.Sleep(sleepTime);
 
@@ -52,7 +52,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                         }
                         else
                         {
-                            _waitTime = 2;
+                            _waitTime = 5;
                         }
                     })
                     .EverySeconds(10)
