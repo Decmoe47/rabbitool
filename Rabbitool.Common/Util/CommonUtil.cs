@@ -45,6 +45,6 @@ public static partial class CommonUtil
         return lst.ToList();
     }
 
-    [GeneratedRegex(@"((http|https)://){0,1}[\w\-_]+(\.[\w\-_]+)+(.com|.cn|.net|.org|.md|.icu|.top|.xyz|.jp|.gov|.edu|.me|.tv|.la|.cc|.io|.info|.so|.one|.link|.moe)([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?")]
+    [GeneratedRegex(@"((http|https)://){0,1}[\w\-_]+(\.[\w\-_]+)?(.com|.cn|.net|.org|.md|.icu|.top|.xyz|.jp|.gov|.edu|.me|.tv|.la|.cc|.io|.info|.so|.one|.link|.moe)([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?")]
     private static partial Regex MyRegex();
 }
