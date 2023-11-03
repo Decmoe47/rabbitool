@@ -19,7 +19,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
     private readonly BilibiliService _svc;
-    private int _waitTime = 5;
+    private int _waitTime;
 
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
@@ -39,7 +39,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 scheduler
                     .ScheduleAsync(async () =>
                     {
-                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(10) + 5);
+                        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(5) + 5);
                         Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
                         Thread.Sleep(sleepTime);
 
@@ -52,7 +52,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                         }
                         else
                         {
-                            _waitTime = 5;
+                            _waitTime = 2;
                         }
                     })
                     .EverySeconds(10)
@@ -593,21 +593,34 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     live.Uname, live.Uid);
             }
 
+            // 上次查询未处于直播中
             if (record.LastLiveStatus != LiveStatusEnum.Streaming)
             {
-                if (live.LiveStatus != LiveStatusEnum.Streaming)
+                if (live.LiveStatus == LiveStatusEnum.Streaming)    // 现在处于直播中
+                    // 开播
+                    await FnAsync(live);
+                else
                     // 未开播
                     Log.Debug("[Bilibili] No live now from the bilibili user {uname}(uid: {uid}).", live.Uname,
                         live.Uid);
-                else
-                    // 开播
-                    await FnAsync(live);
             }
+            // 上次查询处于直播中
             else
             {
-                if (live.LiveStatus == LiveStatusEnum.Streaming)
+                if (live.LiveStatus != LiveStatusEnum.Streaming)    // 现在未处于直播中
+                {
+                    // 下播
+                    record.LastLiveStatus = live.LiveStatus;
+                    await _repo.SaveAsync(ct);
+                    Log.Debug("[Bilibili] Succeeded to updated the bilibili user {uname}(uid: {uid})'s record.",
+                        live.Uname, live.Uid);
+                }
+                else
+                {
                     // 直播中
                     Log.Debug("[Bilibili] The bilibili user {uname}(uid: {uid}) is living.", live.Uname, live.Uid);
+                }
+                
             }
 
             return false;
