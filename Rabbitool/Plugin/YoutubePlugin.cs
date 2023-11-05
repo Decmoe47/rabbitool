@@ -278,8 +278,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                 .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
             return $"""
-                    标题：{live.Title}
-                    开播时间：{actualStartTime}
+                    {live.Title}
+                    ——————————
                     链接：{live.Url.AddRedirectToUrls()}
                     """;
         }
@@ -289,7 +289,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         return $"""
-                标题：{live.Title}
+                {live.Title}
+                ——————————
                 预定开播时间：{scheduledStartTime}
                 链接：{live.Url.AddRedirectToUrls()}
                 """;
@@ -302,8 +303,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             .ToString("yyyy-MM-dd HH:mm:ss zzz");
 
         return $"""
-                标题：{video.Title}
-                发布时间：{pubTimeStr}
+                {video.Title}
+                ——————————
                 链接：{video.Url.AddRedirectToUrls()}
                 """;
     }

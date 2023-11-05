@@ -317,7 +317,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
                             {cOrigin.Text.AddRedirectToUrls()}
 
-                            {cOrigin.Reserve.Title}
+                            标题：{cOrigin.Reserve.Title}
                             预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
                             """;
                 if (cOrigin.ImageUrls?.Count is int and not 0)
@@ -358,9 +358,9 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                         ====================
                         【直播】来自 {lOrigin.Uname}
 
-                        标题：{lOrigin.Title}
-                        开始时间：{lOrigin.LiveStartTime}
-                        链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls()}
+                        {lOrigin.Title}
+                        ——————————
+                        直播间链接：{$"https://live.bilibili.com/{lOrigin.RoomId}".AddRedirectToUrls()}
                         """;
                 break;
 
@@ -673,8 +673,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         string title = "【b站开播】来自 " + live.Uname;
         string text = $"""
-                       标题：{live.Title}
-                       开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                       {live.Title}
+                       ——————————
                        链接：{("https://live.bilibili.com/" + live.RoomId).AddRedirectToUrls()}
                        """;
 
@@ -689,8 +689,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
             From = live.Uname,
             Url = ("https://live.bilibili.com/" + live.RoomId).AddRedirectToUrls(),
             Text = $"""
-                    标题：{live.Title}
-                    开播时间：{TimeZoneInfo.ConvertTimeFromUtc((DateTime)live.LiveStartTime!, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                    {live.Title}
                     """,
             ImageUrl = await CosSvc.UploadImageAsync(live.CoverUrl!)
         };
