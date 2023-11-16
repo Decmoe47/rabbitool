@@ -145,15 +145,17 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken ct = default)
     {
         List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
+        List<string> roomIdsToRemove = new();
         foreach (string roomId in allUpcomingLiveRoomIdsTmp)
         {
             if (await _svc.IsStreamingAsync(roomId, ct) is not { } live)
                 continue;
             Log.Debug("[Youtube] Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
             await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
-            record.AllUpcomingLiveRoomIds.Remove(roomId);
-            await _repo.SaveAsync(ct);
+            roomIdsToRemove.Add(roomId);
         }
+        roomIdsToRemove.ForEach(roomId => record.AllUpcomingLiveRoomIds.Remove(roomId));
+        await _repo.SaveAsync(ct);
     }
 
     private async Task PushLiveAndUpdateDatabaseAsync(
