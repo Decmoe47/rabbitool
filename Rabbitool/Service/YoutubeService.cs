@@ -91,7 +91,7 @@ public class YoutubeService
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
                 ActualStartTime =
-                    video.LiveStreamingDetails.ActualStartTimeDateTimeOffset?.DateTime.ToUniversalTime() ??
+                    video.LiveStreamingDetails.ActualStartTimeDateTimeOffset?.DateTime ??
                     DateTime.UtcNow
             },
             "upcoming" => new YoutubeLive
@@ -104,7 +104,7 @@ public class YoutubeService
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
                 ScheduledStartTime =
-                    video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset?.DateTime.ToUniversalTime()
+                    video.LiveStreamingDetails.ScheduledStartTimeDateTimeOffset?.DateTime
                     ?? throw new YoutubeApiException(
                         "Failed to get the scheduled start time of the latest live room!", channelId)
             },
@@ -117,7 +117,7 @@ public class YoutubeService
                 Title = video.Snippet.Title,
                 ThumbnailUrl = GetThumbnailUrl(video.Snippet.Thumbnails),
                 Url = "https://www.youtube.com/watch?v=" + itemId,
-                PubTime = video.Snippet.PublishedAtDateTimeOffset?.DateTime.ToUniversalTime()
+                PubTime = video.Snippet.PublishedAtDateTimeOffset?.DateTime
                           ?? throw new YoutubeApiException("Failed to get the pubTime of the latest video!",
                               channelId) // https://developers.google.com/youtube/v3/docs/videos#snippet.publishedAt
             }
