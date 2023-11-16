@@ -275,7 +275,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             string actualStartTime = TimeZoneInfo
                 .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
-                .ToString("yyyy-MM-dd HH:mm:ss zzz");
+                .ToString("yyyy-MM-dd HH:mm:ss");
 
             return $"""
                     {live.Title}
@@ -286,7 +286,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
 
         string scheduledStartTime = TimeZoneInfo
             .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
-            .ToString("yyyy-MM-dd HH:mm:ss zzz");
+            .ToString("yyyy-MM-dd HH:mm:ss");
 
         return $"""
                 {live.Title}
@@ -300,7 +300,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         string pubTimeStr = TimeZoneInfo
             .ConvertTimeFromUtc(video.PubTime, TimeUtil.CST)
-            .ToString("yyyy-MM-dd HH:mm:ss zzz");
+            .ToString("yyyy-MM-dd HH:mm:ss");
 
         return $"""
                 {video.Title}

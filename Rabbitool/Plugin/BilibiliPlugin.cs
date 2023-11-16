@@ -236,7 +236,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     {dy.Text.AddRedirectToUrls()}
 
                     {dy.Reserve.Title}
-                    预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
+                    预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss}
                     ——————————
                     动态链接：{dy.DynamicUrl.AddRedirectToUrls()}
                     """;
@@ -318,7 +318,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                             {cOrigin.Text.AddRedirectToUrls()}
 
                             标题：{cOrigin.Reserve.Title}
-                            预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss zzz}
+                            预约时间：{TimeZoneInfo.ConvertTimeFromUtc(cOrigin.Reserve.StartTime, TimeUtil.CST):yyyy-MM-dd HH:mm:ss}
                             """;
                 if (cOrigin.ImageUrls?.Count is int and not 0)
                     imgUrls = cOrigin.ImageUrls;
@@ -403,7 +403,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                                    {dy.Text.AddRedirectToUrls()}
 
                                    {dy.Reserve.Title}
-                                   预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss zzz}
+                                   预约时间：{dy.Reserve.StartTime:yyyy-MM-dd HH:mm:ss}
                                    """;
 
         List<string> otherImgs = new();
