@@ -153,7 +153,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
         catch (BilibiliApiException bex)
         {
-            if (bex.Code is -401 or -509 or -799) return true;
+            if (bex.Code is -401 or -509 or -799 or -352) return true;
+            else if (bex.Message == "风控校验失败") return true;
 
             Log.Error(bex, "[Bilibili] Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);

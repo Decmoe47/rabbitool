@@ -215,7 +215,9 @@ public class QQBotService
         }
         catch (HttpApiException ex)
         {
-            return ex.InnerException is AccessInfoErrorException ? false : throw ex;
+            if (ex.InnerException is AccessInfoErrorException)
+                return false;
+            throw;
         }
     }
 
