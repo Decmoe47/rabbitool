@@ -1,4 +1,4 @@
-﻿using Rabbitool.Conf;
+﻿using Rabbitool.Configs;
 
 namespace Rabbitool.Common.Tool.Test;
 
@@ -8,8 +8,8 @@ public class ErrorNotifierTest
 
     public ErrorNotifierTest()
     {
-        Configs configs = Configs.Load("configs.yml");
-        ErrorNotifierOptions opts = configs.Notifier!.ToOptions();
+        Env env = Env.Load("configs.yml");
+        ErrorNotifierOptions opts = env.Notifier!.ToOptions();
         opts.Interval = 1;
         opts.AllowedAmount = 6;
 

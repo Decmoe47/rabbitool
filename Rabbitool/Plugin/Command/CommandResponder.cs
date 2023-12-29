@@ -1,4 +1,4 @@
-﻿using QQChannelFramework.Models.MessageModels;
+﻿using MyBot.Models.MessageModels;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Plugin.Command.Subscribe;

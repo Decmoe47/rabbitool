@@ -1,4 +1,4 @@
-﻿using Rabbitool.Conf;
+﻿using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Mail;
 using Xunit.Abstractions;
 
@@ -11,14 +11,14 @@ public class MailServiceTest : IDisposable
 
     public MailServiceTest(ITestOutputHelper output)
     {
-        Configs configs = Configs.Load("configs.yml");
+        Env env = Env.Load("configs.yml");
 
         _svc = new MailService(
             "imap.126.com",
             143,
             false,
-            configs.Notifier!.UserName,
-            configs.Notifier!.Password);
+            env.Notifier!.UserName,
+            env.Notifier!.Password);
         _output = output;
     }
 

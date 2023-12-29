@@ -1,32 +1,29 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Rabbitool.Conf;
+namespace Rabbitool.Configs;
 
-public class Configs
+public class Env
 {
-    // env
-    [Required]
-    public required string RedirectUrl { get; set; }
-    
-    [Required]
-    public required string UserAgent { get; set; }
+    public static Env R = null!;
+
+    // common
+    [Required] public required string RedirectUrl { get; set; }
+
+    [Required] public required string UserAgent { get; set; }
 
     public bool InTestEnvironment { get; set; } = false;
 
-    [Required]
-    public required string DbPath { get; set; }
+    [Required] public required string DbPath { get; set; }
 
-    [Required]
-    public required Logger DefaultLogger { get; set; }
+    [Required] public required Logger DefaultLogger { get; set; }
 
     public Notifier? Notifier { get; set; }
 
     public Proxy? Proxy { get; set; }
 
     // services
-    [Required]
-    public required Cos Cos { get; set; }
+    [Required] public required Cos Cos { get; set; }
 
     [Required]
     [YamlMember(Alias = "qqBot")]
@@ -36,21 +33,19 @@ public class Configs
 
     public Twitter? Twitter { get; set; }
 
-    public static Configs R = null!;
-
-    public static Configs Load(string path)
+    public static Env Load(string path)
     {
         string file = File.ReadAllText(path);
         IDeserializer deserializer = new DeserializerBuilder()
             .WithNamingConvention(PascalCaseToCamelCaseNamingConvention.Instance)
             .Build();
-        R = deserializer.Deserialize<Configs>(file);
+        R = deserializer.Deserialize<Env>(file);
         return R;
     }
 }
 
 /// <summary>
-/// 首字母转小写
+///     首字母转小写
 /// </summary>
 public sealed class PascalCaseToCamelCaseNamingConvention : INamingConvention
 {
@@ -60,7 +55,8 @@ public sealed class PascalCaseToCamelCaseNamingConvention : INamingConvention
 
     [Obsolete("Use the Instance static field instead of creating new instances")]
     public PascalCaseToCamelCaseNamingConvention()
-    { }
+    {
+    }
 
     public string Apply(string value)
     {

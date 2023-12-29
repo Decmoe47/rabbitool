@@ -3,7 +3,7 @@ using Google.Apis.Services;
 using Google.Apis.Util;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Youtube;
 
 namespace Rabbitool.Service;
@@ -21,7 +21,7 @@ public class YoutubeService
     private readonly YouTubeService _ytb = new(new BaseClientService.Initializer
     {
         ApplicationName = "Rabbitool",
-        ApiKey = Configs.R.Youtube!.ApiKey
+        ApiKey = Env.R.Youtube!.ApiKey
     });
 
     public async Task<YoutubeItem> GetLatestVideoOrLiveAsync(string channelId, CancellationToken ct = default)

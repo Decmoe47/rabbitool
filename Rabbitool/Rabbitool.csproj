@@ -1,59 +1,59 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PlatformTarget>x64</PlatformTarget>
-    <Platforms>AnyCPU</Platforms>
-    <LangVersion>12</LangVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PlatformTarget>x64</PlatformTarget>
+        <Platforms>AnyCPU</Platforms>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>True</Optimize>
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <Optimize>True</Optimize>
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>True</Optimize>
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <Optimize>True</Optimize>
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove=".editorconfig" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Remove=".editorconfig"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6" />
-    <PackageReference Include="Coravel" Version="5.0.2" />
-    <PackageReference Include="Flurl" Version="3.0.7" />
-    <PackageReference Include="Flurl.Http" Version="3.2.4" />
-    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.62.0.3169" />
-    <PackageReference Include="MailKit" Version="4.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.11">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-    <PackageReference Include="MyBot" Version="1.5.0.4" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Serilog" Version="3.0.1" />
-    <PackageReference Include="System.Threading.RateLimiting" Version="7.0.1" />
-    <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.35" />
-    <PackageReference Include="YamlDotNet" Version="13.5.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6"/>
+        <PackageReference Include="Coravel" Version="5.0.2"/>
+        <PackageReference Include="Flurl" Version="4.0.0"/>
+        <PackageReference Include="Flurl.Http" Version="4.0.0"/>
+        <PackageReference Include="Google.Apis.YouTube.v3" Version="1.64.0.3205"/>
+        <PackageReference Include="MailKit" Version="4.3.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0"/>
+        <PackageReference Include="MyBot" Version="1.7.0.12"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="Serilog" Version="3.1.1"/>
+        <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0"/>
+        <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.35"/>
+        <PackageReference Include="YamlDotNet" Version="13.7.1"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Rabbitool.Common\Rabbitool.Common.csproj" />
-    <ProjectReference Include="..\Rabbitool.Model\Rabbitool.Model.csproj" />
-    <ProjectReference Include="..\Rabbitool.Repository\Rabbitool.Repository.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Rabbitool.Common\Rabbitool.Common.csproj"/>
+        <ProjectReference Include="..\Rabbitool.Model\Rabbitool.Model.csproj"/>
+        <ProjectReference Include="..\Rabbitool.Repository\Rabbitool.Repository.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Properties\PublishProfiles\" />
-    <Folder Include="Tool\" />
-  </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Properties\PublishProfiles\"/>
+        <Folder Include="Tool\"/>
+    </ItemGroup>
 
 </Project>

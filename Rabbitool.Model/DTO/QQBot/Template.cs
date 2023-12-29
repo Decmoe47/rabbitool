@@ -1,4 +1,4 @@
-﻿using QQChannelFramework.Models.MessageModels;
+﻿using MyBot.Models.MessageModels;
 
 namespace Rabbitool.Model.DTO.QQBot;
 

@@ -1,10 +1,10 @@
 ﻿using System.Text.RegularExpressions;
 using Coravel;
 using Coravel.Invocable;
+using MyBot.Models.Forum;
 using Newtonsoft.Json;
-using QQChannelFramework.Models.Forum;
 using Rabbitool.Common.Util;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Mail;
 using Rabbitool.Model.Entity.Subscribe;
@@ -30,7 +30,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
     /// </summary>
     public MailPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
-        SubscribeDbContext dbCtx = new(Configs.R.DbPath);
+        SubscribeDbContext dbCtx = new(Env.R.DbPath);
         _repo = new MailSubscribeRepository(dbCtx);
         _configRepo = new MailSubscribeConfigRepository(dbCtx);
 

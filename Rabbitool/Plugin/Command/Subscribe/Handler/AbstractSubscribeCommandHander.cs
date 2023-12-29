@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Flurl.Http;
-using QQChannelFramework.Models.WsModels;
+using MyBot.Models.WsModels;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;

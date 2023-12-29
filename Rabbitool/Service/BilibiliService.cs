@@ -4,7 +4,7 @@ using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Bilibili;
 using Serilog;
 
@@ -28,7 +28,7 @@ public class BilibiliService
         _ = await "https://bilibili.com"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .GetAsync(ct);
+            .GetAsync(cancellationToken: ct);
     }
 
     public async Task<Live?> GetLiveAsync(uint uid, CancellationToken ct = default)
@@ -39,8 +39,8 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Configs.R.UserAgent)
-            .GetStringAsync(ct);
+            .WithHeader("User-Agent", Env.R.UserAgent)
+            .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
@@ -59,8 +59,8 @@ public class BilibiliService
             .SetQueryParam("room_id", roomId)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Configs.R.UserAgent)
-            .GetStringAsync(ct);
+            .WithHeader("User-Agent", Env.R.UserAgent)
+            .GetStringAsync(cancellationToken: ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
         if ((int?)body2["code"] is { } code2 and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code2, body2);
@@ -130,8 +130,8 @@ public class BilibiliService
             .SetQueryParam("host_uid", uid)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Configs.R.UserAgent)
-            .GetStringAsync(ct);
+            .WithHeader("User-Agent", Env.R.UserAgent)
+            .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
             throw new BilibiliApiException($"Failed to get the info from the bilibili user(uid: {uid})!", code, body);
@@ -390,8 +390,8 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
             .WithTimeout(10)
-            .WithHeader("User-Agent", Configs.R.UserAgent)
-            .GetStringAsync(ct);
+            .WithHeader("User-Agent", Env.R.UserAgent)
+            .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code && code != 0)
             throw new BilibiliApiException($"Failed to get the uname of uid {uid}", code, body);

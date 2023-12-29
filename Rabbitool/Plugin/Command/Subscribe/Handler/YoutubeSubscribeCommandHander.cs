@@ -25,7 +25,8 @@ public class YoutubeSubscribeCommandHandler
         string resp;
         try
         {
-            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}".GetStringAsync(ct);
+            resp = await $"https://www.youtube.com/feeds/videos.xml?channel_id={channelId}"
+                .GetStringAsync(cancellationToken: ct);
         }
         catch (FlurlHttpException ex)
         {

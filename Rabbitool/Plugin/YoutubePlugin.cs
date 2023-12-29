@@ -1,7 +1,7 @@
 ﻿using Coravel;
 using Coravel.Invocable;
 using Rabbitool.Common.Util;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Youtube;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -22,7 +22,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         _svc = new YoutubeService();
 
-        SubscribeDbContext dbCtx = new(Configs.R.DbPath);
+        SubscribeDbContext dbCtx = new(Env.R.DbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }

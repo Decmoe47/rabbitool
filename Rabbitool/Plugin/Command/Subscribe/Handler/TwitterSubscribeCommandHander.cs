@@ -1,6 +1,6 @@
 ﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -26,10 +26,10 @@ public class TwitterSubscribeCommandHandler
         string resp;
         try
         {
-            if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
+            if (Env.R.Twitter?.XCsrfToken != null && Env.R.Twitter?.Cookie != null)
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },
@@ -42,14 +42,14 @@ public class TwitterSubscribeCommandHandler
                     })
                     .WithHeaders(new Dictionary<string, string>
                     {
-                        { "x-csrf-token", Configs.R.Twitter.XCsrfToken },
-                        { "Cookie", Configs.R.Twitter.Cookie }
+                        { "x-csrf-token", Env.R.Twitter.XCsrfToken },
+                        { "Cookie", Env.R.Twitter.Cookie }
                     })
-                    .GetStringAsync(ct);
+                    .GetStringAsync(cancellationToken: ct);
             else
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },
@@ -58,7 +58,7 @@ public class TwitterSubscribeCommandHandler
                         { "include_rts", "true" },
                         { "tweet_mode", "extended" }
                     })
-                    .GetStringAsync(ct);
+                    .GetStringAsync(cancellationToken: ct);
         }
         catch (FlurlHttpException ex)
         {

@@ -4,7 +4,7 @@ using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Twitter;
 using Serilog;
 
@@ -33,10 +33,10 @@ public class TwitterService
         await _tweetApiLimiter.AcquireAsync(1, ct);
 
         string resp;
-        if (Configs.R.Twitter?.XCsrfToken != null && Configs.R.Twitter?.Cookie != null)
+        if (Env.R.Twitter?.XCsrfToken != null && Env.R.Twitter?.Cookie != null)
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
-                .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
                 .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },
@@ -49,14 +49,14 @@ public class TwitterService
                 })
                 .WithHeaders(new Dictionary<string, string>
                 {
-                    { "x-csrf-token", Configs.R.Twitter.XCsrfToken },
-                    { "Cookie", Configs.R.Twitter.Cookie }
+                    { "x-csrf-token", Env.R.Twitter.XCsrfToken },
+                    { "Cookie", Env.R.Twitter.Cookie }
                 })
-                .GetStringAsync(ct);
+                .GetStringAsync(cancellationToken: ct);
         else
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
-                .WithOAuthBearerToken(Configs.R.Twitter!.BearerToken)
+                .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
                 .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },
@@ -65,7 +65,7 @@ public class TwitterService
                     { "include_rts", "true" },
                     { "tweet_mode", "extended" }
                 })
-                .GetStringAsync(ct);
+                .GetStringAsync(cancellationToken: ct);
         if (resp.Contains("errors"))
         {
             JObject errBody = JObject.Parse(resp).RemoveNullAndEmptyProperties();

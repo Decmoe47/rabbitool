@@ -1,4 +1,4 @@
-﻿using Rabbitool.Conf;
+﻿using Rabbitool.Configs;
 
 namespace Rabbitool.Service.Test;
 
@@ -8,10 +8,10 @@ public class TwitterServiceTest
 
     public TwitterServiceTest()
     {
-        Configs configs = Configs.Load("configs.yml");
+        Env env = Env.Load("configs.yml");
 
-        System.Environment.SetEnvironmentVariable("http_proxy", configs.Proxy!.Http);
-        System.Environment.SetEnvironmentVariable("https_proxy", configs.Proxy.Https);
+        System.Environment.SetEnvironmentVariable("http_proxy", env.Proxy!.Http);
+        System.Environment.SetEnvironmentVariable("https_proxy", env.Proxy.Https);
 
         _svc = new TwitterService();
     }

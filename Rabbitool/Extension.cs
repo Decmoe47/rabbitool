@@ -1,5 +1,5 @@
 ﻿using System.Text.RegularExpressions;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 
 namespace Rabbitool;
 
@@ -9,7 +9,7 @@ public static partial class Extension
     {
         text = text == "" 
             ? "（无文本）" 
-            : UrlRegex().Replace(text, m => Configs.R.RedirectUrl + m.Value);
+            : UrlRegex().Replace(text, m => Env.R.RedirectUrl + m.Value);
 
         return text;
     }

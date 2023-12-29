@@ -1,17 +1,13 @@
 # 以下除非有说明“可选”，否则均为必填
 
+# common
 redirectUrl: # string，重定向链接用
 userAgent: # string
 inTestEnvironment: # bool，可选，同时会指定qqbot为sanbox mode
 defaultLogger:
   consoleLevel: "debug" # string  # （可选）
   fileLevel: "info" # string  # （可选）
-gorm:
-  dbPath: "rabbitool.db"  # string，目前只支持sqlite3
-  logger: # （可选）
-    consoleLevel: "debug" # string  # （可选）
-    fileLevel: "info" # string  # （可选）
-
+dbPath: "rabbitool.db"  # string，目前只支持sqlite3
 notifier: # （可选）用于发生错误时告警的，下面皆指邮箱的配置
   host: # string
   port: # int
@@ -23,18 +19,17 @@ notifier: # （可选）用于发生错误时告警的，下面皆指邮箱的�
   interval: 5 # int，分钟，重置统计的错误数
   allowedAmount: 25 # int，同一错误数在规定的interval时间内达到allowedAmount后就告警
   timeout: 60 # int，分钟，告警后不会继续告警，而是在timeout之后再重置统计
+
+# services
 cos: # 腾讯云对象存储，用于上传图片视频时的暂存空间，同时也用于获取小视频下载直链
   secretId: # string
   secretKey: # string
   bucketName: # string
   region: # string
-
-
 qqbot:
+  botQQ: # string，bot的qq号
   appId: # string
   token: # string
   sandboxGuildName: # string
-youtube:  # （可选）
+youtube: # （可选）
   apiKey: # string，官方api，参见官方说明
-twitter: # （可选）
-  token: # string，v2 api

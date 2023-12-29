@@ -1,4 +1,4 @@
-﻿using Rabbitool.Conf;
+﻿using Rabbitool.Configs;
 using Serilog;
 
 namespace Rabbitool.Common.Tool.Test;
@@ -7,8 +7,8 @@ public class LogConfigTest
 {
     public LogConfigTest()
     {
-        Configs configs = Configs.Load("configs.yml");
-        ErrorNotifierOptions opts = configs.Notifier!.ToOptions();
+        Env env = Env.Load("configs.yml");
+        ErrorNotifierOptions opts = env.Notifier!.ToOptions();
         opts.Interval = 60;
         opts.AllowedAmount = 25;
         Log.Logger = LogConfigure.New(opts);

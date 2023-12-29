@@ -3,7 +3,7 @@ using COSXML;
 using COSXML.Auth;
 using COSXML.Model.Object;
 using Flurl.Http;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 
 namespace Rabbitool.Service;
 
@@ -16,11 +16,11 @@ public class CosService
     {
         CosXmlConfig? config = new CosXmlConfig.Builder()
             .IsHttps(true)
-            .SetRegion(Configs.R.Cos.Region)
+            .SetRegion(Env.R.Cos.Region)
             .Build();
-        DefaultQCloudCredentialProvider credential = new(Configs.R.Cos.SecretId, Configs.R.Cos.SecretKey, 6000);
+        DefaultQCloudCredentialProvider credential = new(Env.R.Cos.SecretId, Env.R.Cos.SecretKey, 6000);
         _client = new CosXmlServer(config, credential);
-        _baseUrl = $"https://{Configs.R.Cos.BucketName}.cos.{Configs.R.Cos.Region}.myqcloud.com";
+        _baseUrl = $"https://{Env.R.Cos.BucketName}.cos.{Env.R.Cos.Region}.myqcloud.com";
     }
 
     public async Task<string> UploadImageAsync(string url, CancellationToken ct = default)
@@ -34,7 +34,7 @@ public class CosService
         if (!filename.EndsWith(".jpg") && !filename.EndsWith(".png"))
             filename += ".jpg";
 
-        byte[] resp = await url.WithTimeout(30).GetBytesAsync(ct);
+        byte[] resp = await url.WithTimeout(30).GetBytesAsync(cancellationToken: ct);
         return Upload(filename, resp, "/data/images/");
     }
 
@@ -71,7 +71,7 @@ public class CosService
         using FileStream file = File.OpenRead(filePath);
         try
         {
-            PutObjectRequest request = new(Configs.R.Cos.BucketName, pathInCos + fileName, file, 0, file.Length);
+            PutObjectRequest request = new(Env.R.Cos.BucketName, pathInCos + fileName, file, 0, file.Length);
             _client.PutObject(request);
             return _baseUrl + pathInCos + fileName;
         }
@@ -83,7 +83,7 @@ public class CosService
 
     private string Upload(string fileName, byte[] file, string pathInCos)
     {
-        PutObjectRequest request = new(Configs.R.Cos.BucketName, pathInCos + fileName, file);
+        PutObjectRequest request = new(Env.R.Cos.BucketName, pathInCos + fileName, file);
         _ = _client.PutObject(request);
         return _baseUrl + pathInCos + fileName;
     }

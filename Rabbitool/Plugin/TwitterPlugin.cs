@@ -1,10 +1,10 @@
 ﻿using Coravel;
 using Coravel.Invocable;
+using MyBot.Models.Forum;
+using MyBot.Models.MessageModels;
 using Newtonsoft.Json;
-using QQChannelFramework.Models.Forum;
-using QQChannelFramework.Models.MessageModels;
 using Rabbitool.Common.Util;
-using Rabbitool.Conf;
+using Rabbitool.Configs;
 using Rabbitool.Model.DTO.QQBot;
 using Rabbitool.Model.DTO.Twitter;
 using Rabbitool.Model.Entity.Subscribe;
@@ -26,7 +26,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         _svc = new TwitterService();
 
-        SubscribeDbContext dbCtx = new(Configs.R.DbPath);
+        SubscribeDbContext dbCtx = new(Env.R.DbPath);
         _repo = new TwitterSubscribeRepository(dbCtx);
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
     }
@@ -229,7 +229,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         CancellationToken ct = default)
     {
         List<string> otherImages = new();
-        string templateId = Configs.R.QQBot.MarkdownTemplateIds!.TextOnly;
+        string templateId = Env.R.QQBot.MarkdownTemplateIds!.TextOnly;
         MarkdownTemplateParams templateParams = new()
         {
             Info = "新推文",
@@ -243,7 +243,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
             templateParams.ImageUrl = tweet.ImageUrls[0];
             if (tweet.ImageUrls.Count > 1)
                 otherImages.AddRange(tweet.ImageUrls.GetRange(1, tweet.ImageUrls.Count - 1));
-            templateId = Configs.R.QQBot.MarkdownTemplateIds.WithImage;
+            templateId = Env.R.QQBot.MarkdownTemplateIds.WithImage;
         }
 
         switch (tweet.Type)
@@ -252,7 +252,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             case TweetTypeEnum.Quote:
-                templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateId = Env.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新带评论转发推文";
                 templateParams.Origin = new MarkdownTemplateParams
                 {
@@ -266,13 +266,13 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
+                    templateId = Env.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
                 }
 
                 break;
 
             case TweetTypeEnum.RT:
-                templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateId = Env.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新转发推文";
                 templateParams.Url = tweet.Url.AddRedirectToUrls();
                 templateParams.Origin = new MarkdownTemplateParams
@@ -287,7 +287,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Configs.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
+                    templateId = Env.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
                 }
 
                 break;

@@ -1,6 +1,6 @@
-﻿using QQChannelFramework.Models;
-using QQChannelFramework.Models.MessageModels;
-using Rabbitool.Conf;
+﻿using MyBot.Models;
+using MyBot.Models.MessageModels;
+using Rabbitool.Configs;
 using Rabbitool.Service;
 using Serilog;
 using Xunit.Abstractions;
@@ -21,7 +21,7 @@ public class SubscribeCommandResponderTest
             .WriteTo.TestOutput(output)
             .CreateLogger();
 
-        Configs configs = Configs.Load("configs.yml");
+        Env env = Env.Load("configs.yml");
         _qSvc = new QQBotService(new CosService());
         SubscribeCommandResponder.Init(_qSvc);
     }
