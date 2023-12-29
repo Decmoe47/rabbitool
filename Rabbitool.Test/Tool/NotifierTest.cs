@@ -1,4 +1,4 @@
-﻿using Rabbitool.Configs;
+﻿using Rabbitool.Common.Configs;
 
 namespace Rabbitool.Common.Tool.Test;
 
@@ -8,15 +8,15 @@ public class ErrorNotifierTest
 
     public ErrorNotifierTest()
     {
-        Env env = Env.Load("configs.yml");
-        ErrorNotifierOptions opts = env.Notifier!.ToOptions();
+        Settings settings = Settings.Load("configs.yml");
+        ErrorNotifierOptions opts = settings.Notifier!.ToOptions();
         opts.Interval = 1;
         opts.AllowedAmount = 6;
 
         _notifier = new Notifier(opts);
     }
 
-    [Fact()]
+    [Fact]
     public void SendTestShouldReceived()
     {
         try
@@ -32,7 +32,7 @@ public class ErrorNotifierTest
         }
     }
 
-    [Fact()]
+    [Fact]
     public void SendAsyncTestShouldNotReceived()
     {
         try

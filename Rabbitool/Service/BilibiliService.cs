@@ -2,9 +2,9 @@
 using Flurl;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Bilibili;
 using Serilog;
 
@@ -39,7 +39,7 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Env.R.UserAgent)
+            .WithHeader("User-Agent", Settings.R.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
@@ -59,7 +59,7 @@ public class BilibiliService
             .SetQueryParam("room_id", roomId)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Env.R.UserAgent)
+            .WithHeader("User-Agent", Settings.R.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
         if ((int?)body2["code"] is { } code2 and not 0)
@@ -130,7 +130,7 @@ public class BilibiliService
             .SetQueryParam("host_uid", uid)
             .WithTimeout(10)
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Env.R.UserAgent)
+            .WithHeader("User-Agent", Settings.R.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code and not 0)
@@ -390,7 +390,7 @@ public class BilibiliService
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
             .WithTimeout(10)
-            .WithHeader("User-Agent", Env.R.UserAgent)
+            .WithHeader("User-Agent", Settings.R.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
         if ((int?)body["code"] is { } code && code != 0)

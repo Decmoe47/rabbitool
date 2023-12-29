@@ -1,7 +1,7 @@
 ﻿using Coravel;
 using Coravel.Invocable;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Util;
-using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Youtube;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -22,7 +22,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         _svc = new YoutubeService();
 
-        SubscribeDbContext dbCtx = new(Env.R.DbPath);
+        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }
@@ -154,6 +154,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
             roomIdsToRemove.Add(roomId);
         }
+
         roomIdsToRemove.ForEach(roomId => record.AllUpcomingLiveRoomIds.Remove(roomId));
         await _repo.SaveAsync(ct);
     }

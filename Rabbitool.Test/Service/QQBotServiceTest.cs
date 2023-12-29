@@ -1,7 +1,7 @@
 ﻿using MyBot.Models;
 using MyBot.Models.Forum;
 using Newtonsoft.Json;
-using Rabbitool.Configs;
+using Rabbitool.Common.Configs;
 using Xunit.Abstractions;
 
 namespace Rabbitool.Service.Test;
@@ -16,12 +16,12 @@ public class QQBotServiceTest
     public QQBotServiceTest(ITestOutputHelper output)
     {
         _output = output;
-        Env env = Env.Load("configs.yml");
+        Settings settings = Settings.Load("configs.yml");
 
-        Environment.SetEnvironmentVariable("http_proxy", env.Proxy!.Http);
-        Environment.SetEnvironmentVariable("https_proxy", env.Proxy.Https);
+        Environment.SetEnvironmentVariable("http_proxy", settings.Proxy!.Http);
+        Environment.SetEnvironmentVariable("https_proxy", settings.Proxy.Https);
 
-        _sandboxGuildName = env.QQBot.SandboxGuildName;
+        _sandboxGuildName = settings.QQBot.SandboxGuildName;
         _cosSvc = new CosService();
         _svc = new QQBotService(_cosSvc);
     }

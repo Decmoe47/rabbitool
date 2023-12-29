@@ -1,4 +1,4 @@
-﻿using Rabbitool.Configs;
+﻿using Rabbitool.Common.Configs;
 
 namespace Rabbitool.Service.Test;
 
@@ -8,15 +8,15 @@ public class YoutubeServiceTest
 
     public YoutubeServiceTest()
     {
-        Env env = Env.Load("configs.yml");
+        Settings settings = Settings.Load("configs.yml");
 
-        System.Environment.SetEnvironmentVariable("http_proxy", env.Proxy!.Http);
-        System.Environment.SetEnvironmentVariable("https_proxy", env.Proxy.Https);
+        Environment.SetEnvironmentVariable("http_proxy", settings.Proxy!.Http);
+        Environment.SetEnvironmentVariable("https_proxy", settings.Proxy.Https);
 
         _svc = new YoutubeService();
     }
 
-    [Theory()]
+    [Theory]
     [InlineData("UCt0clH12Xk1-Ej5PXKGfdPA")]
     [InlineData("UCTkyJbRhal4voLZxmdRSssQ")]
     [InlineData("UCkIimWZ9gBJRamKF0rmPU8w")]

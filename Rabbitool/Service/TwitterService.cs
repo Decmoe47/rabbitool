@@ -2,9 +2,9 @@
 using System.Threading.RateLimiting;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Exception;
 using Rabbitool.Common.Extension;
-using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Twitter;
 using Serilog;
 
@@ -33,10 +33,10 @@ public class TwitterService
         await _tweetApiLimiter.AcquireAsync(1, ct);
 
         string resp;
-        if (Env.R.Twitter?.XCsrfToken != null && Env.R.Twitter?.Cookie != null)
+        if (Settings.R.Twitter?.XCsrfToken != null && Settings.R.Twitter?.Cookie != null)
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
-                .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
+                .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
                 .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },
@@ -49,14 +49,14 @@ public class TwitterService
                 })
                 .WithHeaders(new Dictionary<string, string>
                 {
-                    { "x-csrf-token", Env.R.Twitter.XCsrfToken },
-                    { "Cookie", Env.R.Twitter.Cookie }
+                    { "x-csrf-token", Settings.R.Twitter.XCsrfToken },
+                    { "Cookie", Settings.R.Twitter.Cookie }
                 })
                 .GetStringAsync(cancellationToken: ct);
         else
             resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                 .WithTimeout(10)
-                .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
+                .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
                 .SetQueryParams(new Dictionary<string, string>
                 {
                     { "count", "5" },

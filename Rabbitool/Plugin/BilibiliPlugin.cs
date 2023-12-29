@@ -1,8 +1,8 @@
 ﻿using Coravel;
 using Coravel.Invocable;
 using MyBot.Models.MessageModels;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Util;
-using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Bilibili;
 using Rabbitool.Model.DTO.QQBot;
 using Rabbitool.Model.Entity.Subscribe;
@@ -24,7 +24,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
         _svc = new BilibiliService();
-        SubscribeDbContext dbCtx = new(Env.R.DbPath);
+        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
         _repo = new BilibiliSubscribeRepository(dbCtx);
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }
@@ -421,8 +421,8 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
             new MessageMarkdown
             {
                 CustomTemplateId = dy.ImageUrls != null && dy.ImageUrls.Count != 0
-                    ? Env.R.QQBot.MarkdownTemplateIds!.WithImage
-                    : Env.R.QQBot.MarkdownTemplateIds!.TextOnly,
+                    ? Settings.R.QQBot.MarkdownTemplateIds!.WithImage
+                    : Settings.R.QQBot.MarkdownTemplateIds!.TextOnly,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             otherImgs
@@ -444,7 +444,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         return (
             new MessageMarkdown
             {
-                CustomTemplateId = Env.R.QQBot.MarkdownTemplateIds!.WithImage,
+                CustomTemplateId = Settings.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -464,7 +464,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         return (
             new MessageMarkdown
             {
-                CustomTemplateId = Env.R.QQBot.MarkdownTemplateIds!.WithImage,
+                CustomTemplateId = Settings.R.QQBot.MarkdownTemplateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -487,14 +487,14 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         switch (dy.Origin)
         {
             case string:
-                templateId = Env.R.QQBot.MarkdownTemplateIds!.TextOnly;
+                templateId = Settings.R.QQBot.MarkdownTemplateIds!.TextOnly;
                 templateParams.Text += "\n（原动态已被删除）";
                 break;
 
             case CommonDynamic cOrigin:
                 templateId = cOrigin.ImageUrls != null && cOrigin.ImageUrls.Count > 0
-                    ? Env.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage
-                    : Env.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly;
+                    ? Settings.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage
+                    : Settings.R.QQBot.MarkdownTemplateIds!.ContainsOriginTextOnly;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "动态",
@@ -517,7 +517,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             case VideoDynamic vOrigin:
-                templateId = Env.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Settings.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "视频",
@@ -531,7 +531,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             case ArticleDynamic aOrigin:
-                templateId = Env.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Settings.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "",
@@ -543,7 +543,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             case LiveCardDynamic lOrigin:
-                templateId = Env.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
+                templateId = Settings.R.QQBot.MarkdownTemplateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "直播",
@@ -695,7 +695,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
         };
         return new MessageMarkdown
         {
-            CustomTemplateId = Env.R.QQBot.MarkdownTemplateIds!.WithImage,
+            CustomTemplateId = Settings.R.QQBot.MarkdownTemplateIds!.WithImage,
             Params = templateParams.ToMessageMarkdownParams()
         };
     }

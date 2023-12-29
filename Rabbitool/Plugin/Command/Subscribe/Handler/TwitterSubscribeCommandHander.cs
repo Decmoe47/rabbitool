@@ -1,6 +1,6 @@
 ﻿using Flurl.Http;
 using Newtonsoft.Json.Linq;
-using Rabbitool.Configs;
+using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -26,10 +26,10 @@ public class TwitterSubscribeCommandHandler
         string resp;
         try
         {
-            if (Env.R.Twitter?.XCsrfToken != null && Env.R.Twitter?.Cookie != null)
+            if (Settings.R.Twitter?.XCsrfToken != null && Settings.R.Twitter?.Cookie != null)
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },
@@ -42,14 +42,14 @@ public class TwitterSubscribeCommandHandler
                     })
                     .WithHeaders(new Dictionary<string, string>
                     {
-                        { "x-csrf-token", Env.R.Twitter.XCsrfToken },
-                        { "Cookie", Env.R.Twitter.Cookie }
+                        { "x-csrf-token", Settings.R.Twitter.XCsrfToken },
+                        { "Cookie", Settings.R.Twitter.Cookie }
                     })
                     .GetStringAsync(cancellationToken: ct);
             else
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Env.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },

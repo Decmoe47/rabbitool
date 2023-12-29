@@ -12,8 +12,8 @@ using MyBot.Models.Types;
 using MyBot.Models.WsModels;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Util;
-using Rabbitool.Configs;
 using Serilog;
 
 namespace Rabbitool.Service;
@@ -42,14 +42,14 @@ public class QQBotService
 
         OpenApiAccessInfo openApiAccessInfo = new()
         {
-            BotQQ = Env.R.QQBot.BotQQ,
-            BotAppId = Env.R.QQBot.AppId,
-            BotToken = Env.R.QQBot.Token,
-            BotSecret = Env.R.QQBot.Secret
+            BotQQ = Settings.R.QQBot.BotQQ,
+            BotAppId = Settings.R.QQBot.AppId,
+            BotToken = Settings.R.QQBot.Token,
+            BotSecret = Settings.R.QQBot.Secret
         };
         _qqApi = new QQChannelApi(openApiAccessInfo);
         _qqApi.UseBotIdentity();
-        if (Env.R.InTestEnvironment)
+        if (Settings.R.InTestEnvironment)
             _qqApi.UseSandBoxMode();
         _qqBot = new ChannelBot(_qqApi);
     }
@@ -62,7 +62,7 @@ public class QQBotService
         await _qqBot.OnlineAsync();
         IsOnline = true;
 
-        _sandboxGuildId = (await GetGuildByNameAsync(Env.R.QQBot.SandboxGuildName)).Id;
+        _sandboxGuildId = (await GetGuildByNameAsync(Settings.R.QQBot.SandboxGuildName)).Id;
         _botId = await GetBotIdAsync();
     }
 
@@ -74,7 +74,7 @@ public class QQBotService
         _qqBot.ReceivedAtMessage += async message =>
         {
             // 在沙箱频道里@bot，正式环境里的bot不会响应
-            if (!Env.R.InTestEnvironment && message.GuildId == _sandboxGuildId)
+            if (!Settings.R.InTestEnvironment && message.GuildId == _sandboxGuildId)
                 return;
             if (!message.Content.Contains("<@!" + _botId + ">"))
                 return;
@@ -234,7 +234,7 @@ public class QQBotService
         string passiveMsgId = "",
         CancellationToken ct = default)
     {
-        if (!Env.R.InTestEnvironment && channelId == _sandboxGuildId)
+        if (!Settings.R.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
         await _limiter.AcquireAsync(1, ct);
@@ -314,7 +314,7 @@ public class QQBotService
         string? passiveEventId = null,
         CancellationToken ct = default)
     {
-        if (!Env.R.InTestEnvironment && channelId == _sandboxGuildId)
+        if (!Settings.R.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
         await _limiter.AcquireAsync(1, ct);
@@ -356,7 +356,7 @@ public class QQBotService
     public async Task<(string, DateTime)?> PostThreadAsync(
         string channelId, string channelName, string title, string text, CancellationToken ct = default)
     {
-        if (!Env.R.InTestEnvironment && channelId == _sandboxGuildId)
+        if (!Settings.R.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
         await _limiter.AcquireAsync(1, ct);

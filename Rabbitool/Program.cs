@@ -1,10 +1,10 @@
-﻿using Rabbitool.Common.Tool;
-using Rabbitool.Configs;
+﻿using Rabbitool.Common.Configs;
+using Rabbitool.Common.Tool;
 using Rabbitool.Plugin;
 using Rabbitool.Service;
 using Serilog;
 
-Env conf = Env.Load("configs.yml");
+Settings conf = Settings.Load("configs.yml");
 
 Log.Logger = conf.Notifier != null
     ? LogConfigure.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel)

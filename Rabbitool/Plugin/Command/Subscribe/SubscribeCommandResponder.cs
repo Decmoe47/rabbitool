@@ -1,7 +1,7 @@
 ﻿using MyBot.Models;
 using MyBot.Models.MessageModels;
+using Rabbitool.Common.Configs;
 using Rabbitool.Common.Exception;
-using Rabbitool.Configs;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Repository.Subscribe;
 using Rabbitool.Service;
@@ -187,7 +187,7 @@ public static class SubscribeCommandResponder
             throw new UninitializedException(
                 "You must initialize SubscribeCommandResponder first by SubscribeCommandResponder.setting()!");
 
-        SubscribeDbContext dbCtx = new(Env.R.DbPath);
+        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
         QQChannelSubscribeRepository qsRepo = new(dbCtx);
         ISubscribeCommandHandler handler = platform switch
         {
