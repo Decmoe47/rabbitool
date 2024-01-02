@@ -1,60 +1,44 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
 public class SubscribeDbContext : DbContext
 {
-    private readonly string _dbPath;
-
-    public SubscribeDbContext()
-    {
-        _dbPath = "rabbitool.db";
-    }
-
-    public SubscribeDbContext(string dbPath)
-    {
-        _dbPath = dbPath;
-    }
-
-    public DbSet<QQChannelSubscribeEntity> QQChannelSubscribeEntity => Set<QQChannelSubscribeEntity>();
-    public DbSet<BilibiliSubscribeEntity> BilibiliSubscribeEntity => Set<BilibiliSubscribeEntity>();
-    public DbSet<BilibiliSubscribeConfigEntity> BilibiliSubscribeConfigEntity => Set<BilibiliSubscribeConfigEntity>();
-    public DbSet<TwitterSubscribeEntity> TwitterSubscribeEntity => Set<TwitterSubscribeEntity>();
-    public DbSet<TwitterSubscribeConfigEntity> TwitterSubscribeConfigEntity => Set<TwitterSubscribeConfigEntity>();
-    public DbSet<YoutubeSubscribeEntity> YoutubeSubscribeEntity => Set<YoutubeSubscribeEntity>();
-    public DbSet<YoutubeSubscribeConfigEntity> YoutubeSubscribeConfigEntity => Set<YoutubeSubscribeConfigEntity>();
-    public DbSet<MailSubscribeEntity> MailSubscribeEntity => Set<MailSubscribeEntity>();
-    public DbSet<MailSubscribeConfigEntity> MailSubscribeConfigEntity => Set<MailSubscribeConfigEntity>();
+    public DbSet<QQChannelSubscribeEntity> QQChannelSubscribes => Set<QQChannelSubscribeEntity>();
+    public DbSet<BilibiliSubscribeEntity> BilibiliSubscribes => Set<BilibiliSubscribeEntity>();
+    public DbSet<BilibiliSubscribeConfigEntity> BilibiliSubscribeConfigs => Set<BilibiliSubscribeConfigEntity>();
+    public DbSet<TwitterSubscribeEntity> TwitterSubscribes => Set<TwitterSubscribeEntity>();
+    public DbSet<TwitterSubscribeConfigEntity> TwitterSubscribeConfigs => Set<TwitterSubscribeConfigEntity>();
+    public DbSet<YoutubeSubscribeEntity> YoutubeSubscribes => Set<YoutubeSubscribeEntity>();
+    public DbSet<YoutubeSubscribeConfigEntity> YoutubeSubscribeConfigs => Set<YoutubeSubscribeConfigEntity>();
+    public DbSet<MailSubscribeEntity> MailSubscribes => Set<MailSubscribeEntity>();
+    public DbSet<MailSubscribeConfigEntity> MailSubscribeConfigs => Set<MailSubscribeConfigEntity>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlite($"Data Source={_dbPath}");
+            optionsBuilder.UseSqlite($"Data Source={Settings.R.DbPath}");
+    }
+    
+    /// <summary>
+    ///     https://learn.microsoft.com/zh-cn/ef/core/modeling/bulk-configuration#example-opt-in-property-mapping/>
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Conventions.Replace<ManyToManyJoinEntityTypeConvention>(provider =>
+            new MyManyToManyJoinEntityTypeConvention(provider
+                .GetRequiredService<ProviderConventionSetBuilderDependencies>()));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // relations
-        modelBuilder.Entity<BilibiliSubscribeEntity>()
-            .HasMany(e => e.QQChannels)
-            .WithMany(e => e.BilibiliSubscribes)
-            .UsingEntity("BilibiliSubscribe_QQChannelSubscribes");
-        modelBuilder.Entity<YoutubeSubscribeEntity>()
-            .HasMany(e => e.QQChannels)
-            .WithMany(e => e.YoutubeSubscribes)
-            .UsingEntity("YoutubeSubscribe_QQChannelSubscribes");
-        modelBuilder.Entity<TwitterSubscribeEntity>()
-            .HasMany(e => e.QQChannels)
-            .WithMany(e => e.TwitterSubscribes)
-            .UsingEntity("TwitterSubscribe_QQChannelSubscribes");
-        modelBuilder.Entity<MailSubscribeEntity>()
-            .HasMany(e => e.QQChannels)
-            .WithMany(e => e.MailSubscribes)
-            .UsingEntity("MailSubscribe_QQChannelSubscribes");
-
-        // comparars
+        // compares
         ValueComparer<List<string>> comparerForList = new(
             (c1, c2) => CompareList(c1, c2),
             c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
@@ -113,8 +97,8 @@ public class SubscribeDbContext : DbContext
 
     private static bool CompareList<T>(List<T>? list1, List<T>? list2)
     {
-        list1 ??= new List<T>();
-        list2 ??= new List<T>();
+        list1 ??= [];
+        list2 ??= [];
         return list1.SequenceEqual(list2);
     }
 
