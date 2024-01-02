@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 public class Settings
 {
-    public static Settings R = null!;
+    public static Settings R { get; private set; } = null!;
 
     // common
     [Required] public required string RedirectUrl { get; init; }

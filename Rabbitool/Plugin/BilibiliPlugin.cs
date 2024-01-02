@@ -24,7 +24,7 @@ public class BilibiliPlugin : BasePlugin, IPlugin, ICancellableInvocable
     public BilibiliPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
         _svc = new BilibiliService();
-        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
+        SubscribeDbContext dbCtx = new();
         _repo = new BilibiliSubscribeRepository(dbCtx);
         _configRepo = new BilibiliSubscribeConfigRepository(dbCtx);
     }

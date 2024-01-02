@@ -30,7 +30,7 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
     /// </summary>
     public MailPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
     {
-        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
+        SubscribeDbContext dbCtx = new();
         _repo = new MailSubscribeRepository(dbCtx);
         _configRepo = new MailSubscribeConfigRepository(dbCtx);
 

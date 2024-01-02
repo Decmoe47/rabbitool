@@ -26,7 +26,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         _svc = new TwitterService();
 
-        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
+        SubscribeDbContext dbCtx = new();
         _repo = new TwitterSubscribeRepository(dbCtx);
         _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
     }

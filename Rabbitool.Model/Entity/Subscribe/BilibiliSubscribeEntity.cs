@@ -4,16 +4,10 @@ using Rabbitool.Model.DTO.Bilibili;
 namespace Rabbitool.Model.Entity.Subscribe;
 
 [Table("BilibiliSubscribe")]
-public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
+public class BilibiliSubscribeEntity(uint uid, string uname) : BaseSubscribeEntity, ISubscribeEntity
 {
-    public BilibiliSubscribeEntity(uint uid, string uname)
-    {
-        Uid = uid;
-        Uname = uname;
-    }
-
-    public uint Uid { get; set; }
-    public string Uname { get; set; }
+    public uint Uid { get; set; } = uid;
+    public string Uname { get; set; } = uname;
 
     public DateTime LastDynamicTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
 
@@ -21,7 +15,7 @@ public class BilibiliSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
 
     public LiveStatusEnum LastLiveStatus { get; set; } = LiveStatusEnum.NoLiveStream;
 
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = [];
 
     [NotMapped] public string PropName { get; set; } = "BilibiliSubscribes";
 

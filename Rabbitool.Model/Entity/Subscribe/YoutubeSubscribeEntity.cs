@@ -3,16 +3,10 @@
 namespace Rabbitool.Model.Entity.Subscribe;
 
 [Table("YoutubeSubscribe")]
-public class YoutubeSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
+public class YoutubeSubscribeEntity(string channelId, string name) : BaseSubscribeEntity, ISubscribeEntity
 {
-    public YoutubeSubscribeEntity(string channelId, string name)
-    {
-        Name = name;
-        ChannelId = channelId;
-    }
-
-    public string Name { get; set; }
-    public string ChannelId { get; set; }
+    public string Name { get; set; } = name;
+    public string ChannelId { get; set; } = channelId;
 
     public string LastVideoId { get; set; } = string.Empty;
     public DateTime LastVideoPubTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
@@ -20,10 +14,10 @@ public class YoutubeSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
     public string LastLiveRoomId { get; set; } = string.Empty;
     public DateTime LastLiveStartTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
 
-    public List<string> AllUpcomingLiveRoomIds { get; set; } = new();
-    public List<string> AllArchiveVideoIds { get; set; } = new();
+    public List<string> AllUpcomingLiveRoomIds { get; set; } = [];
+    public List<string> AllArchiveVideoIds { get; set; } = [];
 
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = [];
 
     [NotMapped] public string PropName { get; set; } = "YoutubeSubscribes";
 

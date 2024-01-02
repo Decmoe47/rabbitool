@@ -16,7 +16,7 @@ public class QQChannelSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .AsNoTracking()
                 .Include(e => e.BilibiliSubscribes)
                 .Include(e => e.YoutubeSubscribes)
@@ -25,7 +25,7 @@ public class QQChannelSubscribeRepository
                 .Where(e => e.GuildId == guildId)
                 .ToListAsync(ct),
             true => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .Include(e => e.BilibiliSubscribes)
                 .Include(e => e.YoutubeSubscribes)
                 .Include(e => e.TwitterSubscribes)
@@ -44,13 +44,13 @@ public class QQChannelSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .AsNoTracking()
                 .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstAsync(ct),
             true => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstAsync(ct)
@@ -66,13 +66,13 @@ public class QQChannelSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .AsNoTracking()
                 .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstOrDefaultAsync(ct),
             true => await DbCtx
-                .QQChannelSubscribeEntity
+                .QQChannelSubscribes
                 .Include(propName)
                 .Where(q => q.ChannelId == channelId)
                 .FirstOrDefaultAsync(ct)
@@ -87,7 +87,7 @@ public class QQChannelSubscribeRepository
         CancellationToken ct = default)
     {
         QQChannelSubscribeEntity record = new(guildId, guildName, channelId, channelName);
-        await DbCtx.QQChannelSubscribeEntity.AddAsync(record, ct);
+        await DbCtx.QQChannelSubscribes.AddAsync(record, ct);
         return record;
     }
 
@@ -103,7 +103,7 @@ public class QQChannelSubscribeRepository
         if (record == null)
         {
             record = new QQChannelSubscribeEntity(guildId, guildName, channelId, channelName);
-            await DbCtx.QQChannelSubscribeEntity.AddAsync(record, ct);
+            await DbCtx.QQChannelSubscribes.AddAsync(record, ct);
         }
 
         return record;
@@ -144,6 +144,6 @@ public class QQChannelSubscribeRepository
 
     public void Delete(QQChannelSubscribeEntity record)
     {
-        DbCtx.QQChannelSubscribeEntity.Remove(record);
+        DbCtx.QQChannelSubscribes.Remove(record);
     }
 }

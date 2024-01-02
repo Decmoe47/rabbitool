@@ -3,20 +3,14 @@
 namespace Rabbitool.Model.Entity.Subscribe;
 
 [Table("TwitterSubscribe")]
-public class TwitterSubscribeEntity : BaseSubscribeEntity, ISubscribeEntity
+public class TwitterSubscribeEntity(string screenName, string name) : BaseSubscribeEntity, ISubscribeEntity
 {
-    public TwitterSubscribeEntity(string screenName, string name)
-    {
-        Name = name;
-        ScreenName = screenName;
-    }
-
-    public string Name { get; set; }
-    public string ScreenName { get; set; }
+    public string Name { get; set; } = name;
+    public string ScreenName { get; set; } = screenName;
     public string LastTweetId { get; set; } = string.Empty;
     public DateTime LastTweetTime { get; set; } = new DateTime(1970, 1, 1).ToUniversalTime();
 
-    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = new();
+    public List<QQChannelSubscribeEntity> QQChannels { get; set; } = [];
 
     [NotMapped] public string PropName { get; set; } = "TwitterSubscribes";
 

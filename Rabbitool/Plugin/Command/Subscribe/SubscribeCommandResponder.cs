@@ -187,7 +187,7 @@ public static class SubscribeCommandResponder
             throw new UninitializedException(
                 "You must initialize SubscribeCommandResponder first by SubscribeCommandResponder.setting()!");
 
-        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
+        SubscribeDbContext dbCtx = new();
         QQChannelSubscribeRepository qsRepo = new(dbCtx);
         ISubscribeCommandHandler handler = platform switch
         {

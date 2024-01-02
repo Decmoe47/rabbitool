@@ -42,7 +42,6 @@
         <PackageReference Include="Serilog" Version="3.1.1"/>
         <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0"/>
         <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.35"/>
-        <PackageReference Include="YamlDotNet" Version="13.7.1"/>
     </ItemGroup>
 
     <ItemGroup>

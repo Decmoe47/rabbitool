@@ -22,7 +22,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     {
         _svc = new YoutubeService();
 
-        SubscribeDbContext dbCtx = new(Settings.R.DbPath);
+        SubscribeDbContext dbCtx = new();
         _repo = new YoutubeSubscribeRepository(dbCtx);
         _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
     }

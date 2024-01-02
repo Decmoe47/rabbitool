@@ -17,11 +17,11 @@ public class MailSubscribeRepository
     {
         return tracking switch
         {
-            false => await DbCtx.MailSubscribeEntity
+            false => await DbCtx.MailSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .ToListAsync(ct),
-            true => await DbCtx.MailSubscribeEntity
+            true => await DbCtx.MailSubscribes
                 .Include(e => e.QQChannels)
                 .ToListAsync(ct)
         };
@@ -33,12 +33,12 @@ public class MailSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .MailSubscribeEntity
+                .MailSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .FirstAsync(m => m.Address == address, ct),
             true => await DbCtx
-                .MailSubscribeEntity
+                .MailSubscribes
                 .Include(e => e.QQChannels)
                 .FirstAsync(m => m.Address == address, ct)
         };
@@ -50,12 +50,12 @@ public class MailSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .MailSubscribeEntity
+                .MailSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(m => m.Address == address, ct),
             true => await DbCtx
-                .MailSubscribeEntity
+                .MailSubscribes
                 .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(m => m.Address == address, ct)
         };
@@ -63,13 +63,13 @@ public class MailSubscribeRepository
 
     public async Task AddAsync(MailSubscribeEntity entity, CancellationToken ct = default)
     {
-        await DbCtx.MailSubscribeEntity.AddAsync(entity, ct);
+        await DbCtx.MailSubscribes.AddAsync(entity, ct);
     }
 
     public async Task<MailSubscribeEntity> DeleteAsync(string address, CancellationToken ct = default)
     {
         MailSubscribeEntity record = await GetAsync(address, true, ct);
-        DbCtx.MailSubscribeEntity.Remove(record);
+        DbCtx.MailSubscribes.Remove(record);
         return record;
     }
 
@@ -98,14 +98,14 @@ public class MailSubscribeConfigRepository
         return tracking switch
         {
             false => DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(m => m.Subscribe.Address == address)
                 .ToListAsync(ct),
             true => DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(m => m.Subscribe.Address == address)
@@ -122,13 +122,13 @@ public class MailSubscribeConfigRepository
         return tracking switch
         {
             false => await DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, ct),
             true => await DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, ct)
@@ -144,13 +144,13 @@ public class MailSubscribeConfigRepository
         return tracking switch
         {
             false => await DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, ct),
             true => await DbCtx
-                .MailSubscribeConfigEntity
+                .MailSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(m => m.QQChannel.ChannelId == qqChannelId && m.Subscribe.Address == address, ct)
@@ -175,7 +175,7 @@ public class MailSubscribeConfigRepository
             if (configs != null)
                 CommonUtil.UpdateProperties(record, configs);
 
-            await DbCtx.MailSubscribeConfigEntity.AddAsync(record, ct);
+            await DbCtx.MailSubscribeConfigs.AddAsync(record, ct);
 
             return record;
         }
@@ -189,7 +189,7 @@ public class MailSubscribeConfigRepository
         string qqChannelId, string address, CancellationToken ct = default)
     {
         MailSubscribeConfigEntity record = await GetAsync(qqChannelId, address, true, ct);
-        DbCtx.MailSubscribeConfigEntity.Remove(record);
+        DbCtx.MailSubscribeConfigs.Remove(record);
         return record;
     }
 }

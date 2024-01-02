@@ -17,11 +17,11 @@ public class BilibiliSubscribeRepository
     {
         return tracking switch
         {
-            false => await DbCtx.BilibiliSubscribeEntity
+            false => await DbCtx.BilibiliSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .ToListAsync(ct),
-            true => await DbCtx.BilibiliSubscribeEntity
+            true => await DbCtx.BilibiliSubscribes
                 .Include(e => e.QQChannels)
                 .ToListAsync(ct)
         };
@@ -41,7 +41,7 @@ public class BilibiliSubscribeRepository
 
     public async Task AddAsync(BilibiliSubscribeEntity entity, CancellationToken ct = default)
     {
-        await DbCtx.BilibiliSubscribeEntity.AddAsync(entity, ct);
+        await DbCtx.BilibiliSubscribes.AddAsync(entity, ct);
     }
 
     public async Task<BilibiliSubscribeEntity> DeleteAsync(string uid, CancellationToken ct = default)
@@ -54,11 +54,11 @@ public class BilibiliSubscribeRepository
     {
         return tracking switch
         {
-            false => await DbCtx.BilibiliSubscribeEntity
+            false => await DbCtx.BilibiliSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .FirstAsync(b => b.Uid == uid, ct),
-            true => await DbCtx.BilibiliSubscribeEntity
+            true => await DbCtx.BilibiliSubscribes
                 .Include(e => e.QQChannels)
                 .FirstAsync(b => b.Uid == uid, ct)
         };
@@ -70,11 +70,11 @@ public class BilibiliSubscribeRepository
         return tracking switch
         {
             false => await DbCtx
-                .BilibiliSubscribeEntity
+                .BilibiliSubscribes
                 .AsNoTracking()
                 .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(b => b.Uid == uid, ct),
-            true => await DbCtx.BilibiliSubscribeEntity
+            true => await DbCtx.BilibiliSubscribes
                 .Include(e => e.QQChannels)
                 .FirstOrDefaultAsync(b => b.Uid == uid, ct)
         };
@@ -83,7 +83,7 @@ public class BilibiliSubscribeRepository
     public async Task<BilibiliSubscribeEntity> DeleteAsync(uint uid, CancellationToken ct = default)
     {
         BilibiliSubscribeEntity record = await GetAsync(uid, true, ct);
-        DbCtx.BilibiliSubscribeEntity.Remove(record);
+        DbCtx.BilibiliSubscribes.Remove(record);
         return record;
     }
 }
@@ -132,7 +132,7 @@ public class BilibiliSubscribeConfigRepository
             if (configs != null)
                 CommonUtil.UpdateProperties(record, configs);
 
-            await DbCtx.BilibiliSubscribeConfigEntity.AddAsync(record, ct);
+            await DbCtx.BilibiliSubscribeConfigs.AddAsync(record, ct);
 
             return record;
         }
@@ -154,14 +154,14 @@ public class BilibiliSubscribeConfigRepository
         return tracking switch
         {
             false => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(b => b.Subscribe.Uid == uid)
                 .ToListAsync(ct),
             true => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .Where(b => b.Subscribe.Uid == uid)
@@ -175,13 +175,13 @@ public class BilibiliSubscribeConfigRepository
         return tracking switch
         {
             false => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct),
             true => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct)
@@ -194,13 +194,13 @@ public class BilibiliSubscribeConfigRepository
         return tracking switch
         {
             false => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .AsNoTracking()
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct),
             true => await DbCtx
-                .BilibiliSubscribeConfigEntity
+                .BilibiliSubscribeConfigs
                 .Include(e => e.QQChannel)
                 .Include(e => e.Subscribe)
                 .FirstOrDefaultAsync(b => b.Subscribe.Uid == uid && b.QQChannel.ChannelId == qqChannelId, ct)
@@ -211,7 +211,7 @@ public class BilibiliSubscribeConfigRepository
         string qqChannelId, uint uid, CancellationToken ct = default)
     {
         BilibiliSubscribeConfigEntity record = await GetAsync(qqChannelId, uid, true, ct);
-        DbCtx.BilibiliSubscribeConfigEntity.Remove(record);
+        DbCtx.BilibiliSubscribeConfigs.Remove(record);
         return record;
     }
 }
