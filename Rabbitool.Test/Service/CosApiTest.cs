@@ -1,5 +1,4 @@
 ﻿using Rabbitool.Api;
-using Rabbitool.Common.Configs;
 using Xunit.Abstractions;
 
 namespace Rabbitool.Test.Service;

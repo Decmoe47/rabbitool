@@ -25,7 +25,8 @@
     - 直播（仅开播）
 
 > ※部分油管用户使用了自定义域名，想要通过地址获取channel
-> id，可以通过 [https://commentpicker.com/youtube-channel-id.php](https://commentpicker.com/youtube-channel-id.php) 这个网页转换。
+> id，可以通过 [https://commentpicker.com/youtube-channel-id.php](https://commentpicker.com/youtube-channel-id.php)
+> 这个网页转换。
 
 - 邮箱
 

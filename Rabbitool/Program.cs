@@ -44,4 +44,3 @@ public class Program
         await host.RunAsync(host.Services.GetService<ICancellationTokenProvider>()!.Token);
     }
 }
-

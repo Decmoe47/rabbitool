@@ -13,18 +13,18 @@ public class MailApiTest(ITestOutputHelper output, NotifierConfig notifierConfig
         false,
         notifierConfig.UserName,
         notifierConfig.Password);
-    
+
+    public void Dispose()
+    {
+        _api.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     [Fact]
     public async Task GetLatestMailAsyncTestAsync()
     {
         Mail mail = await _api.GetLatestMailAsync();
         output.WriteLine(mail.Text);
         Assert.NotEqual("", mail.Text);
-    }
-    
-    public void Dispose()
-    {
-        _api.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

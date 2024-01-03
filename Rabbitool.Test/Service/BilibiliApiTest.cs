@@ -5,7 +5,7 @@ namespace Rabbitool.Test.Service;
 public class BilibiliApiTest(BilibiliApi api) : BaseTest
 {
     private static readonly List<uint> TestUids = [2920960, 4415701, 6697975, 488976342, 1871001];
-    
+
     [Theory]
     [InlineData(2920960)]
     [InlineData(4415701)]

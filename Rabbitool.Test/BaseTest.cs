@@ -8,8 +8,11 @@ public class BaseTest
 {
     public class Startup
     {
-        public IHostBuilder CreateHostBuilder() => MinimalApiHostBuilderFactory.GetHostBuilder<Program>()
-            .ConfigureHostConfiguration(builder =>
-                builder.AddInMemoryCollection([KeyValuePair.Create(HostDefaults.EnvironmentKey, "Testing")]));
+        public IHostBuilder CreateHostBuilder()
+        {
+            return MinimalApiHostBuilderFactory.GetHostBuilder<Program>()
+                .ConfigureHostConfiguration(builder =>
+                    builder.AddInMemoryCollection([KeyValuePair.Create(HostDefaults.EnvironmentKey, "Testing")]));
+        }
     }
 }

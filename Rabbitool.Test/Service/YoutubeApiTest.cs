@@ -1,5 +1,4 @@
 ﻿using Rabbitool.Api;
-using Rabbitool.Common.Configs;
 
 namespace Rabbitool.Test.Service;
 

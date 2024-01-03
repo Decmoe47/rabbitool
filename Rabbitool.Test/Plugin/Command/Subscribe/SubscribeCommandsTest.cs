@@ -1,10 +1,7 @@
 ﻿using MyBot.Models;
 using MyBot.Models.MessageModels;
 using Rabbitool.Api;
-using Rabbitool.Common.Configs;
 using Rabbitool.Plugin.Command.Subscribe;
-using Serilog;
-using Xunit.Abstractions;
 
 namespace Rabbitool.Test.Plugin.Command.Subscribe;
 
