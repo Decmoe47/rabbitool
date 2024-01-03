@@ -8,7 +8,7 @@ using Rabbitool.Model.DTO.Mail;
 namespace Rabbitool.Api;
 
 [ConditionalOnProperty("mail")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class MailApi(string host, int port, bool usingSsl, string username, string password, string mailbox = "INBOX")
     : IDisposable
 {

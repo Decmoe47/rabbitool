@@ -1,7 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Flurl.Http;
 using MyBot.Models.WsModels;
-using Rabbitool.Api;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -10,7 +9,6 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
 public abstract partial class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubscribeRepo, TConfigRepo>(
-    QQBotApi qqBotApi,
     SubscribeDbContext dbCtx,
     QQChannelSubscribeRepository qsRepo,
     TSubscribeRepo repo,

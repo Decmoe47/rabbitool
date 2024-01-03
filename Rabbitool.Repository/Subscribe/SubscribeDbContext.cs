@@ -9,7 +9,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component]
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
 public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
 {
     public DbSet<QQChannelSubscribeEntity> QQChannelSubscribes => Set<QQChannelSubscribeEntity>();

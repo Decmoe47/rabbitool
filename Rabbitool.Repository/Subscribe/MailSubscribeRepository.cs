@@ -1,18 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class MailSubscribeRepository
-    : BaseRepository<MailSubscribeEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class MailSubscribeRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<MailSubscribeEntity, SubscribeDbContext>(dbCtx),
         ISubscribeRepository<MailSubscribeEntity>
 {
-    public MailSubscribeRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public async Task<List<MailSubscribeEntity>> GetAllAsync(bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
@@ -84,14 +82,11 @@ public class MailSubscribeRepository
     }
 }
 
-public class MailSubscribeConfigRepository
-    : BaseRepository<MailSubscribeConfigEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class MailSubscribeConfigRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<MailSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<MailSubscribeEntity, MailSubscribeConfigEntity>
 {
-    public MailSubscribeConfigRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public Task<List<MailSubscribeConfigEntity>> GetAllAsync(
         string address, bool tracking = false, CancellationToken ct = default)
     {

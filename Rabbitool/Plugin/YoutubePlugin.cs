@@ -14,7 +14,7 @@ using Serilog;
 namespace Rabbitool.Plugin;
 
 [ConditionalOnProperty("youtube")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class YoutubePlugin(
     QQBotApi qqBotApi,
     YoutubeApi youtubeApi,

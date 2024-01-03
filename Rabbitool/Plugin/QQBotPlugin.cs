@@ -5,7 +5,7 @@ using Rabbitool.Plugin.Command;
 
 namespace Rabbitool.Plugin;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class QQBotPlugin(QQBotApi api, Commands commands, ICancellationTokenProvider ctp) : IRunnablePlugin
 {
     public string Name => "qqBot";

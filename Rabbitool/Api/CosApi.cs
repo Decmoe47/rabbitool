@@ -8,7 +8,7 @@ using Rabbitool.Common.Configs;
 
 namespace Rabbitool.Api;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class CosApi
 {
     private readonly string _baseUrl;

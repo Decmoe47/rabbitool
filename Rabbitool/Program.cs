@@ -2,6 +2,7 @@
 using Autofac.Annotation;
 using Autofac.Extensions.DependencyInjection;
 using Coravel;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rabbitool.Common.Configs;
@@ -15,14 +16,25 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
+        builder.ConfigureAppConfiguration((context, configurationBuilder) =>
+        {
+            configurationBuilder
+                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.Development.json", optional: true);
+        });
         builder.UseServiceProviderFactory(new AutofacServiceProviderFactory());
         builder.ConfigureContainer<ContainerBuilder>((c, containerBuilder) =>
-            containerBuilder.RegisterModule(new AutofacAnnotationModule()));
+        {
+            containerBuilder.RegisterModule(new AutofacAnnotationModule()
+                .SetDefaultValueResource(c.Configuration)
+                .SetDefaultAutofacScopeToSingleInstance());
+        });
         builder.ConfigureServices(services => services.AddScheduler());
-
+        
         using IHost host = builder.Build();
-
+        
         // 配置logger
         LoggerConfig loggerConfig = host.Services.GetRequiredService<LoggerConfig>();
         NotifierConfig? notifierConfig = host.Services.GetService<NotifierConfig>();

@@ -7,10 +7,10 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class LoggerConfig
 {
-    [Value("${logger.consoleLevel}")] public required string ConsoleLevel { get; set; }
+    [Value("${logger:consoleLevel}")] public string ConsoleLevel { get; set; } = null!;
 
-    [Value("${logger.fileLevel}")] public required string FileLevel { get; set; }
+    [Value("${logger:fileLevel}")] public string FileLevel { get; set; } = null!;
 
-    [Value("${logger.filename}", IgnoreUnresolvablePlaceholders = true)]
+    [Value("${logger:filename}", IgnoreUnresolvablePlaceholders = true)]
     public string Filename { get; set; } = "rabbitool";
 }

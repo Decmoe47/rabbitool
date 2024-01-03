@@ -6,7 +6,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
 public class BilibiliSubscribeRepository(SubscribeDbContext dbCtx)
     : BaseRepository<BilibiliSubscribeEntity, SubscribeDbContext>(dbCtx),
         ISubscribeRepository<BilibiliSubscribeEntity>
@@ -86,14 +86,11 @@ public class BilibiliSubscribeRepository(SubscribeDbContext dbCtx)
     }
 }
 
-public class BilibiliSubscribeConfigRepository
-    : BaseRepository<BilibiliSubscribeConfigEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class BilibiliSubscribeConfigRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<BilibiliSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity>
 {
-    public BilibiliSubscribeConfigRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public async Task<List<BilibiliSubscribeConfigEntity>> GetAllAsync(
         string uid, bool tracking = false, CancellationToken ct = default)
     {

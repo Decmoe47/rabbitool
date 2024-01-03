@@ -18,7 +18,7 @@ using Serilog;
 namespace Rabbitool.Plugin;
 
 [ConditionalOnProperty("twitter")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class TwitterPlugin(
     QQBotApi qqBotApi,
     CosApi cosApi,

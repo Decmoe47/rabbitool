@@ -9,5 +9,5 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class BilibiliConfig
 {
-    [Value("${bilibili.interval}")] public int Interval { get; set; }
+    [Value("${bilibili:interval}")] public int Interval { get; set; }
 }

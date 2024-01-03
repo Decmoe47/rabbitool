@@ -1,15 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class QQChannelSubscribeRepository
-    : BaseRepository<QQChannelSubscribeEntity, SubscribeDbContext>
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class QQChannelSubscribeRepository(SubscribeDbContext ctx)
+    : BaseRepository<QQChannelSubscribeEntity, SubscribeDbContext>(ctx)
 {
-    public QQChannelSubscribeRepository(SubscribeDbContext ctx) : base(ctx)
-    {
-    }
-
     public async Task<List<QQChannelSubscribeEntity>> GetAllAsync(
         string guildId, bool tracking = false, CancellationToken ct = default)
     {

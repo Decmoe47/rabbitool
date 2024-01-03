@@ -9,12 +9,12 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class TwitterConfig
 {
-    [Value("${twitter.interval}")] public required int Interval { get; set; }
+    [Value("${twitter:interval}")] public int Interval { get; set; }
 
-    [Value("${twitter.bearerToken}", IgnoreUnresolvablePlaceholders = true)]
+    [Value("${twitter:bearerToken}", IgnoreUnresolvablePlaceholders = true)]
     public string? BearerToken { get; set; }
 
-    [Value("${twitter.x-csrf-token}")] public string? XCsrfToken { get; set; }
+    [Value("${twitter:x-csrf-token}")] public string? XCsrfToken { get; set; }
 
-    [Value("${twitter.cookie}")] public string? Cookie { get; set; }
+    [Value("${twitter:cookie}")] public string? Cookie { get; set; }
 }

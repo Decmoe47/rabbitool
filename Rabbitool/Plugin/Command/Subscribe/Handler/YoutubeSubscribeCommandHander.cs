@@ -2,7 +2,6 @@
 using Autofac.Annotation.Condition;
 using CodeHollow.FeedReader;
 using Flurl.Http;
-using Rabbitool.Api;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
 using Serilog;
@@ -10,15 +9,14 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
 [ConditionalOnProperty("youtube")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class YoutubeSubscribeCommandHandler(
-    QQBotApi qbSvc,
     SubscribeDbContext dbCtx,
     QQChannelSubscribeRepository qsRepo,
     YoutubeSubscribeRepository repo,
     YoutubeSubscribeConfigRepository configRepo)
     : AbstractSubscribeCommandHandler<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity, YoutubeSubscribeRepository,
-        YoutubeSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
+        YoutubeSubscribeConfigRepository>(dbCtx, qsRepo, repo, configRepo)
 {
     public override async Task<(string name, string? errMsg)> CheckId(string channelId, CancellationToken ct = default)
     {

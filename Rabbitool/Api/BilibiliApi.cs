@@ -11,7 +11,7 @@ using Serilog;
 
 namespace Rabbitool.Api;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class BilibiliApi(CommonConfig commonConfig)
 {
     private readonly CookieJar _jar = new();

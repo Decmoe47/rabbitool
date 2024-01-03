@@ -1,7 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Autofac.Annotation;
 using Autofac.Annotation.Condition;
-using Rabbitool.Api;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
@@ -11,15 +10,14 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
 [ConditionalOnProperty("mail")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public partial class MailSubscribeCommandHandler(
-    QQBotApi qbSvc,
     SubscribeDbContext dbCtx,
     QQChannelSubscribeRepository qsRepo,
     MailSubscribeRepository repo,
     MailSubscribeConfigRepository configRepo)
     : AbstractSubscribeCommandHandler<MailSubscribeEntity, MailSubscribeConfigEntity, MailSubscribeRepository,
-        MailSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
+        MailSubscribeConfigRepository>(dbCtx, qsRepo, repo, configRepo)
 {
     public override Task<(string name, string? errMsg)> CheckId(string address, CancellationToken ct = default)
     {

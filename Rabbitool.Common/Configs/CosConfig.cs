@@ -7,11 +7,11 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class CosConfig
 {
-    [Value("${cos.secretId}")] public required string SecretId { get; init; }
+    [Value("${cos:secretId}")] public string SecretId { get; init; } = null!;
 
-    [Value("${cos.secretKey}")] public required string SecretKey { get; init; }
+    [Value("${cos:secretKey}")] public string SecretKey { get; init; } = null!;
 
-    [Value("${cos.bucketName}")] public required string BucketName { get; init; }
+    [Value("${cos:bucketName}")] public string BucketName { get; init; } = null!;
 
-    [Value("${cos.region}")] public required string Region { get; init; }
+    [Value("${cos:region}")] public string Region { get; init; } = null!;
 }

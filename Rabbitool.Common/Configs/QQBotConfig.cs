@@ -7,16 +7,16 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class QQBotConfig
 {
-    [Value("${qqBot.botQQ}")] public required string BotQQ { get; set; }
+    [Value("${qqBot:botQQ}")] public string BotQQ { get; set; } = null!;
 
-    [Value("${qqBot.appId}")] public required string AppId { get; set; }
+    [Value("${qqBot:appId}")] public string AppId { get; set; } = null!;
 
-    [Value("${qqBot.token}")] public required string Token { get; set; }
+    [Value("${qqBot:token}")] public string Token { get; set; } = null!;
 
-    [Value("${qqBot.secret}")] public required string Secret { get; set; }
+    [Value("${qqBot:secret}")] public string Secret { get; set; } = null!;
 
-    [Value("${qqBot.sandboxGuildName}")] public required string SandboxGuildName { get; set; }
+    [Value("${qqBot:sandboxGuildName}")] public string SandboxGuildName { get; set; } = null!;
 
-    [Value("MarkdownTemplateIds", UseSpel = false, IgnoreUnresolvablePlaceholders = true)]
+    [Value("${qqBot:markdownTemplateIds}", IgnoreUnresolvablePlaceholders = true)]
     public MarkdownTemplateIdsConfig? MarkdownTemplateIds { get; set; }
 }

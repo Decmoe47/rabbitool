@@ -10,25 +10,25 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class NotifierConfig
 {
-    [Value("${notifier.host")] public required string Host { get; set; }
+    [Value("${notifier:host")] public string Host { get; set; } = null!;
 
-    [Value("${notifier.port}")] public int Port { get; set; }
+    [Value("${notifier:port}")] public int Port { get; set; }
 
-    [Value("$notifier.ssl")] public bool Ssl { get; set; }
+    [Value("$notifier:ssl")] public bool Ssl { get; set; }
 
-    [Value("${notifier.username}")] public required string UserName { get; set; }
+    [Value("${notifier:username}")] public string UserName { get; set; } = null!;
 
-    [Value("${notifier.password}")] public required string Password { get; set; }
+    [Value("${notifier:password}")] public string Password { get; set; } = null!;
 
-    [Value("${notifier.from}")] public required string From { get; set; }
+    [Value("${notifier:from}")] public string From { get; set; } = null!;
 
-    [Value("${notifier.to}")] public required string[] To { get; set; }
+    [Value("${notifier:to}")] public string[] To { get; set; } = null!;
 
-    [Value("${notifier.interval}")] public int Interval { get; set; }
+    [Value("${notifier:interval}")] public int Interval { get; set; }
 
-    [Value("${notifier.allowedAmount}")] public int AllowedAmount { get; set; }
+    [Value("${notifier:allowedAmount}")] public int AllowedAmount { get; set; }
 
-    [Value("${notifier.timeout}")] public int Timeout { get; set; }
+    [Value("${notifier:timeout}")] public int Timeout { get; set; }
 
     public NotifierOptions ToOptions()
     {

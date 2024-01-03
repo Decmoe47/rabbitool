@@ -9,5 +9,5 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class MailConfig
 {
-    [Value("${mail.interval}")] public int Interval { get; set; }
+    [Value("${mail:interval}")] public int Interval { get; set; }
 }

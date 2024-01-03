@@ -13,7 +13,7 @@ using Serilog;
 namespace Rabbitool.Api;
 
 [ConditionalOnProperty("twitter")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class TwitterApi(TwitterConfig twitterConfig)
 {
     private readonly RateLimiter _tweetApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions

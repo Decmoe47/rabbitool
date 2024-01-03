@@ -10,16 +10,15 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class BilibiliSubscribeCommandHandler(
-    QQBotApi qbSvc,
     SubscribeDbContext dbCtx,
     QQChannelSubscribeRepository qsRepo,
     BilibiliSubscribeRepository repo,
     BilibiliSubscribeConfigRepository configRepo,
     CommonConfig commonConfig)
     : AbstractSubscribeCommandHandler<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity,
-        BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
+        BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>(dbCtx, qsRepo, repo, configRepo)
 {
     private CookieJar? _jar;
 

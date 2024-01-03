@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class Commands(SubscribeCommands subscribeCommands)
 {
     public async Task<string> GenerateReplyMsgAsync(Message msg, CancellationToken ct = default)

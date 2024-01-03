@@ -1,4 +1,5 @@
 ﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Coravel.Invocable;
 using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.MessageModels;
@@ -14,17 +15,19 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class BilibiliPlugin(
     QQBotApi qqBotApi,
     CosApi cosApi,
     BilibiliApi bilibiliApi,
     BilibiliSubscribeRepository repo,
     BilibiliSubscribeConfigRepository configRepo,
-    MarkdownTemplateIdsConfig templateIds,
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
+    [Autowired(Required = false)] 
+    private MarkdownTemplateIdsConfig? _templateIds = null;
+    
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
     private int _waitTime;
 
@@ -423,8 +426,8 @@ public class BilibiliPlugin(
             new MessageMarkdown
             {
                 CustomTemplateId = dy.ImageUrls != null && dy.ImageUrls.Count != 0
-                    ? templateIds.WithImage
-                    : templateIds.TextOnly,
+                    ? _templateIds!.WithImage
+                    : _templateIds!.TextOnly,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             otherImgs
@@ -446,7 +449,7 @@ public class BilibiliPlugin(
         return (
             new MessageMarkdown
             {
-                CustomTemplateId = templateIds.WithImage,
+                CustomTemplateId = _templateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -466,7 +469,7 @@ public class BilibiliPlugin(
         return (
             new MessageMarkdown
             {
-                CustomTemplateId = templateIds.WithImage,
+                CustomTemplateId = _templateIds!.WithImage,
                 Params = templateParams.ToMessageMarkdownParams()
             },
             null
@@ -489,14 +492,14 @@ public class BilibiliPlugin(
         switch (dy.Origin)
         {
             case string:
-                templateId = templateIds.TextOnly;
+                templateId = _templateIds!.TextOnly;
                 templateParams.Text += "\n（原动态已被删除）";
                 break;
 
             case CommonDynamic cOrigin:
                 templateId = cOrigin.ImageUrls is { Count: > 0 }
-                    ? templateIds.ContainsOriginWithImage
-                    : templateIds.ContainsOriginTextOnly;
+                    ? _templateIds!.ContainsOriginWithImage
+                    : _templateIds!.ContainsOriginTextOnly;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "动态",
@@ -518,7 +521,7 @@ public class BilibiliPlugin(
                 break;
 
             case VideoDynamic vOrigin:
-                templateId = templateIds.ContainsOriginWithImage;
+                templateId = _templateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "视频",
@@ -532,7 +535,7 @@ public class BilibiliPlugin(
                 break;
 
             case ArticleDynamic aOrigin:
-                templateId = templateIds.ContainsOriginWithImage;
+                templateId = _templateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "",
@@ -544,7 +547,7 @@ public class BilibiliPlugin(
                 break;
 
             case LiveCardDynamic lOrigin:
-                templateId = templateIds.ContainsOriginWithImage;
+                templateId = _templateIds!.ContainsOriginWithImage;
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "直播",
@@ -694,7 +697,7 @@ public class BilibiliPlugin(
         };
         return new MessageMarkdown
         {
-            CustomTemplateId = templateIds.WithImage,
+            CustomTemplateId = _templateIds!.WithImage,
             Params = templateParams.ToMessageMarkdownParams()
         };
     }

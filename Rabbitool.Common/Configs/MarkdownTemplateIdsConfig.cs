@@ -4,20 +4,20 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("qqBot.markdownTemplateIds")]
+[ConditionalOnProperty("qqBot:markdownTemplateIds")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class MarkdownTemplateIdsConfig
 {
-    [Value("${qqBot.markdownTemplateIds.textOnly}")]
-    public required string TextOnly { get; set; }
+    [Value("${qqBot:markdownTemplateIds:textOnly}")]
+    public string TextOnly { get; set; } = null!;
 
-    [Value("${qqBot.markdownTemplateIds.withImage}")]
-    public required string WithImage { get; set; }
+    [Value("${qqBot:markdownTemplateIds:withImage}")]
+    public string WithImage { get; set; } = null!;
 
-    [Value("${qqBot.markdownTemplateIds.containsOriginTextOnly}")]
-    public required string ContainsOriginTextOnly { get; set; }
+    [Value("${qqBot:markdownTemplateIds:containsOriginTextOnly}")]
+    public string ContainsOriginTextOnly { get; set; } = null!;
 
-    [Value("${qqBot.markdownTemplateIds.containsOriginWithImage}")]
-    public required string ContainsOriginWithImage { get; set; }
+    [Value("${qqBot:markdownTemplateIds:containsOriginWithImage}")]
+    public string ContainsOriginWithImage { get; set; } = null!;
 }

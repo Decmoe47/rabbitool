@@ -19,7 +19,7 @@ using Serilog;
 
 namespace Rabbitool.Api;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public partial class QQBotApi
 {
     private readonly CommonConfig _commonConfig;

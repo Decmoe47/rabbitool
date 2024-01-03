@@ -1,18 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class TwitterSubscribeRepository
-    : BaseRepository<TwitterSubscribeEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class TwitterSubscribeRepository(SubscribeDbContext ctx)
+    : BaseRepository<TwitterSubscribeEntity, SubscribeDbContext>(ctx),
         ISubscribeRepository<TwitterSubscribeEntity>
 {
-    public TwitterSubscribeRepository(SubscribeDbContext ctx) : base(ctx)
-    {
-    }
-
     public async Task<List<TwitterSubscribeEntity>> GetAllAsync(bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
@@ -74,14 +72,11 @@ public class TwitterSubscribeRepository
     }
 }
 
-public class TwitterSubscribeConfigRepository
-    : BaseRepository<TwitterSubscribeConfigEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class TwitterSubscribeConfigRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<TwitterSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<TwitterSubscribeEntity, TwitterSubscribeConfigEntity>
 {
-    public TwitterSubscribeConfigRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public async Task<List<TwitterSubscribeConfigEntity>> GetAllAsync(
         string screenName, bool tracking = false, CancellationToken ct = default)
     {

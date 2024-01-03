@@ -9,7 +9,7 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class ProxyConfig
 {
-    [Value("${proxy.http}")] public required string Http { get; set; }
+    [Value("${proxy:http}")] public string Http { get; set; } = null!;
 
-    [Value("${proxy.https}")] public required string Https { get; set; }
+    [Value("${proxy:https}")] public string Https { get; set; } = null!;
 }

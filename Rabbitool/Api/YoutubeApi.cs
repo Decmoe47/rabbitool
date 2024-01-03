@@ -11,7 +11,7 @@ using Rabbitool.Model.DTO.Youtube;
 namespace Rabbitool.Api;
 
 [ConditionalOnProperty("youtube")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class YoutubeApi(YoutubeConfig youtubeConfig)
 {
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions

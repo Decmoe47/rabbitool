@@ -1,17 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class YoutubeSubscribeRepository
-    : BaseRepository<YoutubeSubscribeEntity, SubscribeDbContext>, ISubscribeRepository<YoutubeSubscribeEntity>
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class YoutubeSubscribeRepository(SubscribeDbContext ctx)
+    : BaseRepository<YoutubeSubscribeEntity, SubscribeDbContext>(ctx), ISubscribeRepository<YoutubeSubscribeEntity>
 {
-    public YoutubeSubscribeRepository(SubscribeDbContext ctx) : base(ctx)
-    {
-    }
-
     public async Task<List<YoutubeSubscribeEntity>> GetAllAsync(bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch
@@ -72,14 +70,11 @@ public class YoutubeSubscribeRepository
     }
 }
 
-public class YoutubeSubscribeConfigRepository
-    : BaseRepository<YoutubeSubscribeConfigEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+public class YoutubeSubscribeConfigRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<YoutubeSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity>
 {
-    public YoutubeSubscribeConfigRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public async Task<List<YoutubeSubscribeConfigEntity>> GetAllAsync(
         string channelId, bool tracking = false, CancellationToken ct = default)
     {

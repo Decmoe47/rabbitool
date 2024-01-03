@@ -18,7 +18,7 @@ using Mail = Rabbitool.Model.DTO.Mail.Mail;
 namespace Rabbitool.Plugin;
 
 [ConditionalOnProperty("mail")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
 {
     private readonly List<MailApi> _apis = [];

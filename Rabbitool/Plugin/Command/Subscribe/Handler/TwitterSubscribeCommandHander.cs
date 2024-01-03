@@ -2,7 +2,6 @@
 using Autofac.Annotation.Condition;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
-using Rabbitool.Api;
 using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
@@ -11,16 +10,15 @@ using Serilog;
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
 [ConditionalOnProperty("twitter")]
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class TwitterSubscribeCommandHandler(
-    QQBotApi qbSvc,
     SubscribeDbContext dbCtx,
     QQChannelSubscribeRepository qsRepo,
     TwitterSubscribeRepository repo,
     TwitterSubscribeConfigRepository configRepo,
     TwitterConfig twitterConfig)
     : AbstractSubscribeCommandHandler<TwitterSubscribeEntity, TwitterSubscribeConfigEntity, TwitterSubscribeRepository,
-        TwitterSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
+        TwitterSubscribeConfigRepository>(dbCtx, qsRepo, repo, configRepo)
 {
     public override async Task<(string name, string? errMsg)> CheckId(string screenName, CancellationToken ct = default)
     {

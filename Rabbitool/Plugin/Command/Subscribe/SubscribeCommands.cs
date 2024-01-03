@@ -12,7 +12,7 @@ using MyCommandInfo = Rabbitool.Model.DTO.Command.CommandInfo;
 
 namespace Rabbitool.Plugin.Command.Subscribe;
 
-[Component(AutofacScope = AutofacScope.SingleInstance)]
+[Component]
 public class SubscribeCommands(
     QQBotApi qqBotApi,
     IServiceProvider serviceProvider,

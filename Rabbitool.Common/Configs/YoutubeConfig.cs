@@ -9,7 +9,7 @@ namespace Rabbitool.Common.Configs;
 [Component]
 public class YoutubeConfig
 {
-    [Value("${youtube.interval}")] public required int Interval { get; set; }
+    [Value("${youtube:interval}")] public int Interval { get; set; }
 
-    [Value("${youtube.apiKey}")] public required string ApiKey { get; set; }
+    [Value("${youtube:apiKey}")] public string ApiKey { get; set; } = null!;
 }
