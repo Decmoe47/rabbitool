@@ -22,8 +22,8 @@ public class CosFileUploadException : Exception
 
 public class BilibiliApiException : Exception
 {
-    public readonly int Code;
     public readonly JObject Body;
+    public readonly int Code;
 
     public BilibiliApiException(string message, int code, JObject body)
         : base($"{message}\nCode: {code}\nBody: {body}")

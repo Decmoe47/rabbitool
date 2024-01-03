@@ -17,6 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Autofac.Annotation" Version="4.4.2"/>
         <PackageReference Include="MailKit" Version="4.3.0"/>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
         <PackageReference Include="Serilog" Version="3.1.1"/>
@@ -25,10 +26,10 @@
         <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
         <PackageReference Include="SkiaSharp" Version="2.88.6"/>
         <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.6"/>
-        <PackageReference Include="YamlDotNet" Version="13.7.1"/>
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="Constant\Enum\"/>
         <Folder Include="Properties\"/>
     </ItemGroup>
 

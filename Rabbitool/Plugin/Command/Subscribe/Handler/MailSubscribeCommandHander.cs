@@ -1,31 +1,31 @@
 ﻿using System.Text.RegularExpressions;
+using Autofac.Annotation;
+using Autofac.Annotation.Condition;
+using Rabbitool.Api;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-public class MailSubscribeCommandHandler
+[ConditionalOnProperty("mail")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public partial class MailSubscribeCommandHandler(
+    QQBotApi qbSvc,
+    SubscribeDbContext dbCtx,
+    QQChannelSubscribeRepository qsRepo,
+    MailSubscribeRepository repo,
+    MailSubscribeConfigRepository configRepo)
     : AbstractSubscribeCommandHandler<MailSubscribeEntity, MailSubscribeConfigEntity, MailSubscribeRepository,
-        MailSubscribeConfigRepository>
+        MailSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
 {
-    public MailSubscribeCommandHandler(
-        QQBotService qbSvc,
-        SubscribeDbContext dbCtx,
-        QQChannelSubscribeRepository qsRepo,
-        MailSubscribeRepository repo,
-        MailSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
+    public override Task<(string name, string? errMsg)> CheckId(string address, CancellationToken ct = default)
     {
-    }
-
-    public override async Task<(string name, string? errMsg)> CheckId(string address, CancellationToken ct = default)
-    {
-        return Regex.IsMatch(address, @"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$")
+        return Task.FromResult(MyRegex1().IsMatch(address)
             ? (address, null)
-            : ("", "错误：不合法的邮箱地址！");
+            : ("", "错误：不合法的邮箱地址！"));
     }
 
     public override async Task<string> Add(SubscribeCommand cmd, CancellationToken ct = default)
@@ -48,7 +48,7 @@ public class MailSubscribeCommandHandler
 
         bool flag = true;
 
-        MailSubscribeEntity? record = await _repo.GetOrDefaultAsync(address, ct: ct);
+        MailSubscribeEntity? record = await repo.GetOrDefaultAsync(address, ct: ct);
         if (record == null)
         {
             cmd.Configs.TryGetValue("mailbox", out string? mailbox);
@@ -62,7 +62,7 @@ public class MailSubscribeCommandHandler
                 mailbox ?? "INBOX",
                 ssl ?? false
             );
-            await _repo.AddAsync(record, ct);
+            await repo.AddAsync(record, ct);
 
             flag = false;
         }
@@ -71,16 +71,16 @@ public class MailSubscribeCommandHandler
             flag = false;
         }
 
-        (QQChannelSubscribeEntity channel, bool added) = await _qsRepo.AddSubscribeAsync(
+        (QQChannelSubscribeEntity channel, bool added) = await qsRepo.AddSubscribeAsync(
             cmd.QQChannel.GuildId,
             cmd.QQChannel.GuildName,
             cmd.QQChannel.Id,
             cmd.QQChannel.Name,
             record,
             ct);
-        await _configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
+        await configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
 
-        await _dbCtx.SaveChangesAsync(ct);
+        await dbCtx.SaveChangesAsync(ct);
 
         if (added && !flag)
         {
@@ -99,15 +99,15 @@ public class MailSubscribeCommandHandler
 
         try
         {
-            MailSubscribeEntity subscribe = await _repo.GetAsync(cmd.SubscribeId, true, ct);
-            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
+            MailSubscribeEntity subscribe = await repo.GetAsync(cmd.SubscribeId, true, ct);
+            QQChannelSubscribeEntity record = await qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
             if (record.SubscribesAreAllEmpty())
-                _qsRepo.Delete(record);
+                qsRepo.Delete(record);
 
-            await _repo.DeleteAsync(cmd.SubscribeId, ct);
-            await _configRepo.DeleteAsync(cmd.QQChannel.Id, cmd.SubscribeId, ct);
+            await repo.DeleteAsync(cmd.SubscribeId, ct);
+            await configRepo.DeleteAsync(cmd.QQChannel.Id, cmd.SubscribeId, ct);
 
-            await _dbCtx.SaveChangesAsync(ct);
+            await dbCtx.SaveChangesAsync(ct);
         }
         catch (InvalidOperationException iex)
         {
@@ -125,4 +125,7 @@ public class MailSubscribeCommandHandler
 
         return $"成功：已删除在 {cmd.QQChannel.Name} 子频道中的此订阅！";
     }
+
+    [GeneratedRegex(@"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$")]
+    private static partial Regex MyRegex1();
 }

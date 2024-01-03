@@ -6,9 +6,9 @@ public interface ISubscribeEntity : IEntity
     List<QQChannelSubscribeEntity> QQChannels { get; set; }
 
     /// <summary>
-    /// 此id是指用户的唯一id，不是指数据库主键
+    ///     此id是指用户的唯一id，不是指数据库主键
     /// </summary>
-    /// <returns></returns> 
+    /// <returns></returns>
     string GetId();
 
     string GetInfo(string separator);

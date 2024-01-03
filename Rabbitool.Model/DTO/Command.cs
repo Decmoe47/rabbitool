@@ -35,5 +35,5 @@ public class CommandInfo
     public required string Name { get; set; }
     public required string[] Format { get; set; }
     public required string Example { get; set; }
-    public required Func<List<string>, Message, CancellationToken, Task<string>> Responder { get; set; }
+    public required Func<List<string>, Message, Task<string>> Responder { get; set; }
 }

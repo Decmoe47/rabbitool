@@ -1,26 +1,32 @@
 ﻿using System.Text.RegularExpressions;
-using Coravel;
+using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Coravel.Invocable;
+using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.Forum;
 using Newtonsoft.Json;
+using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Event;
-using Rabbitool.Model.DTO.Mail;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 using Mail = Rabbitool.Model.DTO.Mail.Mail;
 
 namespace Rabbitool.Plugin;
 
-public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
+[ConditionalOnProperty("mail")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
 {
+    private readonly List<MailApi> _apis = [];
+    private readonly CommonConfig _commonConfig;
     private readonly MailSubscribeConfigRepository _configRepo;
+    private readonly ICancellationTokenProvider _ctp;
+    private readonly QQBotApi _qqBotApi;
     private readonly MailSubscribeRepository _repo;
-    private readonly List<MailService> _services = new();
-
     private readonly Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
 
     /// <summary>
@@ -28,11 +34,14 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
     ///     和<see cref="MailSubscribeEvent.DeleteMailSubscribeEvent" />
     ///     和<see cref="Console.CancelKeyPress" />事件。
     /// </summary>
-    public MailPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
+    public MailPlugin(QQBotApi qqBotApi, MailSubscribeConfigRepository configRepo, MailSubscribeRepository repo,
+        ICancellationTokenProvider ctp, CommonConfig commonConfig)
     {
-        SubscribeDbContext dbCtx = new();
-        _repo = new MailSubscribeRepository(dbCtx);
-        _configRepo = new MailSubscribeConfigRepository(dbCtx);
+        _qqBotApi = qqBotApi;
+        _configRepo = configRepo;
+        _repo = repo;
+        _ctp = ctp;
+        _commonConfig = commonConfig;
 
         MailSubscribeEvent.AddMailSubscribeEvent += HandleMailSubscribeAddedEvent;
         MailSubscribeEvent.DeleteMailSubscribeEvent += HandleMailSubscribeDeletedEventAsync;
@@ -41,50 +50,59 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
     public CancellationToken CancellationToken { get; set; }
 
-    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    public string Name => "mail";
+
+
+    public Task InitAsync()
     {
-        services.UseScheduler(scheduler =>
-                scheduler
-                    .ScheduleAsync(async () => await CheckAllAsync(ct))
-                    .EverySeconds(5)
-                    .PreventOverlapping("MailPlugin"))
-            .OnError(ex => Log.Error(ex, "[Mail] {msg}", ex.Message));
+        return Task.CompletedTask;
     }
 
-    public async Task CheckAllAsync(CancellationToken ct = default)
+    public Action<IScheduler> GetScheduler()
+    {
+        return scheduler =>
+        {
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync())
+                .EverySeconds(5)
+                .PreventOverlapping("MailPlugin");
+        };
+    }
+
+    private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)
             return;
 
-        List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
+        List<MailSubscribeEntity> records = await _repo.GetAllAsync(true, _ctp.Token);
         if (records.Count == 0)
         {
             Log.Verbose("[Mail] There isn't any mail subscribe yet!");
             return;
         }
 
-        List<Task> tasks = new();
+        List<Task> tasks = [];
         foreach (MailSubscribeEntity record in records)
         {
-            MailService? svc = _services.FirstOrDefault(s => s.Username == record.Address);
-            if (svc == null)
+            MailApi? api = _apis.FirstOrDefault(s => s.Username == record.Address);
+            if (api == null)
             {
-                svc = new MailService(
+                api = new MailApi(
                     record.Host, record.Port, record.Ssl, record.Username, record.Password, record.Mailbox);
-                _services.Add(svc);
+                _apis.Add(api);
             }
 
-            tasks.Add(CheckAsync(svc, record, ct));
+            tasks.Add(CheckAsync(api, record));
         }
 
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(MailService svc, MailSubscribeEntity record, CancellationToken ct = default)
+    private async Task CheckAsync(MailApi svc, MailSubscribeEntity record)
     {
         try
         {
-            Mail mail = await svc.GetLatestMailAsync(ct);
+            Mail mail = await svc.GetLatestMailAsync(_ctp.Token);
             if (mail.Time <= record.LastMailTime)
             {
                 Log.Debug("[Mail] No new mail from the mail user {username}", record.Username);
@@ -93,10 +111,10 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
             async Task FnAsync(Mail mail)
             {
-                await PushMessageAsync(mail, record, ct);
+                await PushMessageAsync(mail, record);
 
                 record.LastMailTime = mail.Time;
-                await _repo.SaveAsync(ct);
+                await _repo.SaveAsync(_ctp.Token);
                 Log.Debug("[Mail] Succeeded to updated the mail user {username}'s record.", record.Username);
             }
 
@@ -138,14 +156,14 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
     }
 
-    private async Task PushMessageAsync(Mail mail, MailSubscribeEntity record, CancellationToken ct = default)
+    private async Task PushMessageAsync(Mail mail, MailSubscribeEntity record)
     {
         (string title, string text, string detailText) = MailToStr(mail);
 
-        List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Address, ct: ct);
+        List<MailSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(record.Address, ct: _ctp.Token);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await _qqBotApi.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("[Mail] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -156,54 +174,42 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
             if (config.PushToThread)
             {
                 RichText richText = config.Detail
-                    ? QQBotService.TextToRichText(detailText)
-                    : QQBotService.TextToRichText(text);
-                await QbSvc.PostThreadAsync(
-                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
+                    ? QQBotApi.TextToRichText(detailText)
+                    : QQBotApi.TextToRichText(text);
+                await _qqBotApi.PostThreadAsync(
+                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), _ctp.Token);
                 Log.Information("[Mail] Succeeded to push the mail message from the user {username}).",
                     record.Username);
                 continue;
             }
 
             if (config.Detail)
-                await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}",
-                    ct: ct);
+                await _qqBotApi.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{detailText}",
+                    ct: _ctp.Token);
             else
-                await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", ct: ct);
+                await _qqBotApi.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}",
+                    ct: _ctp.Token);
             Log.Information("[Mail] Succeeded to push the mail message from the user {username}).", record.Username);
         }
     }
 
     private (string title, string text, string detailText) MailToStr(Mail mail)
     {
-        string from = "";
-        string to = "";
-        foreach (AddressInfo item in mail.From)
-            from += $"{item.Address} ";
-        foreach (AddressInfo item in mail.To)
-            to += $"{item.Address} ";
-
+        string from = mail.From.Aggregate("", (current, item) => current + $"{item.Address} ");
+        string to = mail.To.Aggregate("", (current, item) => current + $"{item.Address} ");
         string title = "【新邮件】来自 " + from;
+        string text = mail.Text.AddRedirectToUrls(_commonConfig.RedirectUrl);
 
-        string text = mail.Text.AddRedirectToUrls();
-
-        text = Regex.Replace(
-            text,
-            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            match => match.ToString().Replace(".", "*"));
+        text = MyRegex().Replace(text, match => match.ToString().Replace(".", "*"));
 
         string detailText = $"""
                              Subject: {mail.Subject}
                              To: {to}
                              Time: {mail.Time:yyyy-M-d H:mm}
                              ——————————
-                             {mail.Text.AddRedirectToUrls()}
+                             {mail.Text.AddRedirectToUrls(_commonConfig.RedirectUrl)}
                              """;
-
-        detailText = Regex.Replace(
-            detailText,
-            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            match => match.ToString().Replace(".", "*"));
+        detailText = MyRegex().Replace(detailText, match => match.ToString().Replace(".", "*"));
 
         return (title, text, detailText);
     }
@@ -211,32 +217,35 @@ public class MailPlugin : BasePlugin, IPlugin, ICancellableInvocable
     private void HandleMailSubscribeAddedEvent(
         string host, int port, bool usingSsl, string address, string password, string mailbox)
     {
-        if (_services.FindIndex(s => s.Username == address) == -1)
-            _services.Add(new MailService(host, port, usingSsl, address, password, mailbox));
+        if (_apis.FindIndex(s => s.Username == address) == -1)
+            _apis.Add(new MailApi(host, port, usingSsl, address, password, mailbox));
     }
 
     private async Task HandleMailSubscribeDeletedEventAsync(string address, CancellationToken ct)
     {
-        MailService? svc = _services.FirstOrDefault(s => s.Username == address);
-        if (svc != null)
+        MailApi? api = _apis.FirstOrDefault(s => s.Username == address);
+        if (api != null)
             try
             {
-                await svc.DisconnectAsync(ct);
+                await api.DisconnectAsync(ct);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[Mail] Failed to disconnect the mail client!\nUsername: {username}", svc.Username);
+                Log.Error(ex, "[Mail] Failed to disconnect the mail client!\nUsername: {username}", api.Username);
             }
             finally
             {
-                svc.Dispose();
-                _services.Remove(svc);
+                api.Dispose();
+                _apis.Remove(api);
             }
     }
 
     private void DisposeAllServices(object? sender, EventArgs e)
     {
-        foreach (MailService svc in _services)
+        foreach (MailApi svc in _apis)
             svc.Dispose();
     }
+
+    [GeneratedRegex(@"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+")]
+    private static partial Regex MyRegex();
 }

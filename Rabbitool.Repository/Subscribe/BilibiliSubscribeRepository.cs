@@ -1,18 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class BilibiliSubscribeRepository
-    : BaseRepository<BilibiliSubscribeEntity, SubscribeDbContext>,
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class BilibiliSubscribeRepository(SubscribeDbContext dbCtx)
+    : BaseRepository<BilibiliSubscribeEntity, SubscribeDbContext>(dbCtx),
         ISubscribeRepository<BilibiliSubscribeEntity>
 {
-    public BilibiliSubscribeRepository(SubscribeDbContext dbCtx) : base(dbCtx)
-    {
-    }
-
     public async Task<List<BilibiliSubscribeEntity>> GetAllAsync(bool tracking = false, CancellationToken ct = default)
     {
         return tracking switch

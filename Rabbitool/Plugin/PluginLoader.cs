@@ -1,37 +1,27 @@
 ﻿using Coravel;
-using Microsoft.Extensions.Hosting;
-using Rabbitool.Plugin.Command.Subscribe;
-using Rabbitool.Service;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class PluginLoader
+public static class PluginLoader
 {
-    private readonly IHost _host;
-    private readonly List<IPlugin> _plugins = new();
-
-    public PluginLoader(QQBotService qbSvc)
+    public static async Task RunAllPluginsAsync(IServiceProvider serviceProvider)
     {
-        SubscribeCommandResponder.Init(qbSvc);
-        _host = Host.CreateDefaultBuilder().ConfigureServices(services => services.AddScheduler()).Build();
-    }
-
-    public void Load(IPlugin plugin)
-    {
-        _plugins.Add(plugin);
-    }
-
-    public async Task RunAsync(CancellationTokenSource cts)
-    {
-        Console.CancelKeyPress += (sender, e) => cts.Cancel();
-
-        foreach (IPlugin plugin in _plugins)
+        foreach (IPlugin plugin in serviceProvider.GetServices<IPlugin>())
         {
-            await plugin.InitAsync(_host.Services, cts.Token);
-            if (plugin is IRunnablePlugin p)
-                await p.RunAsync(cts.Token);
+            await plugin.InitAsync();
+            switch (plugin)
+            {
+                case IScheduledPlugin scheduledPlugin:
+                    serviceProvider.UseScheduler(scheduledPlugin.GetScheduler())
+                        .OnError(ex =>
+                            Log.Error(ex, "[" + plugin.Name + "] {msg}", ex.Message));
+                    break;
+                case IRunnablePlugin runnablePlugin:
+                    await runnablePlugin.RunAsync();
+                    break;
+            }
         }
-
-        await _host.RunAsync(cts.Token);
     }
 }

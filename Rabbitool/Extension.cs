@@ -1,15 +1,14 @@
 ﻿using System.Text.RegularExpressions;
-using Rabbitool.Common.Configs;
 
 namespace Rabbitool;
 
 public static partial class Extension
 {
-    public static string AddRedirectToUrls(this string text)
+    public static string AddRedirectToUrls(this string text, string redirectUrl)
     {
         text = text == ""
             ? "（无文本）"
-            : UrlRegex().Replace(text, m => Settings.R.RedirectUrl + m.Value);
+            : UrlRegex().Replace(text, m => redirectUrl + m.Value);
 
         return text;
     }

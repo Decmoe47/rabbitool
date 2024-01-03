@@ -1,11 +1,20 @@
-﻿namespace Rabbitool.Plugin;
+﻿using Coravel.Scheduling.Schedule.Interfaces;
+
+namespace Rabbitool.Plugin;
 
 public interface IPlugin
 {
-    Task InitAsync(IServiceProvider services, CancellationToken ct = default);
+    string Name { get; }
+
+    Task InitAsync();
+}
+
+public interface IScheduledPlugin : IPlugin
+{
+    Action<IScheduler> GetScheduler();
 }
 
 public interface IRunnablePlugin : IPlugin
 {
-    Task RunAsync(CancellationToken ct = default);
+    Task RunAsync();
 }

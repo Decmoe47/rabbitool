@@ -1,71 +1,76 @@
-﻿using Coravel;
+﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Coravel.Invocable;
+using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.Forum;
 using MyBot.Models.MessageModels;
 using Newtonsoft.Json;
+using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.QQBot;
 using Rabbitool.Model.DTO.Twitter;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
+[ConditionalOnProperty("twitter")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class TwitterPlugin(
+    QQBotApi qqBotApi,
+    CosApi cosApi,
+    TwitterApi twitterApi,
+    TwitterSubscribeRepository repo,
+    TwitterSubscribeConfigRepository configRepo,
+    MarkdownTemplateIdsConfig templateIds,
+    CommonConfig commonConfig,
+    ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    private readonly TwitterSubscribeConfigRepository _configRepo;
-    private readonly TwitterSubscribeRepository _repo;
-
     private readonly Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
-    private readonly TwitterService _svc;
-
-    public TwitterPlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
-    {
-        _svc = new TwitterService();
-
-        SubscribeDbContext dbCtx = new();
-        _repo = new TwitterSubscribeRepository(dbCtx);
-        _configRepo = new TwitterSubscribeConfigRepository(dbCtx);
-    }
-
     public CancellationToken CancellationToken { get; set; }
+    public string Name => "twitter";
 
-    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    public Task InitAsync()
     {
-        services.UseScheduler(scheduler =>
-                scheduler
-                    .ScheduleAsync(async () => await CheckAllAsync(ct))
-                    .EverySeconds(5)
-                    .PreventOverlapping("TwitterPlugin"))
-            .OnError(ex => Log.Error(ex, "[Twitter] {msg}", ex.Message));
+        return Task.CompletedTask;
     }
 
-    public async Task CheckAllAsync(CancellationToken ct = default)
+    public Action<IScheduler> GetScheduler()
+    {
+        return scheduler =>
+        {
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync())
+                .EverySeconds(5)
+                .PreventOverlapping("TwitterPlugin");
+        };
+    }
+
+    private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)
             return;
 
-        List<TwitterSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
+        List<TwitterSubscribeEntity> records = await repo.GetAllAsync(true, ctp.Token);
         if (records.Count == 0)
         {
             Log.Verbose("[Twitter] There isn't any twitter subscribe yet!");
             return;
         }
 
-        List<Task> tasks = new();
-        foreach (TwitterSubscribeEntity record in records)
-            tasks.Add(CheckAsync(record, ct));
+        List<Task> tasks = [];
+        tasks.AddRange(records.Select(CheckAsync));
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(TwitterSubscribeEntity record, CancellationToken ct = default)
+    private async Task CheckAsync(TwitterSubscribeEntity record)
     {
         try
         {
-            Tweet tweet = await _svc.GetLatestTweetAsync(record.ScreenName, ct);
+            Tweet tweet = await twitterApi.GetLatestTweetAsync(record.ScreenName, ctp.Token);
             if (tweet.PubTime <= record.LastTweetTime)
             {
                 Log.Debug("[Twitter] No new tweet from the twitter user {name}(screenName: {screenName}).",
@@ -75,11 +80,11 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
             async Task FnAsync(Tweet tweet)
             {
-                await PushTweetAsync(tweet, record, ct);
+                await PushTweetAsync(tweet, record);
 
                 record.LastTweetTime = tweet.PubTime;
                 record.LastTweetId = tweet.Id;
-                await _repo.SaveAsync(ct);
+                await repo.SaveAsync(ctp.Token);
                 Log.Debug("[Twitter] Succeeded to updated the twitter user {name}(screenName: {screenName})'s record.",
                     tweet.Author, tweet.AuthorScreenName);
             }
@@ -124,16 +129,16 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
     }
 
-    private async Task PushTweetAsync(Tweet tweet, TwitterSubscribeEntity subscribe, CancellationToken ct = default)
+    private async Task PushTweetAsync(Tweet tweet, TwitterSubscribeEntity subscribe)
     {
-        (string title, string text) = await TweetToStrAsync(tweet, ct);
-        RichText richText = await TweetToRichTextAsync(tweet, text, ct);
+        (string title, string text) = await TweetToStrAsync(tweet);
+        RichText richText = await TweetToRichTextAsync(tweet, text);
         List<string>? imgUrls = GetTweetImgUrls(tweet);
 
-        List<TwitterSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(subscribe.ScreenName, ct: ct);
+        List<TwitterSubscribeConfigEntity> configs = await configRepo.GetAllAsync(subscribe.ScreenName, ct: ctp.Token);
         foreach (QQChannelSubscribeEntity channel in subscribe.QQChannels)
         {
-            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await qqBotApi.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("[Twitter] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -145,23 +150,23 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 continue;
             if (config.PushToThread)
             {
-                await QbSvc.PostThreadAsync(
-                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ct);
+                await qqBotApi.PostThreadAsync(
+                    channel.ChannelId, channel.ChannelName, title, JsonConvert.SerializeObject(richText), ctp.Token);
                 Log.Information(
                     "[Twitter] Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                     tweet.Author, tweet.AuthorScreenName);
                 continue;
             }
 
-            await QbSvc.PushCommonMsgAsync(
-                channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ct);
+            await qqBotApi.PushCommonMsgAsync(
+                channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrls, ctp.Token);
             Log.Information(
                 "[Twitter] Succeeded to push the tweet message from the user {name}(screenName: {screenName}).",
                 tweet.Author, tweet.AuthorScreenName);
         }
     }
 
-    private async Task<(string title, string text)> TweetToStrAsync(Tweet tweet, CancellationToken ct = default)
+    private async Task<(string title, string text)> TweetToStrAsync(Tweet tweet)
     {
         string title;
         string text;
@@ -170,39 +175,41 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         {
             title = $"【新推文】来自 {tweet.Author}";
             text = $"""
-                    {tweet.Text.AddRedirectToUrls()}
+                    {tweet.Text.AddRedirectToUrls(commonConfig.RedirectUrl)}
                     ——————————
-                    推文链接：{tweet.Url.AddRedirectToUrls()}
-                    """;
-        }
-        else if (tweet.Type == TweetTypeEnum.Quote)
-        {
-            title = $"【新带评论转发推文】来自 {tweet.Author}";
-            text = $"""
-                    {tweet.Text.AddRedirectToUrls()}
-                    ——————————
-                    推文链接：{tweet.Url.AddRedirectToUrls()}
-
-                    ====================
-                    【原推文】来自 {tweet.Origin.Author}
-
-                    {tweet.Origin.Text.AddRedirectToUrls()}
-                    """;
-        }
-        else if (tweet.Type == TweetTypeEnum.RT)
-        {
-            title = $"【新转发推文】来自 {tweet.Author}";
-            text = $"""
-                    【原推文】来自 {tweet.Origin.Author}
-
-                    {tweet.Origin.Text.AddRedirectToUrls()}
-                    ——————————
-                    原推文链接：{tweet.Origin.Url.AddRedirectToUrls()}
+                    推文链接：{tweet.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
                     """;
         }
         else
         {
-            throw new NotSupportedException($"Not Supported tweet type {tweet.Type}");
+            switch (tweet.Type)
+            {
+                case TweetTypeEnum.Quote:
+                    title = $"【新带评论转发推文】来自 {tweet.Author}";
+                    text = $"""
+                            {tweet.Text.AddRedirectToUrls(commonConfig.RedirectUrl)}
+                            ——————————
+                            推文链接：{tweet.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
+
+                            ====================
+                            【原推文】来自 {tweet.Origin.Author}
+
+                            {tweet.Origin.Text.AddRedirectToUrls(commonConfig.RedirectUrl)}
+                            """;
+                    break;
+                case TweetTypeEnum.RT:
+                    title = $"【新转发推文】来自 {tweet.Author}";
+                    text = $"""
+                            【原推文】来自 {tweet.Origin.Author}
+
+                            {tweet.Origin.Text.AddRedirectToUrls(commonConfig.RedirectUrl)}
+                            ——————————
+                            原推文链接：{tweet.Origin.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
+                            """;
+                    break;
+                default:
+                    throw new NotSupportedException($"Not Supported tweet type {tweet.Type}");
+            }
         }
 
         string? videoUrl = null;
@@ -213,7 +220,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
         if (videoUrl != null)
         {
-            videoUrl = await CosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
+            videoUrl = await cosApi.UploadVideoAsync(videoUrl, tweet.PubTime, ctp.Token);
             text += $"\n\n视频下载直链：{videoUrl}";
         }
 
@@ -225,17 +232,16 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         return tweet.ImageUrls ?? tweet.Origin?.ImageUrls;
     }
 
-    private async Task<(MessageMarkdown markdown, List<string>? otherImgs)> TweetToMarkdownAsync(Tweet tweet,
-        CancellationToken ct = default)
+    private async Task<(MessageMarkdown markdown, List<string>? otherImgs)> TweetToMarkdownAsync(Tweet tweet)
     {
-        List<string> otherImages = new();
-        string templateId = Settings.R.QQBot.MarkdownTemplateIds!.TextOnly;
+        List<string> otherImages = [];
+        string templateId = templateIds.TextOnly;
         MarkdownTemplateParams templateParams = new()
         {
             Info = "新推文",
             From = tweet.Author,
-            Text = tweet.Text.AddRedirectToUrls(),
-            Url = tweet.Url.AddRedirectToUrls()
+            Text = tweet.Text.AddRedirectToUrls(commonConfig.RedirectUrl),
+            Url = tweet.Url.AddRedirectToUrls(commonConfig.RedirectUrl)
         };
 
         if (tweet.ImageUrls != null)
@@ -243,7 +249,7 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
             templateParams.ImageUrl = tweet.ImageUrls[0];
             if (tweet.ImageUrls.Count > 1)
                 otherImages.AddRange(tweet.ImageUrls.GetRange(1, tweet.ImageUrls.Count - 1));
-            templateId = Settings.R.QQBot.MarkdownTemplateIds.WithImage;
+            templateId = templateIds.WithImage;
         }
 
         switch (tweet.Type)
@@ -252,42 +258,42 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
                 break;
 
             case TweetTypeEnum.Quote:
-                templateId = Settings.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateId = templateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新带评论转发推文";
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "原推文",
                     From = tweet.Origin!.Author,
-                    Text = tweet.Origin!.Text.AddRedirectToUrls(),
-                    Url = tweet.Origin!.Url.AddRedirectToUrls()
+                    Text = tweet.Origin!.Text.AddRedirectToUrls(commonConfig.RedirectUrl),
+                    Url = tweet.Origin!.Url.AddRedirectToUrls(commonConfig.RedirectUrl)
                 };
                 if (tweet.Origin.ImageUrls != null)
                 {
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Settings.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
+                    templateId = templateIds.ContainsOriginWithImage;
                 }
 
                 break;
 
             case TweetTypeEnum.RT:
-                templateId = Settings.R.QQBot.MarkdownTemplateIds.ContainsOriginTextOnly;
+                templateId = templateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新转发推文";
-                templateParams.Url = tweet.Url.AddRedirectToUrls();
+                templateParams.Url = tweet.Url.AddRedirectToUrls(commonConfig.RedirectUrl);
                 templateParams.Origin = new MarkdownTemplateParams
                 {
                     Info = "原推文",
                     From = tweet.Origin!.Author,
-                    Text = tweet.Origin!.Text.AddRedirectToUrls(),
-                    Url = tweet.Origin!.Url.AddRedirectToUrls()
+                    Text = tweet.Origin!.Text.AddRedirectToUrls(commonConfig.RedirectUrl),
+                    Url = tweet.Origin!.Url.AddRedirectToUrls(commonConfig.RedirectUrl)
                 };
                 if (tweet.Origin.ImageUrls != null)
                 {
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = Settings.R.QQBot.MarkdownTemplateIds.ContainsOriginWithImage;
+                    templateId = templateIds.ContainsOriginWithImage;
                 }
 
                 break;
@@ -311,13 +317,13 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
 
         if (videoUrl != null)
         {
-            videoUrl = await CosSvc.UploadVideoAsync(videoUrl, tweet.PubTime, ct);
+            videoUrl = await cosApi.UploadVideoAsync(videoUrl, tweet.PubTime, ctp.Token);
             templateParams.Text += $"\n\n[视频下载直链]({videoUrl})";
         }
 
         if (coverUrl != null)
         {
-            coverUrl = await CosSvc.UploadImageAsync(coverUrl, ct);
+            coverUrl = await cosApi.UploadImageAsync(coverUrl, ctp.Token);
             templateParams.ImageUrl = coverUrl;
         }
 
@@ -331,23 +337,23 @@ public class TwitterPlugin : BasePlugin, IPlugin, ICancellableInvocable
         );
     }
 
-    private async Task<RichText> TweetToRichTextAsync(Tweet tweet, string text, CancellationToken ct = default)
+    private async Task<RichText> TweetToRichTextAsync(Tweet tweet, string text)
     {
-        RichText result = QQBotService.TextToRichText(text);
+        RichText result = QQBotApi.TextToRichText(text);
 
         if (tweet.ImageUrls != null)
             result.Paragraphs.AddRange(
-                await QQBotService.ImagesToParagraphsAsync(tweet.ImageUrls, CosSvc, ct));
+                await QQBotApi.ImagesToParagraphsAsync(tweet.ImageUrls, cosApi, ctp.Token));
         else if (tweet.Origin?.ImageUrls != null)
             result.Paragraphs.AddRange(
-                await QQBotService.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, CosSvc, ct));
+                await QQBotApi.ImagesToParagraphsAsync(tweet.Origin.ImageUrls, cosApi, ctp.Token));
 
         if (tweet.VideoUrl != null)
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.VideoUrl, tweet.PubTime, CosSvc, ct));
+                await QQBotApi.VideoToParagraphsAsync(tweet.VideoUrl, tweet.PubTime, cosApi, ctp.Token));
         else if (tweet.Origin?.VideoUrl != null)
             result.Paragraphs.AddRange(
-                await QQBotService.VideoToParagraphsAsync(tweet.Origin.VideoUrl, tweet.Origin.PubTime, CosSvc, ct));
+                await QQBotApi.VideoToParagraphsAsync(tweet.Origin.VideoUrl, tweet.Origin.PubTime, cosApi, ctp.Token));
 
         return result;
     }

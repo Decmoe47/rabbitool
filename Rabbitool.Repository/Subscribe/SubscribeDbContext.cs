@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Autofac.Annotation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
@@ -8,7 +9,8 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-public class SubscribeDbContext : DbContext
+[Component]
+public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
 {
     public DbSet<QQChannelSubscribeEntity> QQChannelSubscribes => Set<QQChannelSubscribeEntity>();
     public DbSet<BilibiliSubscribeEntity> BilibiliSubscribes => Set<BilibiliSubscribeEntity>();
@@ -23,9 +25,9 @@ public class SubscribeDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlite($"Data Source={Settings.R.DbPath}");
+            optionsBuilder.UseSqlite($"Data Source={commonConfig.DbPath}");
     }
-    
+
     /// <summary>
     ///     https://learn.microsoft.com/zh-cn/ef/core/modeling/bulk-configuration#example-opt-in-property-mapping/>
     /// </summary>

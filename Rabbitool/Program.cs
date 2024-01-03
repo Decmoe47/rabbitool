@@ -1,34 +1,47 @@
-﻿using Rabbitool.Common.Configs;
-using Rabbitool.Common.Tool;
+﻿using Autofac;
+using Autofac.Annotation;
+using Autofac.Extensions.DependencyInjection;
+using Coravel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Rabbitool.Common.Configs;
+using Rabbitool.Common.Provider;
 using Rabbitool.Plugin;
-using Rabbitool.Service;
 using Serilog;
 
-Settings conf = Settings.Load("configs.yml");
+namespace Rabbitool;
 
-Log.Logger = conf.Notifier != null
-    ? LogConfigure.New(conf.Notifier.ToOptions(), conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel)
-    : LogConfigure.New(conf.DefaultLogger.ConsoleLevel, conf.DefaultLogger.FileLevel);
-
-Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
-
-if (conf is { InTestEnvironment: true, Proxy: not null })
+public class Program
 {
-    Environment.SetEnvironmentVariable("http_proxy", conf.Proxy.Http);
-    Environment.SetEnvironmentVariable("https_proxy", conf.Proxy.Https);
+    public static async Task Main(string[] args)
+    {
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
+        builder.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+        builder.ConfigureContainer<ContainerBuilder>((c, containerBuilder) =>
+            containerBuilder.RegisterModule(new AutofacAnnotationModule()));
+        builder.ConfigureServices(services => services.AddScheduler());
+
+        using IHost host = builder.Build();
+
+        // 配置logger
+        LoggerConfig loggerConfig = host.Services.GetRequiredService<LoggerConfig>();
+        NotifierConfig? notifierConfig = host.Services.GetService<NotifierConfig>();
+        Log.Logger = notifierConfig == null
+            ? LoggerConfigurationProvider.GetConfiguration(loggerConfig)
+            : LoggerConfigurationProvider.GetConfiguration(loggerConfig, notifierConfig);
+        Console.CancelKeyPress += (sender, e) => Log.CloseAndFlush();
+
+        // 设置代理
+        CommonConfig commonConfig = host.Services.GetRequiredService<CommonConfig>();
+        if (commonConfig is { InTestEnvironment: true, Proxy: not null })
+        {
+            Environment.SetEnvironmentVariable("http_proxy", commonConfig.Proxy.Http);
+            Environment.SetEnvironmentVariable("https_proxy", commonConfig.Proxy.Https);
+        }
+
+        await PluginLoader.RunAllPluginsAsync(host.Services);
+
+        await host.RunAsync(host.Services.GetService<ICancellationTokenProvider>()!.Token);
+    }
 }
 
-CosService cosSvc = new();
-QQBotService qbSvc = new(cosSvc);
-
-PluginLoader loader = new(qbSvc);
-loader.Load(new QQBotPlugin(qbSvc));
-loader.Load(new BilibiliPlugin(qbSvc, cosSvc));
-loader.Load(new MailPlugin(qbSvc, cosSvc));
-if (conf.Twitter != null)
-    loader.Load(new TwitterPlugin(qbSvc, cosSvc));
-if (conf.Youtube != null)
-    loader.Load(new YoutubePlugin(qbSvc, cosSvc));
-
-CancellationTokenSource cts = new();
-await loader.RunAsync(cts);

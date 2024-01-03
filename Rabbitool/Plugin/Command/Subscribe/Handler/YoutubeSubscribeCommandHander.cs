@@ -1,25 +1,25 @@
-﻿using CodeHollow.FeedReader;
+﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
+using CodeHollow.FeedReader;
 using Flurl.Http;
+using Rabbitool.Api;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-public class YoutubeSubscribeCommandHandler
+[ConditionalOnProperty("youtube")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class YoutubeSubscribeCommandHandler(
+    QQBotApi qbSvc,
+    SubscribeDbContext dbCtx,
+    QQChannelSubscribeRepository qsRepo,
+    YoutubeSubscribeRepository repo,
+    YoutubeSubscribeConfigRepository configRepo)
     : AbstractSubscribeCommandHandler<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity, YoutubeSubscribeRepository,
-        YoutubeSubscribeConfigRepository>
+        YoutubeSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
 {
-    public YoutubeSubscribeCommandHandler(
-        QQBotService qbSvc,
-        SubscribeDbContext dbCtx,
-        QQChannelSubscribeRepository qsRepo,
-        YoutubeSubscribeRepository repo,
-        YoutubeSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
-    {
-    }
-
     public override async Task<(string name, string? errMsg)> CheckId(string channelId, CancellationToken ct = default)
     {
         string resp;

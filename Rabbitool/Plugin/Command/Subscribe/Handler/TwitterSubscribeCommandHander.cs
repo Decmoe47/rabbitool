@@ -1,35 +1,36 @@
-﻿using Flurl.Http;
+﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
+using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Api;
 using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-public class TwitterSubscribeCommandHandler
+[ConditionalOnProperty("twitter")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class TwitterSubscribeCommandHandler(
+    QQBotApi qbSvc,
+    SubscribeDbContext dbCtx,
+    QQChannelSubscribeRepository qsRepo,
+    TwitterSubscribeRepository repo,
+    TwitterSubscribeConfigRepository configRepo,
+    TwitterConfig twitterConfig)
     : AbstractSubscribeCommandHandler<TwitterSubscribeEntity, TwitterSubscribeConfigEntity, TwitterSubscribeRepository,
-        TwitterSubscribeConfigRepository>
+        TwitterSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
 {
-    public TwitterSubscribeCommandHandler(
-        QQBotService qbSvc,
-        SubscribeDbContext dbCtx,
-        QQChannelSubscribeRepository qsRepo,
-        TwitterSubscribeRepository repo,
-        TwitterSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
-    {
-    }
-
     public override async Task<(string name, string? errMsg)> CheckId(string screenName, CancellationToken ct = default)
     {
         string resp;
         try
         {
-            if (Settings.R.Twitter?.XCsrfToken != null && Settings.R.Twitter?.Cookie != null)
+            if (twitterConfig is { XCsrfToken: not null, Cookie: not null })
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(twitterConfig.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },
@@ -42,14 +43,14 @@ public class TwitterSubscribeCommandHandler
                     })
                     .WithHeaders(new Dictionary<string, string>
                     {
-                        { "x-csrf-token", Settings.R.Twitter.XCsrfToken },
-                        { "Cookie", Settings.R.Twitter.Cookie }
+                        { "x-csrf-token", twitterConfig.XCsrfToken },
+                        { "Cookie", twitterConfig.Cookie }
                     })
                     .GetStringAsync(cancellationToken: ct);
             else
                 resp = await "https://api.twitter.com/1.1/statuses/user_timeline.json"
                     .WithTimeout(10)
-                    .WithOAuthBearerToken(Settings.R.Twitter!.BearerToken)
+                    .WithOAuthBearerToken(twitterConfig.BearerToken)
                     .SetQueryParams(new Dictionary<string, string>
                     {
                         { "count", "5" },

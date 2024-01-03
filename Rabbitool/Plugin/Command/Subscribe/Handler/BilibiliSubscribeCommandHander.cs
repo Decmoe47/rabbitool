@@ -1,28 +1,27 @@
-﻿using Flurl.Http;
+﻿using Autofac.Annotation;
+using Flurl.Http;
 using Newtonsoft.Json.Linq;
+using Rabbitool.Api;
 using Rabbitool.Common.Configs;
 using Rabbitool.Common.Extension;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-public class BilibiliSubscribeCommandHandler
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class BilibiliSubscribeCommandHandler(
+    QQBotApi qbSvc,
+    SubscribeDbContext dbCtx,
+    QQChannelSubscribeRepository qsRepo,
+    BilibiliSubscribeRepository repo,
+    BilibiliSubscribeConfigRepository configRepo,
+    CommonConfig commonConfig)
     : AbstractSubscribeCommandHandler<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity,
-        BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>
+        BilibiliSubscribeRepository, BilibiliSubscribeConfigRepository>(qbSvc, dbCtx, qsRepo, repo, configRepo)
 {
     private CookieJar? _jar;
-
-    public BilibiliSubscribeCommandHandler(
-        QQBotService qbSvc,
-        SubscribeDbContext dbCtx,
-        QQChannelSubscribeRepository qsRepo,
-        BilibiliSubscribeRepository repo,
-        BilibiliSubscribeConfigRepository configRepo) : base(qbSvc, dbCtx, qsRepo, repo, configRepo)
-    {
-    }
 
     public override async Task<(string name, string? errMsg)> CheckId(string uid, CancellationToken ct = default)
     {
@@ -43,7 +42,7 @@ public class BilibiliSubscribeCommandHandler
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid);
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithCookies(_jar)
-            .WithHeader("User-Agent", Settings.R.UserAgent)
+            .WithHeader("User-Agent", commonConfig.UserAgent)
             .GetStringAsync(cancellationToken: ct);
 
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();

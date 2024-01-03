@@ -1,71 +1,75 @@
-﻿using Coravel;
+﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Coravel.Invocable;
+using Coravel.Scheduling.Schedule.Interfaces;
+using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Youtube;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
 namespace Rabbitool.Plugin;
 
-public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
+[ConditionalOnProperty("youtube")]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class YoutubePlugin(
+    QQBotApi qqBotApi,
+    YoutubeApi youtubeApi,
+    YoutubeSubscribeRepository repo,
+    YoutubeSubscribeConfigRepository configRepo,
+    CommonConfig commonConfig,
+    ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    private readonly YoutubeSubscribeConfigRepository _configRepo;
-    private readonly YoutubeSubscribeRepository _repo;
-
     private readonly Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
-    private readonly YoutubeService _svc;
-
-    public YoutubePlugin(QQBotService qbSvc, CosService cosSvc) : base(qbSvc, cosSvc)
-    {
-        _svc = new YoutubeService();
-
-        SubscribeDbContext dbCtx = new();
-        _repo = new YoutubeSubscribeRepository(dbCtx);
-        _configRepo = new YoutubeSubscribeConfigRepository(dbCtx);
-    }
-
     public CancellationToken CancellationToken { get; set; }
+    public string Name => "youtube";
 
-    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    public Task InitAsync()
     {
-        services.UseScheduler(scheduler =>
-                scheduler
-                    .ScheduleAsync(async () => await CheckAllAsync(ct))
-                    .EverySeconds(5)
-                    .PreventOverlapping("YoutubePlugin"))
-            .OnError(ex => Log.Error(ex, "[Youtube] {msg}", ex.Message));
+        return Task.CompletedTask;
     }
 
-    public async Task CheckAllAsync(CancellationToken ct = default)
+    public Action<IScheduler> GetScheduler()
+    {
+        return scheduler =>
+        {
+            scheduler
+                .ScheduleAsync(async () => await CheckAllAsync())
+                .EverySeconds(5)
+                .PreventOverlapping("YoutubePlugin");
+        };
+    }
+
+    private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)
             return;
 
-        List<YoutubeSubscribeEntity> records = await _repo.GetAllAsync(true, ct);
+        List<YoutubeSubscribeEntity> records = await repo.GetAllAsync(true, ctp.Token);
         if (records.Count == 0)
         {
             Log.Verbose("[Youtube] There isn't any youtube subscribe yet!");
             return;
         }
 
-        List<Task> tasks = new();
+        List<Task> tasks = [];
         foreach (YoutubeSubscribeEntity record in records)
         {
-            tasks.Add(CheckAsync(record, ct));
-            tasks.Add(CheckUpcomingLiveAsync(record, ct));
+            tasks.Add(CheckAsync(record));
+            tasks.Add(CheckUpcomingLiveAsync(record));
         }
 
         await Task.WhenAll(tasks);
     }
 
-    private async Task CheckAsync(YoutubeSubscribeEntity record, CancellationToken ct = default)
+    private async Task CheckAsync(YoutubeSubscribeEntity record)
     {
         try
         {
-            YoutubeItem item = await _svc.GetLatestVideoOrLiveAsync(record.ChannelId, ct);
+            YoutubeItem item = await youtubeApi.GetLatestVideoOrLiveAsync(record.ChannelId, ctp.Token);
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
 
             switch (item)
@@ -75,16 +79,16 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                     {
                         case YoutubeTypeEnum.UpcomingLive when !record.AllUpcomingLiveRoomIds.Contains(live.Id):
                             record.AllUpcomingLiveRoomIds.Add(live.Id);
-                            await _repo.SaveAsync(ct);
+                            await repo.SaveAsync(ctp.Token);
                             Log.Debug(
                                 "[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
                                 live.Author, live.ChannelId);
 
-                            await PushUpcomingLiveAsync(live, record, ct);
+                            await PushUpcomingLiveAsync(live, record);
                             break;
                         case YoutubeTypeEnum.Live when live.Id != record.LastLiveRoomId
                                                        && !record.AllUpcomingLiveRoomIds.Contains(live.Id):
-                            await PushLiveAndUpdateDatabaseAsync(live, record, ct: ct);
+                            await PushLiveAndUpdateDatabaseAsync(live, record);
                             break;
                     }
 
@@ -118,14 +122,14 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                         pubTimes.Sort();
                         foreach (DateTime pubTime in pubTimes)
                         {
-                            await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record, ct);
+                            await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record);
                             _storedVideos[video.ChannelId].Remove(pubTime);
                         }
 
                         return;
                     }
 
-                    await PushVideoAndUpdateDatabaseAsync(video, record, ct);
+                    await PushVideoAndUpdateDatabaseAsync(video, record);
                     break;
 
                 default:
@@ -142,25 +146,25 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
     }
 
-    private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record, CancellationToken ct = default)
+    private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record)
     {
         List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
-        List<string> roomIdsToRemove = new();
+        List<string> roomIdsToRemove = [];
         foreach (string roomId in allUpcomingLiveRoomIdsTmp)
         {
-            if (await _svc.IsStreamingAsync(roomId, ct) is not { } live)
+            if (await youtubeApi.IsStreamingAsync(roomId, ctp.Token) is not { } live)
                 continue;
             Log.Debug("[Youtube] Youtube upcoming live (roomId: {roomId}) starts streaming.", roomId);
-            await PushLiveAndUpdateDatabaseAsync(live, record, false, ct);
+            await PushLiveAndUpdateDatabaseAsync(live, record, false);
             roomIdsToRemove.Add(roomId);
         }
 
         roomIdsToRemove.ForEach(roomId => record.AllUpcomingLiveRoomIds.Remove(roomId));
-        await _repo.SaveAsync(ct);
+        await repo.SaveAsync(ctp.Token);
     }
 
     private async Task PushLiveAndUpdateDatabaseAsync(
-        YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true, CancellationToken ct = default)
+        YoutubeLive live, YoutubeSubscribeEntity record, bool saving = true)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
         if (now.Hour is >= 0 and <= 5)
@@ -171,7 +175,7 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
         }
         else
         {
-            await PushMsgAsync(live, record, ct);
+            await PushMsgAsync(live, record);
             Log.Information(
                 "[Youtube] Succeeded to push the youtube live message from the user {Author}.\nChannelId: {channelId}",
                 live.Author, live.ChannelId);
@@ -185,13 +189,13 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             record.AllArchiveVideoIds.RemoveAt(0);
 
         if (saving)
-            await _repo.SaveAsync(ct);
+            await repo.SaveAsync(ctp.Token);
         Log.Debug("[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             live.Author, live.ChannelId);
     }
 
     private async Task PushUpcomingLiveAsync(
-        YoutubeLive live, YoutubeSubscribeEntity record, CancellationToken ct = default)
+        YoutubeLive live, YoutubeSubscribeEntity record)
     {
         DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
         if (now.Hour is >= 0 and <= 5)
@@ -199,30 +203,30 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                 "[Youtube] Youtube upcoming live message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
                 live.Author, live.ChannelId);
         else
-            await PushMsgAsync(live, record, ct);
+            await PushMsgAsync(live, record);
     }
 
     private async Task PushVideoAndUpdateDatabaseAsync(
-        YoutubeVideo video, YoutubeSubscribeEntity record, CancellationToken ct = default)
+        YoutubeVideo video, YoutubeSubscribeEntity record)
     {
-        await PushMsgAsync(video, record, ct);
+        await PushMsgAsync(video, record);
 
         record.LastVideoId = video.Id;
         record.LastVideoPubTime = video.PubTime;
-        await _repo.SaveAsync(ct);
+        await repo.SaveAsync(ctp.Token);
         Log.Debug("[Youtube] Succeeded to updated the youtube user({user})'s record.\nChannelId: {channelId}",
             video.Author, video.ChannelId);
     }
 
-    private async Task PushMsgAsync<T>(T item, YoutubeSubscribeEntity record, CancellationToken ct = default)
+    private async Task PushMsgAsync<T>(T item, YoutubeSubscribeEntity record)
         where T : YoutubeItem
     {
         (string title, string text, string imgUrl) = ItemToStr(item);
 
-        List<YoutubeSubscribeConfigEntity> configs = await _configRepo.GetAllAsync(item.ChannelId, ct: ct);
+        List<YoutubeSubscribeConfigEntity> configs = await configRepo.GetAllAsync(item.ChannelId, ct: ctp.Token);
         foreach (QQChannelSubscribeEntity channel in record.QQChannels)
         {
-            if (!await QbSvc.ExistChannelAsync(channel.ChannelId))
+            if (!await qqBotApi.ExistChannelAsync(channel.ChannelId))
             {
                 Log.Warning("[Youtube] The channel {channelName}(id: {channelId}) doesn't exist!",
                     channel.ChannelName, channel.ChannelId);
@@ -242,7 +246,8 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
             if (config.ArchivePush && record.AllArchiveVideoIds.Contains(item.ChannelId) == false)
                 continue;
 
-            await QbSvc.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl, ct);
+            await qqBotApi.PushCommonMsgAsync(channel.ChannelId, channel.ChannelName, $"{title}\n\n{text}", imgUrl,
+                ctp.Token);
             switch (item.Type)
             {
                 case YoutubeTypeEnum.Video:
@@ -275,17 +280,14 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
     private string LiveToStr(YoutubeLive live)
     {
         if (live.Type == YoutubeTypeEnum.Live)
-        {
-            string actualStartTime = TimeZoneInfo
-                .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
-                .ToString("yyyy-MM-dd HH:mm:ss");
-
+            // string actualStartTime = TimeZoneInfo
+            //     .ConvertTimeFromUtc((DateTime)live.ActualStartTime!, TimeUtil.CST)
+            //     .ToString("yyyy-MM-dd HH:mm:ss");
             return $"""
                     {live.Title}
                     ——————————
-                    链接：{live.Url.AddRedirectToUrls()}
+                    链接：{live.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
                     """;
-        }
 
         string scheduledStartTime = TimeZoneInfo
             .ConvertTimeFromUtc((DateTime)live.ScheduledStartTime!, TimeUtil.CST)
@@ -295,20 +297,20 @@ public class YoutubePlugin : BasePlugin, IPlugin, ICancellableInvocable
                 {live.Title}
                 ——————————
                 预定开播时间：{scheduledStartTime}
-                链接：{live.Url.AddRedirectToUrls()}
+                链接：{live.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
                 """;
     }
 
     private string VideoToStr(YoutubeVideo video)
     {
-        string pubTimeStr = TimeZoneInfo
-            .ConvertTimeFromUtc(video.PubTime, TimeUtil.CST)
-            .ToString("yyyy-MM-dd HH:mm:ss");
+        // string pubTimeStr = TimeZoneInfo
+        //     .ConvertTimeFromUtc(video.PubTime, TimeUtil.CST)
+        //     .ToString("yyyy-MM-dd HH:mm:ss");
 
         return $"""
                 {video.Title}
                 ——————————
-                链接：{video.Url.AddRedirectToUrls()}
+                链接：{video.Url.AddRedirectToUrls(commonConfig.RedirectUrl)}
                 """;
     }
 }

@@ -3,17 +3,12 @@ using Rabbitool.Model.Entity;
 
 namespace Rabbitool.Repository;
 
-public abstract class BaseRepository<TEntity, TDbContext> : IRepository<TEntity>
+public abstract class BaseRepository<TEntity, TDbContext>(TDbContext dbCtx) : IRepository<TEntity>
     where TEntity : class, IEntity
     where TDbContext : DbContext
 {
-    protected readonly TDbContext DbCtx;
+    protected readonly TDbContext DbCtx = dbCtx;
     private bool _disposed;
-
-    protected BaseRepository(TDbContext dbCtx)
-    {
-        DbCtx = dbCtx;
-    }
 
     public async Task<int> SaveAsync(CancellationToken ct = default)
     {

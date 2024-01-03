@@ -1,44 +1,28 @@
 ﻿using System.Text.RegularExpressions;
 using Flurl.Http;
 using MyBot.Models.WsModels;
+using Rabbitool.Api;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
 using Rabbitool.Repository.Subscribe;
-using Rabbitool.Service;
 using Serilog;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubscribeRepo, TConfigRepo>
-    : ISubscribeCommandHandler
+public abstract partial class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubscribeRepo, TConfigRepo>(
+    QQBotApi qqBotApi,
+    SubscribeDbContext dbCtx,
+    QQChannelSubscribeRepository qsRepo,
+    TSubscribeRepo repo,
+    TConfigRepo configRepo) : ISubscribeCommandHandler
     where TSubscribe : ISubscribeEntity
     where TConfig : ISubscribeConfigEntity
     where TSubscribeRepo : ISubscribeRepository<TSubscribe>
     where TConfigRepo : ISubscribeConfigRepository<TSubscribe, TConfig>
 {
-    protected readonly TConfigRepo _configRepo;
-    protected readonly SubscribeDbContext _dbCtx;
-    protected readonly QQBotService _qbSvc;
-    protected readonly QQChannelSubscribeRepository _qsRepo;
-    protected readonly TSubscribeRepo _repo;
-
-    public AbstractSubscribeCommandHandler(
-        QQBotService qbSvc,
-        SubscribeDbContext dbCtx,
-        QQChannelSubscribeRepository qsRepo,
-        TSubscribeRepo repo,
-        TConfigRepo configRepo)
-    {
-        _qbSvc = qbSvc;
-        _dbCtx = dbCtx;
-        _qsRepo = qsRepo;
-        _repo = repo;
-        _configRepo = configRepo;
-    }
-
     public async Task BotDeletedHandlerAsync(WsGuild guild, CancellationToken ct = default)
     {
-        List<QQChannelSubscribeEntity> channels = await _qsRepo.GetAllAsync(guild.Id, true, ct);
+        List<QQChannelSubscribeEntity> channels = await qsRepo.GetAllAsync(guild.Id, true, ct);
         foreach (QQChannelSubscribeEntity channel in channels)
         {
             List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
@@ -46,13 +30,13 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
                 foreach (TSubscribe subscribe in subscribes)
                 {
                     subscribe.QQChannels.RemoveAll(q => q.ChannelId == channel.ChannelId);
-                    await _configRepo.DeleteAsync(channel.ChannelId, subscribe.GetId(), ct);
+                    await configRepo.DeleteAsync(channel.ChannelId, subscribe.GetId(), ct);
                 }
 
-            _qsRepo.Delete(channel);
+            qsRepo.Delete(channel);
         }
 
-        await _dbCtx.SaveChangesAsync(ct);
+        await dbCtx.SaveChangesAsync(ct);
     }
 
     public abstract Task<(string name, string? errMsg)> CheckId(string id, CancellationToken ct = default);
@@ -78,11 +62,11 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             return errMsg;
 
         bool flag = true;
-        TSubscribe? record = await _repo.GetOrDefaultAsync(cmd.SubscribeId, true, ct);
+        TSubscribe? record = await repo.GetOrDefaultAsync(cmd.SubscribeId, true, ct);
         if (record == null)
         {
             record = SubscribeEntityHelper.NewSubscribeEntity<TSubscribe>(cmd.SubscribeId, name);
-            await _repo.AddAsync(record, ct);
+            await repo.AddAsync(record, ct);
 
             flag = false;
         }
@@ -91,16 +75,16 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             flag = false;
         }
 
-        (QQChannelSubscribeEntity channel, bool added) = await _qsRepo.AddSubscribeAsync(
+        (QQChannelSubscribeEntity channel, bool added) = await qsRepo.AddSubscribeAsync(
             cmd.QQChannel.GuildId,
             cmd.QQChannel.GuildName,
             cmd.QQChannel.Id,
             cmd.QQChannel.Name,
             record,
             ct);
-        await _configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
+        await configRepo.CreateOrUpdateAsync(channel, record, cmd.Configs, ct);
 
-        await _dbCtx.SaveChangesAsync(ct);
+        await dbCtx.SaveChangesAsync(ct);
 
         return added && !flag
             ? $"成功：已添加订阅到 {cmd.QQChannel.Name} 子频道！"
@@ -114,15 +98,15 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
         try
         {
-            TSubscribe subscribe = await _repo.GetAsync(cmd.SubscribeId, true, ct);
-            QQChannelSubscribeEntity record = await _qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
+            TSubscribe subscribe = await repo.GetAsync(cmd.SubscribeId, true, ct);
+            QQChannelSubscribeEntity record = await qsRepo.RemoveSubscribeAsync(cmd.QQChannel.Id, subscribe, ct);
             if (record.SubscribesAreAllEmpty())
-                _qsRepo.Delete(record);
+                qsRepo.Delete(record);
 
-            await _repo.DeleteAsync(cmd.SubscribeId, ct);
-            await _configRepo.DeleteAsync(cmd.QQChannel.Id, cmd.SubscribeId, ct);
+            await repo.DeleteAsync(cmd.SubscribeId, ct);
+            await configRepo.DeleteAsync(cmd.QQChannel.Id, cmd.SubscribeId, ct);
 
-            await _dbCtx.SaveChangesAsync(ct);
+            await dbCtx.SaveChangesAsync(ct);
         }
         catch (InvalidOperationException iex)
         {
@@ -155,7 +139,7 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         if (cmd.Configs != null && cmd.Configs.TryGetValue("allChannels", out bool? allChannels) && allChannels is true)
             return await ListAllSubscribesInGuildAsync(cmd, ct);
 
-        QQChannelSubscribeEntity? record = await _qsRepo.GetOrDefaultAsync(
+        QQChannelSubscribeEntity? record = await qsRepo.GetOrDefaultAsync(
             cmd.QQChannel.Id, subscribeType, ct: ct);
         if (record == null)
         {
@@ -178,12 +162,12 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
 
     private async Task<string> ListAllSubscribesInGuildAsync(SubscribeCommand cmd, CancellationToken ct = default)
     {
-        List<QQChannelSubscribeEntity> allChannels = await _qsRepo.GetAllAsync(
+        List<QQChannelSubscribeEntity> allChannels = await qsRepo.GetAllAsync(
             cmd.QQChannel.GuildId, ct: ct);
         if (allChannels.Count == 0)
             return "错误：当前频道的任何子频道都没有订阅！";
 
-        List<Task<string>> tasks = new();
+        List<Task<string>> tasks = [];
         foreach (QQChannelSubscribeEntity channel in allChannels)
         {
             List<TSubscribe>? subscribes = channel.GetSubscribeProp<TSubscribe>();
@@ -210,16 +194,13 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
         foreach (TSubscribe subscribe in subscribes)
         {
             result += "- " + subscribe.GetInfo("，");
-            TConfig? config = await _configRepo.GetOrDefaultAsync(channelId, subscribe.GetId(), ct: ct);
+            TConfig? config = await configRepo.GetOrDefaultAsync(channelId, subscribe.GetId(), ct: ct);
             if (config != null)
                 result += "；配置：" + config.GetConfigs("，");
             result += "\n";
         }
 
-        result = Regex.Replace(
-            result,
-            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            match => match.ToString().Replace(".", "*")); // 邮箱地址会被识别为链接导致无法过审
+        result = MyRegex().Replace(result, match => match.ToString().Replace(".", "*")); // 邮箱地址会被识别为链接导致无法过审
 
         return $"【子频道：{channelName}】\n" + result;
     }
@@ -243,17 +224,17 @@ public abstract class AbstractSubscribeCommandHandler<TSubscribe, TConfig, TSubs
             return $"错误：id为 {cmd.SubscribeId} 的用户未在 {cmd.QQChannel.Name} 子频道订阅过！";
         }
 
-        TConfig? config = await _configRepo.GetOrDefaultAsync(
+        TConfig? config = await configRepo.GetOrDefaultAsync(
             cmd.QQChannel.Id, cmd.SubscribeId!, ct: ct);
         string result = config == null
             ? subscribe.GetInfo("，")
             : subscribe.GetInfo("，") + "；配置：" + config.GetConfigs("，") + "\n";
 
-        result = Regex.Replace(
-            result,
-            @"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+",
-            match => match.ToString().Replace(".", "*"));
+        result = MyRegex().Replace(result, match => match.ToString().Replace(".", "*"));
 
         return result;
     }
+
+    [GeneratedRegex(@"[A-Za-z0-9-_\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+")]
+    private static partial Regex MyRegex();
 }

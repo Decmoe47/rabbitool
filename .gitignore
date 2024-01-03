@@ -374,3 +374,6 @@ FodyWeavers.xsd
 *.xlsx
 
 .VSCodeCounter/
+
+appsettings.json
+appsettings.Development.json

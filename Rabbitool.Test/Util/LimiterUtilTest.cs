@@ -1,32 +1,26 @@
-﻿using Xunit.Abstractions;
+﻿using System.Diagnostics;
+using Rabbitool.Common.Util;
+using Xunit.Abstractions;
+using Timer = System.Timers.Timer;
 
-namespace Rabbitool.Common.Util.Test;
+namespace Rabbitool.Test.Util;
 
-public class LimiterUtilTest
+public class LimiterUtilTest(ITestOutputHelper output)
 {
-    private readonly LimiterUtil _limiter;
-    private readonly ITestOutputHelper _output;
+    private readonly LimiterUtil _limiter = new(1, 1);
 
-    public LimiterUtilTest(ITestOutputHelper output)
-    {
-        _limiter = new LimiterUtil(1, 1);
-        _output = output;
-    }
-
-    [Fact()]
+    [Fact]
     public async Task WaitTestAsync()
     {
         int count = await CountAsync("0", _limiter);
-
         Assert.Equal(10, count);
     }
 
-    [Fact()]
+    [Fact]
     public async Task WaitForMutiThreadsTestAsync()
     {
-        List<Task<int>> tasks = new();
-
-        System.Diagnostics.Stopwatch watch = new();
+        List<Task<int>> tasks = [];
+        Stopwatch watch = new();
 
         for (int i = 0; i < 2; i++)
             tasks.Add(CountAsync(i.ToString(), _limiter));
@@ -39,12 +33,12 @@ public class LimiterUtilTest
         Assert.Equal(TimeSpan.FromSeconds(10), watch.Elapsed);
     }
 
-    public async Task<int> CountAsync(string name, LimiterUtil limiter)
+    private Task<int> CountAsync(string name, LimiterUtil limiter)
     {
         bool done = false;
         int count = 0;
 
-        System.Timers.Timer t = new(TimeSpan.FromSeconds(10).TotalMilliseconds);
+        Timer t = new(TimeSpan.FromSeconds(10).TotalMilliseconds);
         t.Elapsed += (sender, e) => done = true;
         t.AutoReset = false;
         t.Enabled = true;
@@ -53,9 +47,9 @@ public class LimiterUtilTest
         {
             limiter.Wait();
             count++;
-            _output.WriteLine($"Now count is {count}");
+            output.WriteLine($"Now count is {count}");
         }
 
-        return count;
+        return Task.FromResult(count);
     }
 }

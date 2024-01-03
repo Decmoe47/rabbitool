@@ -1,7 +1,7 @@
 ﻿using MyBot.Models.WsModels;
 using Rabbitool.Model.DTO.Command;
 
-namespace Rabbitool.Plugin.Command.Subscribe;
+namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
 internal interface ISubscribeCommandHandler
 {

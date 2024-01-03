@@ -1,24 +1,23 @@
-﻿using Rabbitool.Plugin.Command;
-using Rabbitool.Service;
+﻿using Autofac.Annotation;
+using Rabbitool.Api;
+using Rabbitool.Common.Provider;
+using Rabbitool.Plugin.Command;
 
 namespace Rabbitool.Plugin;
 
-public class QQBotPlugin : IRunnablePlugin
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public class QQBotPlugin(QQBotApi api, Commands commands, ICancellationTokenProvider ctp) : IRunnablePlugin
 {
-    private readonly QQBotService _svc;
+    public string Name => "qqBot";
 
-    public QQBotPlugin(QQBotService svc)
+    public Task InitAsync()
     {
-        _svc = svc;
+        api.RegisterAtMessageEvent(commands.GenerateReplyMsgAsync, ctp.Token);
+        return Task.CompletedTask;
     }
 
-    public async Task InitAsync(IServiceProvider services, CancellationToken ct = default)
+    public async Task RunAsync()
     {
-        _svc.RegisterAtMessageEvent(CommandResponder.GenerateReplyMsgAsync, ct);
-    }
-
-    public async Task RunAsync(CancellationToken ct = default)
-    {
-        await _svc.RunAsync();
+        await api.RunBotAsync();
     }
 }

@@ -1,14 +1,17 @@
-﻿namespace Rabbitool.Common.Util.Test;
+﻿using Rabbitool.Common.Util;
+
+namespace Rabbitool.Test.Util;
 
 public class CommonUtilTest
 {
-    [Fact()]
+    [Fact]
     public void ExistUrlTest()
     {
-        Assert.True(CommonUtil.ExistUrl("https://docs.microsoft.com/zh-cn/dotnet/core/testing/unit-testing-with-dotnet-test"));
+        Assert.True(
+            CommonUtil.ExistUrl("https://docs.microsoft.com/zh-cn/dotnet/core/testing/unit-testing-with-dotnet-test"));
     }
 
-    [Fact()]
+    [Fact]
     public void UpdatePropertiesTest()
     {
         TestClassForUpdateProperties actual = new()
@@ -26,9 +29,9 @@ public class CommonUtilTest
 
         CommonUtil.UpdateProperties(actual, new Dictionary<string, dynamic>
         {
-            {"Name", "Jack" },
-            {"Age", 12 },
-            {"Identity", "aaa" }
+            { "Name", "Jack" },
+            { "Age", 12 },
+            { "Identity", "aaa" }
         });
 
         Assert.Equal(expected.Name, actual.Name);
