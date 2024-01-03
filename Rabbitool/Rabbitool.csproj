@@ -23,11 +23,11 @@
     <ItemGroup>
         <None Remove=".editorconfig"/>
         <None Include="appsettings.json">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
         <None Include="appsettings.Development.json">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

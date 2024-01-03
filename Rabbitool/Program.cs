@@ -16,13 +16,12 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureAppConfiguration((context, configurationBuilder) =>
         {
             configurationBuilder
                 .AddJsonFile("appsettings.json")
-                .AddJsonFile("appsettings.Development.json", optional: true);
+                .AddJsonFile("appsettings.Development.json", true);
         });
         builder.UseServiceProviderFactory(new AutofacServiceProviderFactory());
         builder.ConfigureContainer<ContainerBuilder>((c, containerBuilder) =>
@@ -32,9 +31,9 @@ public class Program
                 .SetDefaultAutofacScopeToSingleInstance());
         });
         builder.ConfigureServices(services => services.AddScheduler());
-        
+
         using IHost host = builder.Build();
-        
+
         // 配置logger
         LoggerConfig loggerConfig = host.Services.GetRequiredService<LoggerConfig>();
         NotifierConfig? notifierConfig = host.Services.GetService<NotifierConfig>();

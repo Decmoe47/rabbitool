@@ -1,5 +1,4 @@
 ﻿using Autofac.Annotation;
-using Autofac.Annotation.Condition;
 using Coravel.Invocable;
 using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.MessageModels;
@@ -25,10 +24,10 @@ public class BilibiliPlugin(
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    [Autowired(Required = false)] 
-    private MarkdownTemplateIdsConfig? _templateIds = null;
-    
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
+
+    [Autowired(Required = false)] private readonly MarkdownTemplateIdsConfig? _templateIds = null;
+
     private int _waitTime;
 
     public CancellationToken CancellationToken { get; set; }
