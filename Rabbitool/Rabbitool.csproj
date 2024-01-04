@@ -31,7 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Autofac.Annotation" Version="4.4.3"/>
+        <PackageReference Include="Autofac.Annotation" Version="4.4.5"/>
         <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0"/>
         <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6"/>
         <PackageReference Include="Coravel" Version="5.0.2"/>

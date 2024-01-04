@@ -17,6 +17,6 @@ public class QQBotConfig
 
     [Value("${qqBot:sandboxGuildName}")] public string SandboxGuildName { get; set; } = null!;
 
-    [Value("${qqBot:markdownTemplateIds}", IgnoreUnresolvablePlaceholders = true)]
+    [Value("qqBot:markdownTemplateIds", UseSpel = false, IgnoreUnresolvablePlaceholders = true)]
     public MarkdownTemplateIdsConfig? MarkdownTemplateIds { get; set; }
 }
