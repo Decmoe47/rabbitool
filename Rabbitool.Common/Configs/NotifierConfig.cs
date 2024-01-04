@@ -7,7 +7,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("notifier:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class NotifierConfig
 {
     [Value("${notifier:enabled}")] public bool Enable { get; set; }

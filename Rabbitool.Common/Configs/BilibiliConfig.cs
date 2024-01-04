@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("bilibili:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class BilibiliConfig
 {
     [Value("${bilibili:enabled}")] public bool Enable { get; set; }

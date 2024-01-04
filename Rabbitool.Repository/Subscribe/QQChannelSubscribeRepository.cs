@@ -4,7 +4,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
+[Component]
 public class QQChannelSubscribeRepository(SubscribeDbContext ctx)
     : BaseRepository<QQChannelSubscribeEntity, SubscribeDbContext>(ctx)
 {

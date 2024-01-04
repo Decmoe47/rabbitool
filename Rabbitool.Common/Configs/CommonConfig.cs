@@ -4,7 +4,7 @@ using Rabbitool.Common.Constant;
 namespace Rabbitool.Common.Configs;
 
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class CommonConfig
 {
     [Value("${redirectUrl}")] public string RedirectUrl { get; set; } = null!;

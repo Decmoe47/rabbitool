@@ -4,7 +4,7 @@ using Rabbitool.Common.Constant;
 namespace Rabbitool.Common.Configs;
 
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class QQBotConfig
 {
     [Value("${qqBot:botQQ}")] public string BotQQ { get; set; } = null!;

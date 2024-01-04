@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("qqBot:markdownTemplateIds:textOnly")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class MarkdownTemplateIdsConfig
 {
     [Value("${qqBot:markdownTemplateIds:textOnly}")]

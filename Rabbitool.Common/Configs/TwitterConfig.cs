@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("twitter:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class TwitterConfig
 {
     [Value("${notifier:enabled}")] public bool Enable { get; set; }

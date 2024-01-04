@@ -6,7 +6,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
+[Component]
 public class BilibiliSubscribeRepository(SubscribeDbContext dbCtx)
     : BaseRepository<BilibiliSubscribeEntity, SubscribeDbContext>(dbCtx),
         ISubscribeRepository<BilibiliSubscribeEntity>
@@ -86,7 +86,7 @@ public class BilibiliSubscribeRepository(SubscribeDbContext dbCtx)
     }
 }
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
+[Component]
 public class BilibiliSubscribeConfigRepository(SubscribeDbContext dbCtx)
     : BaseRepository<BilibiliSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<BilibiliSubscribeEntity, BilibiliSubscribeConfigEntity>

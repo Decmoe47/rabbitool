@@ -1,12 +1,11 @@
-﻿using Autofac.Annotation;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
+using Serilog;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
 {
     public DbSet<QQChannelSubscribeEntity> QQChannelSubscribes => Set<QQChannelSubscribeEntity>();
@@ -22,7 +21,10 @@ public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
+        {
             optionsBuilder.UseSqlite($"Data Source={commonConfig.DbPath}");
+            Log.Debug($"Loaded db: {commonConfig.DbPath}");
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

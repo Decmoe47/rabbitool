@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("youtube:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class YoutubeConfig
 {
     [Value("${notifier:enabled}")] public bool Enable { get; set; }

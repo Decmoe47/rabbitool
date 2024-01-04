@@ -6,7 +6,7 @@ namespace Rabbitool.Common.Configs;
 
 [ConditionalOnProperty("proxy:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class ProxyConfig
 {
     [Value("${notifier:enabled}")] public bool Enable { get; set; }

@@ -6,7 +6,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
+[Component]
 public class MailSubscribeRepository(SubscribeDbContext dbCtx)
     : BaseRepository<MailSubscribeEntity, SubscribeDbContext>(dbCtx),
         ISubscribeRepository<MailSubscribeEntity>
@@ -82,7 +82,7 @@ public class MailSubscribeRepository(SubscribeDbContext dbCtx)
     }
 }
 
-[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
+[Component]
 public class MailSubscribeConfigRepository(SubscribeDbContext dbCtx)
     : BaseRepository<MailSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<MailSubscribeEntity, MailSubscribeConfigEntity>

@@ -6,8 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Constant;
 using Rabbitool.Common.Provider;
 using Rabbitool.Plugin;
+using Rabbitool.Repository.Subscribe;
 using Serilog;
 
 namespace Rabbitool;
@@ -17,6 +19,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
+        Console.WriteLine($"Use config: {Constants.ConfigFilename}");
         builder.ConfigureAppConfiguration((context, configurationBuilder) =>
         {
             configurationBuilder
@@ -27,10 +30,13 @@ public class Program
         builder.ConfigureContainer<ContainerBuilder>((c, containerBuilder) =>
         {
             containerBuilder.RegisterModule(new AutofacAnnotationModule()
-                .SetDefaultValueResource(c.Configuration)
-                .SetDefaultAutofacScopeToSingleInstance());
+                .SetDefaultValueResource(c.Configuration));
         });
-        builder.ConfigureServices(services => services.AddScheduler());
+        builder.ConfigureServices(services =>
+        {
+            services.AddScheduler();
+            services.AddDbContext<SubscribeDbContext>();
+        });
 
         using IHost host = builder.Build();
 

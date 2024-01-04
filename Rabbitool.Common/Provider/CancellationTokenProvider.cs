@@ -2,7 +2,7 @@
 
 namespace Rabbitool.Common.Provider;
 
-[Component]
+[Component(AutofacScope = AutofacScope.SingleInstance)]
 public class CancellationTokenProvider : ICancellationTokenProvider
 {
     public CancellationTokenProvider()
