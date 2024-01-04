@@ -54,7 +54,7 @@ public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
             (c1, c2) => CompareDateTime(c1, c2),
             c => c.GetHashCode(),
             c => DateTime
-                .ParseExact(c.ToString("yyyy-MM-ddTHH:mm:sszzz"), "yyyy-MM-ddTHH:mm:sszzz", null)
+                .ParseExact(c.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"), "yyyy-MM-ddTHH:mm:sszzz", null)
                 .ToUniversalTime());
 
         // conversions
@@ -70,34 +70,35 @@ public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
                 v => string.Join(',', v),
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
                 comparerForList);
+
         modelBuilder.Entity<BilibiliSubscribeEntity>()
             .Property(e => e.LastDynamicTime)
             .HasConversion(
-                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => v.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime(),
                 comparerForDateTime);
         modelBuilder.Entity<YoutubeSubscribeEntity>()
             .Property(e => e.LastVideoPubTime)
             .HasConversion(
-                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => v.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime(),
                 comparerForDateTime);
         modelBuilder.Entity<YoutubeSubscribeEntity>()
             .Property(e => e.LastLiveStartTime)
             .HasConversion(
-                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => v.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime(),
                 comparerForDateTime);
         modelBuilder.Entity<TwitterSubscribeEntity>()
             .Property(e => e.LastTweetTime)
             .HasConversion(
-                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => v.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime(),
                 comparerForDateTime);
         modelBuilder.Entity<MailSubscribeEntity>()
             .Property(e => e.LastMailTime)
             .HasConversion(
-                v => v.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                v => v.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 v => DateTime.ParseExact(v, "yyyy-MM-ddTHH:mm:sszzz", null).ToUniversalTime(),
                 comparerForDateTime);
     }
