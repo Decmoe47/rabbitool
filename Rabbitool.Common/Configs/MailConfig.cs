@@ -4,10 +4,10 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("mail")]
+[ConditionalOnProperty("mail:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class MailConfig
 {
-    [Value("${mail:interval}")] public int Interval { get; set; }
+    [Value("${mail:enabled}")] public bool Enable { get; set; }
 }

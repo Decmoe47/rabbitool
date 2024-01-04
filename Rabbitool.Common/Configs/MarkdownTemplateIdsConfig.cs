@@ -4,7 +4,7 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("qqBot:markdownTemplateIds")]
+[ConditionalOnProperty("qqBot:markdownTemplateIds:textOnly")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class MarkdownTemplateIdsConfig

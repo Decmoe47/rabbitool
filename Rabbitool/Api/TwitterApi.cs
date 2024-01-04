@@ -12,7 +12,7 @@ using Serilog;
 
 namespace Rabbitool.Api;
 
-[ConditionalOnProperty("twitter")]
+[ConditionalOnProperty("twitter:enabled", "True")]
 [Component]
 public class TwitterApi(TwitterConfig twitterConfig)
 {

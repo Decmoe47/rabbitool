@@ -4,10 +4,10 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("bilibili")]
+[ConditionalOnProperty("bilibili:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class BilibiliConfig
 {
-    [Value("${bilibili:interval}")] public int Interval { get; set; }
+    [Value("${bilibili:enabled}")] public bool Enable { get; set; }
 }

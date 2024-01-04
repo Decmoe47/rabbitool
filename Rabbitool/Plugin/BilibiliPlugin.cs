@@ -1,4 +1,5 @@
 ﻿using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Coravel.Invocable;
 using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.MessageModels;
@@ -14,6 +15,7 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
+[ConditionalOnProperty("bilibili:enabled", "True")]
 [Component]
 public class BilibiliPlugin(
     QQBotApi qqBotApi,
@@ -25,13 +27,9 @@ public class BilibiliPlugin(
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
     private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
-
     [Autowired(Required = false)] private readonly MarkdownTemplateIdsConfig? _templateIds = null;
-
     private int _waitTime;
-
     public CancellationToken CancellationToken { get; set; }
-
     public string Name => "Bilibili";
 
     public async Task InitAsync()

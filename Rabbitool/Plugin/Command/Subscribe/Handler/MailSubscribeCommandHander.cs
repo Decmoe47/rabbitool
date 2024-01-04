@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using Autofac.Annotation;
-using Autofac.Annotation.Condition;
 using Rabbitool.Event;
 using Rabbitool.Model.DTO.Command;
 using Rabbitool.Model.Entity.Subscribe;
@@ -9,7 +8,6 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-[ConditionalOnProperty("mail")]
 [Component]
 public partial class MailSubscribeCommandHandler(
     SubscribeDbContext dbCtx,

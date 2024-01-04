@@ -1,5 +1,4 @@
 ﻿using Autofac.Annotation;
-using Autofac.Annotation.Condition;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
 using Rabbitool.Common.Configs;
@@ -9,7 +8,6 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-[ConditionalOnProperty("twitter")]
 [Component]
 public class TwitterSubscribeCommandHandler(
     SubscribeDbContext dbCtx,

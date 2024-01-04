@@ -4,12 +4,12 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("twitter")]
+[ConditionalOnProperty("twitter:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class TwitterConfig
 {
-    [Value("${twitter:interval}")] public int Interval { get; set; }
+    [Value("${notifier:enabled}")] public bool Enable { get; set; }
 
     [Value("${twitter:bearerToken}", IgnoreUnresolvablePlaceholders = true)]
     public string? BearerToken { get; set; }

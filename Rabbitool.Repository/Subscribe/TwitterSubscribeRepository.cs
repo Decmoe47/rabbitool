@@ -6,7 +6,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class TwitterSubscribeRepository(SubscribeDbContext ctx)
     : BaseRepository<TwitterSubscribeEntity, SubscribeDbContext>(ctx),
         ISubscribeRepository<TwitterSubscribeEntity>
@@ -72,7 +72,7 @@ public class TwitterSubscribeRepository(SubscribeDbContext ctx)
     }
 }
 
-[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class TwitterSubscribeConfigRepository(SubscribeDbContext dbCtx)
     : BaseRepository<TwitterSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<TwitterSubscribeEntity, TwitterSubscribeConfigEntity>

@@ -10,7 +10,7 @@ using Rabbitool.Model.DTO.Youtube;
 
 namespace Rabbitool.Api;
 
-[ConditionalOnProperty("youtube")]
+[ConditionalOnProperty("youtube:enabled", "True")]
 [Component]
 public class YoutubeApi(YoutubeConfig youtubeConfig)
 {

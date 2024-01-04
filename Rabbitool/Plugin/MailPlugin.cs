@@ -17,7 +17,7 @@ using Mail = Rabbitool.Model.DTO.Mail.Mail;
 
 namespace Rabbitool.Plugin;
 
-[ConditionalOnProperty("mail")]
+[ConditionalOnProperty("mail:enabled", "True")]
 [Component]
 public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
 {
@@ -27,6 +27,7 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
     private readonly ICancellationTokenProvider _ctp;
     private readonly QQBotApi _qqBotApi;
     private readonly MailSubscribeRepository _repo;
+
     private readonly Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
 
     /// <summary>
@@ -49,9 +50,7 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
     }
 
     public CancellationToken CancellationToken { get; set; }
-
     public string Name => "mail";
-
 
     public Task InitAsync()
     {

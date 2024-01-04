@@ -1,5 +1,6 @@
 ﻿using System.Threading.RateLimiting;
 using Autofac.Annotation;
+using Autofac.Annotation.Condition;
 using Flurl;
 using Flurl.Http;
 using Newtonsoft.Json.Linq;
@@ -11,6 +12,7 @@ using Serilog;
 
 namespace Rabbitool.Api;
 
+[ConditionalOnProperty("bilibili:enabled", "True")]
 [Component]
 public class BilibiliApi(CommonConfig commonConfig)
 {

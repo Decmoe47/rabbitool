@@ -1,5 +1,4 @@
 ﻿using Autofac.Annotation;
-using Autofac.Annotation.Condition;
 using CodeHollow.FeedReader;
 using Flurl.Http;
 using Rabbitool.Model.Entity.Subscribe;
@@ -8,7 +7,6 @@ using Serilog;
 
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-[ConditionalOnProperty("youtube")]
 [Component]
 public class YoutubeSubscribeCommandHandler(
     SubscribeDbContext dbCtx,

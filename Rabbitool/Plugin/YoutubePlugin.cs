@@ -13,7 +13,7 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-[ConditionalOnProperty("youtube")]
+[ConditionalOnProperty("youtube:enabled", "True")]
 [Component]
 public class YoutubePlugin(
     QQBotApi qqBotApi,

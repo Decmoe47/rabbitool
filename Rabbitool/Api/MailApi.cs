@@ -7,7 +7,7 @@ using Rabbitool.Model.DTO.Mail;
 
 namespace Rabbitool.Api;
 
-[ConditionalOnProperty("mail")]
+[ConditionalOnProperty("mail:enabled", "True")]
 [Component]
 public class MailApi(string host, int port, bool usingSsl, string username, string password, string mailbox = "INBOX")
     : IDisposable

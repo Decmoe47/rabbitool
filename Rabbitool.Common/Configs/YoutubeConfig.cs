@@ -4,12 +4,12 @@ using Rabbitool.Common.Constant;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("youtube")]
+[ConditionalOnProperty("youtube:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class YoutubeConfig
 {
-    [Value("${youtube:interval}")] public int Interval { get; set; }
+    [Value("${notifier:enabled}")] public bool Enable { get; set; }
 
     [Value("${youtube:apiKey}")] public string ApiKey { get; set; } = null!;
 }

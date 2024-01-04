@@ -1,15 +1,12 @@
 ﻿using Autofac.Annotation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 using Rabbitool.Common.Configs;
 using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
 {
     public DbSet<QQChannelSubscribeEntity> QQChannelSubscribes => Set<QQChannelSubscribeEntity>();
@@ -28,18 +25,26 @@ public class SubscribeDbContext(CommonConfig commonConfig) : DbContext
             optionsBuilder.UseSqlite($"Data Source={commonConfig.DbPath}");
     }
 
-    /// <summary>
-    ///     https://learn.microsoft.com/zh-cn/ef/core/modeling/bulk-configuration#example-opt-in-property-mapping/>
-    /// </summary>
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
-        configurationBuilder.Conventions.Replace<ManyToManyJoinEntityTypeConvention>(provider =>
-            new MyManyToManyJoinEntityTypeConvention(provider
-                .GetRequiredService<ProviderConventionSetBuilderDependencies>()));
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // relations
+        modelBuilder.Entity<BilibiliSubscribeEntity>()
+            .HasMany(e => e.QQChannels)
+            .WithMany(e => e.BilibiliSubscribes)
+            .UsingEntity("BilibiliSubscribe_QQChannelSubscribe");
+        modelBuilder.Entity<YoutubeSubscribeEntity>()
+            .HasMany(e => e.QQChannels)
+            .WithMany(e => e.YoutubeSubscribes)
+            .UsingEntity("YoutubeSubscribe_QQChannelSubscribe");
+        modelBuilder.Entity<TwitterSubscribeEntity>()
+            .HasMany(e => e.QQChannels)
+            .WithMany(e => e.TwitterSubscribes)
+            .UsingEntity("TwitterSubscribe_QQChannelSubscribe");
+        modelBuilder.Entity<MailSubscribeEntity>()
+            .HasMany(e => e.QQChannels)
+            .WithMany(e => e.MailSubscribes)
+            .UsingEntity("MailSubscribe_QQChannelSubscribe");
+
         // compares
         ValueComparer<List<string>> comparerForList = new(
             (c1, c2) => CompareList(c1, c2),

@@ -5,16 +5,18 @@ using Rabbitool.Common.Provider;
 
 namespace Rabbitool.Common.Configs;
 
-[ConditionalOnProperty("notifier")]
+[ConditionalOnProperty("notifier:enabled", "True")]
 [PropertySource(Constants.ConfigFilename)]
 [Component]
 public class NotifierConfig
 {
-    [Value("${notifier:host")] public string Host { get; set; } = null!;
+    [Value("${notifier:enabled}")] public bool Enable { get; set; }
+
+    [Value("${notifier:host}")] public string Host { get; set; } = null!;
 
     [Value("${notifier:port}")] public int Port { get; set; }
 
-    [Value("$notifier:ssl")] public bool Ssl { get; set; }
+    [Value("${notifier:ssl}")] public bool Ssl { get; set; }
 
     [Value("${notifier:username}")] public string UserName { get; set; } = null!;
 
@@ -22,7 +24,8 @@ public class NotifierConfig
 
     [Value("${notifier:from}")] public string From { get; set; } = null!;
 
-    [Value("${notifier:to}")] public string[] To { get; set; } = null!;
+    [Value("notifier:to", UseSpel = false)]
+    public string[] To { get; set; } = null!;
 
     [Value("${notifier:interval}")] public int Interval { get; set; }
 

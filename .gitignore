@@ -362,6 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+.VSCodeCounter/
+.idea/
 
 *.db
 *.db-shm
@@ -369,11 +371,7 @@ FodyWeavers.xsd
 
 *.yml
 *.yaml
-!configs_example.yml
-
 *.xlsx
-
-.VSCodeCounter/
 
 appsettings.json
 appsettings.Development.json

@@ -6,7 +6,7 @@ using Rabbitool.Model.Entity.Subscribe;
 
 namespace Rabbitool.Repository.Subscribe;
 
-[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class YoutubeSubscribeRepository(SubscribeDbContext ctx)
     : BaseRepository<YoutubeSubscribeEntity, SubscribeDbContext>(ctx), ISubscribeRepository<YoutubeSubscribeEntity>
 {
@@ -70,7 +70,7 @@ public class YoutubeSubscribeRepository(SubscribeDbContext ctx)
     }
 }
 
-[Component(AutofacScope = AutofacScope.InstancePerDependency)]
+[Component(AutofacScope = AutofacScope.InstancePerLifetimeScope)]
 public class YoutubeSubscribeConfigRepository(SubscribeDbContext dbCtx)
     : BaseRepository<YoutubeSubscribeConfigEntity, SubscribeDbContext>(dbCtx),
         ISubscribeConfigRepository<YoutubeSubscribeEntity, YoutubeSubscribeConfigEntity>

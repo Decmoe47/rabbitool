@@ -17,7 +17,7 @@ using Serilog;
 
 namespace Rabbitool.Plugin;
 
-[ConditionalOnProperty("twitter")]
+[ConditionalOnProperty("twitter:enabled", "True")]
 [Component]
 public class TwitterPlugin(
     QQBotApi qqBotApi,
@@ -25,11 +25,11 @@ public class TwitterPlugin(
     TwitterApi twitterApi,
     TwitterSubscribeRepository repo,
     TwitterSubscribeConfigRepository configRepo,
-    MarkdownTemplateIdsConfig templateIds,
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
     private readonly Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
+    [Autowired(Required = false)] private readonly MarkdownTemplateIdsConfig? _templateIds = null;
     public CancellationToken CancellationToken { get; set; }
     public string Name => "twitter";
 
@@ -235,7 +235,7 @@ public class TwitterPlugin(
     private async Task<(MessageMarkdown markdown, List<string>? otherImgs)> TweetToMarkdownAsync(Tweet tweet)
     {
         List<string> otherImages = [];
-        string templateId = templateIds.TextOnly;
+        string templateId = _templateIds.TextOnly;
         MarkdownTemplateParams templateParams = new()
         {
             Info = "新推文",
@@ -249,7 +249,7 @@ public class TwitterPlugin(
             templateParams.ImageUrl = tweet.ImageUrls[0];
             if (tweet.ImageUrls.Count > 1)
                 otherImages.AddRange(tweet.ImageUrls.GetRange(1, tweet.ImageUrls.Count - 1));
-            templateId = templateIds.WithImage;
+            templateId = _templateIds.WithImage;
         }
 
         switch (tweet.Type)
@@ -258,7 +258,7 @@ public class TwitterPlugin(
                 break;
 
             case TweetTypeEnum.Quote:
-                templateId = templateIds.ContainsOriginTextOnly;
+                templateId = _templateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新带评论转发推文";
                 templateParams.Origin = new MarkdownTemplateParams
                 {
@@ -272,13 +272,13 @@ public class TwitterPlugin(
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = templateIds.ContainsOriginWithImage;
+                    templateId = _templateIds.ContainsOriginWithImage;
                 }
 
                 break;
 
             case TweetTypeEnum.RT:
-                templateId = templateIds.ContainsOriginTextOnly;
+                templateId = _templateIds.ContainsOriginTextOnly;
                 templateParams.Info = "新转发推文";
                 templateParams.Url = tweet.Url.AddRedirectToUrls(commonConfig.RedirectUrl);
                 templateParams.Origin = new MarkdownTemplateParams
@@ -293,7 +293,7 @@ public class TwitterPlugin(
                     templateParams.ImageUrl = tweet.Origin.ImageUrls[0];
                     if (tweet.Origin.ImageUrls.Count > 1)
                         otherImages.AddRange(tweet.Origin.ImageUrls.GetRange(1, tweet.Origin.ImageUrls.Count - 1));
-                    templateId = templateIds.ContainsOriginWithImage;
+                    templateId = _templateIds.ContainsOriginWithImage;
                 }
 
                 break;
