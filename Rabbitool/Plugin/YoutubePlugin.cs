@@ -184,9 +184,9 @@ public class YoutubePlugin(
         record.LastLiveRoomId = live.Id;
         record.LastLiveStartTime = (DateTime)live.ActualStartTime!;
         record.AllArchiveVideoIds.Add(live.Id);
-
         if (record.AllArchiveVideoIds.Count > 5)
             record.AllArchiveVideoIds.RemoveAt(0);
+        record.AllUpcomingLiveRoomIds.Remove(live.Id);
 
         if (saving)
             await repo.SaveAsync(ctp.Token);
