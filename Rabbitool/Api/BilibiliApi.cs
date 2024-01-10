@@ -16,7 +16,7 @@ namespace Rabbitool.Api;
 [Component]
 public class BilibiliApi(CommonConfig commonConfig)
 {
-    private readonly CookieJar _jar = new();
+    private static readonly CookieJar Jar = new();
 
     private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
@@ -31,7 +31,7 @@ public class BilibiliApi(CommonConfig commonConfig)
         // TODO: https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/login/cookie_refresh.md
         _ = await "https://bilibili.com"
             .WithTimeout(10)
-            .WithCookies(_jar)
+            .WithCookies(Jar)
             .GetAsync(cancellationToken: ct);
     }
 
@@ -42,7 +42,7 @@ public class BilibiliApi(CommonConfig commonConfig)
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
             .WithTimeout(10)
-            .WithCookies(_jar)
+            .WithCookies(Jar)
             .WithHeader("User-Agent", commonConfig.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
@@ -62,7 +62,7 @@ public class BilibiliApi(CommonConfig commonConfig)
         string resp2 = await "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom"
             .SetQueryParam("room_id", roomId)
             .WithTimeout(10)
-            .WithCookies(_jar)
+            .WithCookies(Jar)
             .WithHeader("User-Agent", commonConfig.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body2 = JObject.Parse(resp2).RemoveNullAndEmptyProperties();
@@ -133,7 +133,7 @@ public class BilibiliApi(CommonConfig commonConfig)
             .SetQueryParam("needTop", needTop)
             .SetQueryParam("host_uid", uid)
             .WithTimeout(10)
-            .WithCookies(_jar)
+            .WithCookies(Jar)
             .WithHeader("User-Agent", commonConfig.UserAgent)
             .GetStringAsync(cancellationToken: ct);
         JObject body = JObject.Parse(resp).RemoveNullAndEmptyProperties();
@@ -392,7 +392,7 @@ public class BilibiliApi(CommonConfig commonConfig)
 
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
-            .WithCookies(_jar)
+            .WithCookies(Jar)
             .WithTimeout(10)
             .WithHeader("User-Agent", commonConfig.UserAgent)
             .GetStringAsync(cancellationToken: ct);

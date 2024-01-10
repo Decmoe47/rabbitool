@@ -50,7 +50,7 @@ public class BilibiliPlugin(
         else
         {
             _waitTime = 0;
-            TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(60) + 5);
+            TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(10) + 5);
             Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds}s...");
             if (ctp.Token.WaitHandle.WaitOne(sleepTime))
                 return;
