@@ -7,4 +7,6 @@ public static class Constants
 #else
     public const string ConfigFilename = "appsettings.json";
 #endif
+
+    public static readonly int[] BilibiliAntiCrawlerErrorCodes = [-401, -509, -799, -352];
 }

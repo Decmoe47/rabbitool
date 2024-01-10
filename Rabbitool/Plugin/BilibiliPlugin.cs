@@ -4,6 +4,8 @@ using Coravel.Invocable;
 using MyBot.Models.MessageModels;
 using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Constant;
+using Rabbitool.Common.Extension;
 using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Bilibili;
@@ -38,20 +40,28 @@ public class BilibiliPlugin(
 
     public async Task Invoke()
     {
-        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(5) + 5);
-        Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
-        Thread.Sleep(sleepTime);
-
-        bool wait = await CheckAllAsync();
-        if (wait)
+        if (_waitTime != 0)
         {
             Log.Warning($"[Bilibili] Touching off anti crawler! Wait {_waitTime} minutes...");
-            Thread.Sleep(TimeSpan.FromMinutes(_waitTime));
-            _waitTime += _waitTime <= 60 ? 2 : 0;
+            if (ctp.Token.WaitHandle.WaitOne(TimeSpan.FromMinutes(_waitTime)))
+                return;
+            _waitTime += _waitTime <= 60 ? 5 : 0;
         }
         else
         {
-            _waitTime = 2;
+            _waitTime = 0;
+            TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(60) + 5);
+            Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds}s...");
+            if (ctp.Token.WaitHandle.WaitOne(sleepTime))
+                return;
+        }
+
+        if (await CheckAllAsync())
+        {
+            if (_waitTime != 0)
+                _waitTime += _waitTime <= 60 ? 5 : 0;
+            else
+                _waitTime = 5;
         }
     }
 
@@ -150,7 +160,6 @@ public class BilibiliPlugin(
         {
             if (bex.Code is -401 or -509 or -799 or -352) return true;
             if (bex.Message == "风控校验失败") return true;
-
             Log.Error(bex, "[Bilibili] Failed to push bilibili dynamic message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
@@ -625,8 +634,8 @@ public class BilibiliPlugin(
         }
         catch (BilibiliApiException bex)
         {
-            if (bex.Code is -401 or -509 or -799) return true;
-
+            if (Constants.BilibiliAntiCrawlerErrorCodes.Contains(bex.Code)) return true;
+            if (bex.Message == "风控校验失败") return true;
             Log.Error(bex, "[Bilibili] Failed to push bilibili live message!\nUname: {name}\nUid: {uid}",
                 record.Uname, record.Uid);
             return false;
