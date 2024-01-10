@@ -6,6 +6,7 @@ using MyBot.Models.Forum;
 using Newtonsoft.Json;
 using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Extension;
 using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Event;

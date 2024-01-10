@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Rabbitool;
+namespace Rabbitool.Common.Extension;
 
-public static partial class Extension
+public static partial class UrlExtension
 {
     public static string AddRedirectToUrls(this string text, string redirectUrl)
     {

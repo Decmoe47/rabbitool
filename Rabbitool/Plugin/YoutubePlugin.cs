@@ -3,6 +3,7 @@ using Autofac.Annotation.Condition;
 using Coravel.Invocable;
 using Rabbitool.Api;
 using Rabbitool.Common.Configs;
+using Rabbitool.Common.Extension;
 using Rabbitool.Common.Provider;
 using Rabbitool.Common.Util;
 using Rabbitool.Model.DTO.Youtube;
