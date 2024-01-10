@@ -45,11 +45,9 @@ public class BilibiliPlugin(
             Log.Warning($"[Bilibili] Touching off anti crawler! Wait {_waitTime} minutes...");
             if (ctp.Token.WaitHandle.WaitOne(TimeSpan.FromMinutes(_waitTime)))
                 return;
-            _waitTime += _waitTime <= 60 ? 5 : 0;
         }
         else
         {
-            _waitTime = 0;
             TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(10) + 5);
             Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds}s...");
             if (ctp.Token.WaitHandle.WaitOne(sleepTime))
@@ -62,6 +60,10 @@ public class BilibiliPlugin(
                 _waitTime += _waitTime <= 60 ? 5 : 0;
             else
                 _waitTime = 5;
+        }
+        else
+        {
+            _waitTime = 0;
         }
     }
 
