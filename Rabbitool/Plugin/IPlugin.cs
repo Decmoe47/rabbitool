@@ -1,4 +1,4 @@
-﻿using Coravel.Scheduling.Schedule.Interfaces;
+﻿using Coravel.Invocable;
 
 namespace Rabbitool.Plugin;
 
@@ -9,9 +9,8 @@ public interface IPlugin
     Task InitAsync();
 }
 
-public interface IScheduledPlugin : IPlugin
+public interface IScheduledPlugin : IPlugin, IInvocable
 {
-    Action<IScheduler> GetScheduler();
 }
 
 public interface IRunnablePlugin : IPlugin

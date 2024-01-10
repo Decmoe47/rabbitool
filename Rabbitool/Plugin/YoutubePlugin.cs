@@ -1,7 +1,6 @@
 ﻿using Autofac.Annotation;
 using Autofac.Annotation.Condition;
 using Coravel.Invocable;
-using Coravel.Scheduling.Schedule.Interfaces;
 using Rabbitool.Api;
 using Rabbitool.Common.Configs;
 using Rabbitool.Common.Provider;
@@ -23,7 +22,7 @@ public class YoutubePlugin(
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    private readonly Dictionary<string, Dictionary<DateTime, YoutubeVideo>> _storedVideos = new();
+    private static readonly Dictionary<string, Dictionary<DateTime, YoutubeVideo>> StoredVideos = new();
     public CancellationToken CancellationToken { get; set; }
     public string Name => "youtube";
 
@@ -32,15 +31,9 @@ public class YoutubePlugin(
         return Task.CompletedTask;
     }
 
-    public Action<IScheduler> GetScheduler()
+    public async Task Invoke()
     {
-        return scheduler =>
-        {
-            scheduler
-                .ScheduleAsync(async () => await CheckAllAsync())
-                .EverySeconds(5)
-                .PreventOverlapping("YoutubePlugin");
-        };
+        await CheckAllAsync();
     }
 
     private async Task CheckAllAsync()
@@ -104,10 +97,10 @@ public class YoutubePlugin(
 
                     if (now.Hour is >= 0 and <= 5)
                     {
-                        if (!_storedVideos.ContainsKey(video.ChannelId))
-                            _storedVideos[video.ChannelId] = new Dictionary<DateTime, YoutubeVideo>();
-                        if (!_storedVideos[video.ChannelId].ContainsKey(video.PubTime))
-                            _storedVideos[video.ChannelId][video.PubTime] = video;
+                        if (!StoredVideos.ContainsKey(video.ChannelId))
+                            StoredVideos[video.ChannelId] = new Dictionary<DateTime, YoutubeVideo>();
+                        if (!StoredVideos[video.ChannelId].ContainsKey(video.PubTime))
+                            StoredVideos[video.ChannelId][video.PubTime] = video;
 
                         Log.Debug(
                             "[Youtube] Youtube video message of the user {name}(channelId: {channelId} is skipped because it's curfew time now.",
@@ -115,7 +108,7 @@ public class YoutubePlugin(
                         return;
                     }
 
-                    if (_storedVideos.TryGetValue(video.ChannelId, out Dictionary<DateTime, YoutubeVideo>? storedVideos)
+                    if (StoredVideos.TryGetValue(video.ChannelId, out Dictionary<DateTime, YoutubeVideo>? storedVideos)
                         && storedVideos.Count != 0)
                     {
                         List<DateTime> pubTimes = storedVideos.Keys.ToList();
@@ -123,7 +116,7 @@ public class YoutubePlugin(
                         foreach (DateTime pubTime in pubTimes)
                         {
                             await PushVideoAndUpdateDatabaseAsync(storedVideos[pubTime], record);
-                            _storedVideos[video.ChannelId].Remove(pubTime);
+                            StoredVideos[video.ChannelId].Remove(pubTime);
                         }
 
                         return;

@@ -1,7 +1,6 @@
 ﻿using Autofac.Annotation;
 using Autofac.Annotation.Condition;
 using Coravel.Invocable;
-using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.Forum;
 using MyBot.Models.MessageModels;
 using Newtonsoft.Json;
@@ -28,7 +27,7 @@ public class TwitterPlugin(
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    private readonly Dictionary<string, Dictionary<DateTime, Tweet>> _storedTweets = new();
+    private static readonly Dictionary<string, Dictionary<DateTime, Tweet>> StoredTweets = new();
     [Autowired(Required = false)] private readonly MarkdownTemplateIdsConfig? _templateIds = null;
     public CancellationToken CancellationToken { get; set; }
     public string Name => "twitter";
@@ -38,15 +37,9 @@ public class TwitterPlugin(
         return Task.CompletedTask;
     }
 
-    public Action<IScheduler> GetScheduler()
+    public async Task Invoke()
     {
-        return scheduler =>
-        {
-            scheduler
-                .ScheduleAsync(async () => await CheckAllAsync())
-                .EverySeconds(5)
-                .PreventOverlapping("TwitterPlugin");
-        };
+        await CheckAllAsync();
     }
 
     private async Task CheckAllAsync()
@@ -92,10 +85,10 @@ public class TwitterPlugin(
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour is >= 0 and <= 5)
             {
-                if (!_storedTweets.ContainsKey(tweet.AuthorScreenName))
-                    _storedTweets[tweet.AuthorScreenName] = new Dictionary<DateTime, Tweet>();
-                if (!_storedTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
-                    _storedTweets[tweet.AuthorScreenName][tweet.PubTime] = tweet;
+                if (!StoredTweets.ContainsKey(tweet.AuthorScreenName))
+                    StoredTweets[tweet.AuthorScreenName] = new Dictionary<DateTime, Tweet>();
+                if (!StoredTweets[tweet.AuthorScreenName].ContainsKey(tweet.PubTime))
+                    StoredTweets[tweet.AuthorScreenName][tweet.PubTime] = tweet;
 
                 Log.Debug(
                     "[Twitter] Tweet message of the user {name}(screenName: {screenName}) is skipped because it's curfew time now.",
@@ -103,7 +96,7 @@ public class TwitterPlugin(
                 return;
             }
 
-            if (_storedTweets.TryGetValue(tweet.AuthorScreenName, out Dictionary<DateTime, Tweet>? storedTweets)
+            if (StoredTweets.TryGetValue(tweet.AuthorScreenName, out Dictionary<DateTime, Tweet>? storedTweets)
                 && storedTweets.Count != 0)
             {
                 List<DateTime> pubTimes = storedTweets.Keys.ToList();
@@ -111,7 +104,7 @@ public class TwitterPlugin(
                 foreach (DateTime pubTime in pubTimes)
                 {
                     await FnAsync(storedTweets[pubTime]);
-                    _storedTweets[tweet.AuthorScreenName].Remove(pubTime);
+                    StoredTweets[tweet.AuthorScreenName].Remove(pubTime);
                 }
 
                 return;

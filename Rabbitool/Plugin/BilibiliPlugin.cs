@@ -1,7 +1,6 @@
 ﻿using Autofac.Annotation;
 using Autofac.Annotation.Condition;
 using Coravel.Invocable;
-using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.MessageModels;
 using Rabbitool.Api;
 using Rabbitool.Common.Configs;
@@ -26,7 +25,7 @@ public class BilibiliPlugin(
     CommonConfig commonConfig,
     ICancellationTokenProvider ctp) : IScheduledPlugin, ICancellableInvocable
 {
-    private readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> _storedDynamics = new();
+    private static readonly Dictionary<uint, Dictionary<DateTime, BaseDynamic>> StoredDynamics = new();
     [Autowired(Required = false)] private readonly MarkdownTemplateIdsConfig? _templateIds = null;
     private int _waitTime;
     public CancellationToken CancellationToken { get; set; }
@@ -37,29 +36,23 @@ public class BilibiliPlugin(
         await RefreshCookiesAsync();
     }
 
-    public Action<IScheduler> GetScheduler()
+    public async Task Invoke()
     {
-        return scheduler => scheduler
-            .ScheduleAsync(async () =>
-            {
-                TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(5) + 5);
-                Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
-                Thread.Sleep(sleepTime);
+        TimeSpan sleepTime = TimeSpan.FromSeconds(Random.Shared.Next(5) + 5);
+        Log.Debug($"[Bilibili] Sleep {sleepTime.TotalSeconds + 5}s...");
+        Thread.Sleep(sleepTime);
 
-                bool wait = await CheckAllAsync();
-                if (wait)
-                {
-                    Log.Warning($"[Bilibili] Touching off anti crawler! Wait {_waitTime} minutes...");
-                    Thread.Sleep(TimeSpan.FromMinutes(_waitTime));
-                    _waitTime += _waitTime <= 60 ? 2 : 0;
-                }
-                else
-                {
-                    _waitTime = 2;
-                }
-            })
-            .EverySeconds(10)
-            .PreventOverlapping("BilibiliPlugin");
+        bool wait = await CheckAllAsync();
+        if (wait)
+        {
+            Log.Warning($"[Bilibili] Touching off anti crawler! Wait {_waitTime} minutes...");
+            Thread.Sleep(TimeSpan.FromMinutes(_waitTime));
+            _waitTime += _waitTime <= 60 ? 2 : 0;
+        }
+        else
+        {
+            _waitTime = 2;
+        }
     }
 
     private async Task RefreshCookiesAsync()
@@ -120,10 +113,10 @@ public class BilibiliPlugin(
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour is >= 0 and <= 5)
             {
-                if (!_storedDynamics.ContainsKey(dy.Uid))
-                    _storedDynamics[dy.Uid] = new Dictionary<DateTime, BaseDynamic>();
-                if (!_storedDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
-                    _storedDynamics[dy.Uid][dy.DynamicUploadTime] = dy;
+                if (!StoredDynamics.ContainsKey(dy.Uid))
+                    StoredDynamics[dy.Uid] = new Dictionary<DateTime, BaseDynamic>();
+                if (!StoredDynamics[dy.Uid].ContainsKey(dy.DynamicUploadTime))
+                    StoredDynamics[dy.Uid][dy.DynamicUploadTime] = dy;
 
                 Log.Debug(
                     "[Bilibili] Dynamic message of the user {uname}(uid: {uid}) is skipped because it's curfew time now.",
@@ -132,7 +125,7 @@ public class BilibiliPlugin(
             }
 
             // 过了宵禁把攒的先发了
-            if (_storedDynamics.TryGetValue(dy.Uid, out Dictionary<DateTime, BaseDynamic>? storedDys)
+            if (StoredDynamics.TryGetValue(dy.Uid, out Dictionary<DateTime, BaseDynamic>? storedDys)
                 && storedDys.Count != 0)
             {
                 List<DateTime> uploadTimes = storedDys.Keys.ToList();
@@ -140,7 +133,7 @@ public class BilibiliPlugin(
                 foreach (DateTime uploadTime in uploadTimes)
                 {
                     await FnAsync(storedDys[uploadTime]);
-                    _storedDynamics[dy.Uid].Remove(uploadTime);
+                    StoredDynamics[dy.Uid].Remove(uploadTime);
                 }
 
                 return false;

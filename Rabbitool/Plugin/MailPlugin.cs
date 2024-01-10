@@ -2,7 +2,6 @@
 using Autofac.Annotation;
 using Autofac.Annotation.Condition;
 using Coravel.Invocable;
-using Coravel.Scheduling.Schedule.Interfaces;
 using MyBot.Models.Forum;
 using Newtonsoft.Json;
 using Rabbitool.Api;
@@ -21,14 +20,13 @@ namespace Rabbitool.Plugin;
 [Component]
 public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
 {
+    private static readonly Dictionary<string, Dictionary<DateTime, Mail>> StoredMails = new();
     private readonly List<MailApi> _apis = [];
     private readonly CommonConfig _commonConfig;
     private readonly MailSubscribeConfigRepository _configRepo;
     private readonly ICancellationTokenProvider _ctp;
     private readonly QQBotApi _qqBotApi;
     private readonly MailSubscribeRepository _repo;
-
-    private readonly Dictionary<string, Dictionary<DateTime, Mail>> _storedMails = new();
 
     /// <summary>
     ///     会同时注册<see cref="MailSubscribeEvent.AddMailSubscribeEvent" />
@@ -57,15 +55,9 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
         return Task.CompletedTask;
     }
 
-    public Action<IScheduler> GetScheduler()
+    public async Task Invoke()
     {
-        return scheduler =>
-        {
-            scheduler
-                .ScheduleAsync(async () => await CheckAllAsync())
-                .EverySeconds(5)
-                .PreventOverlapping("MailPlugin");
-        };
+        await CheckAllAsync();
     }
 
     private async Task CheckAllAsync()
@@ -120,17 +112,17 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
             DateTime now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeUtil.CST);
             if (now.Hour is >= 0 and <= 5)
             {
-                if (!_storedMails.ContainsKey(record.Username))
-                    _storedMails[record.Username] = new Dictionary<DateTime, Mail>();
-                if (!_storedMails[record.Username].ContainsKey(mail.Time))
-                    _storedMails[record.Username][mail.Time] = mail;
+                if (!StoredMails.ContainsKey(record.Username))
+                    StoredMails[record.Username] = new Dictionary<DateTime, Mail>();
+                if (!StoredMails[record.Username].ContainsKey(mail.Time))
+                    StoredMails[record.Username][mail.Time] = mail;
 
                 Log.Debug("[Mail] Mail message of the user {username} is skipped because it's curfew time now.",
                     record.Username);
                 return;
             }
 
-            if (_storedMails.TryGetValue(record.Username, out Dictionary<DateTime, Mail>? storedMails)
+            if (StoredMails.TryGetValue(record.Username, out Dictionary<DateTime, Mail>? storedMails)
                 && storedMails.Count != 0)
             {
                 List<DateTime> times = storedMails.Keys.ToList();
@@ -138,7 +130,7 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
                 foreach (DateTime time in times)
                 {
                     await FnAsync(storedMails[time]);
-                    _storedMails[record.Username].Remove(time);
+                    StoredMails[record.Username].Remove(time);
                 }
 
                 return;

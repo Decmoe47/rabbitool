@@ -14,7 +14,10 @@ public static class PluginLoader
             switch (plugin)
             {
                 case IScheduledPlugin scheduledPlugin:
-                    serviceProvider.UseScheduler(scheduledPlugin.GetScheduler())
+                    serviceProvider.UseScheduler(scheduler => scheduler
+                            .ScheduleInvocableType(scheduledPlugin.GetType())
+                            .EverySeconds(10)
+                            .PreventOverlapping(plugin.Name))
                         .OnError(ex =>
                             Log.Error(ex, "[" + plugin.Name + "] {msg}", ex.Message));
                     break;
