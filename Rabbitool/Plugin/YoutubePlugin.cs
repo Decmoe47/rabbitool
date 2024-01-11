@@ -142,9 +142,8 @@ public class YoutubePlugin(
 
     private async Task CheckUpcomingLiveAsync(YoutubeSubscribeEntity record)
     {
-        List<string> allUpcomingLiveRoomIdsTmp = record.AllUpcomingLiveRoomIds;
         List<string> roomIdsToRemove = [];
-        foreach (string roomId in allUpcomingLiveRoomIdsTmp)
+        foreach (string roomId in record.AllUpcomingLiveRoomIds)
         {
             if (await youtubeApi.IsStreamingAsync(roomId, ctp.Token) is not { } live)
                 continue;
@@ -180,7 +179,6 @@ public class YoutubePlugin(
         record.AllArchiveVideoIds.Add(live.Id);
         if (record.AllArchiveVideoIds.Count > 5)
             record.AllArchiveVideoIds.RemoveAt(0);
-        record.AllUpcomingLiveRoomIds.Remove(live.Id);
 
         if (saving)
             await repo.SaveAsync(ctp.Token);
