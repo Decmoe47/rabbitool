@@ -22,16 +22,16 @@ namespace Rabbitool.Api;
 [Component]
 public partial class QQBotApi
 {
-    private readonly CommonConfig _commonConfig;
-    private readonly CosApi _cosApi;
-
-    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    private static readonly RateLimiter Limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromSeconds(1),
         TokenLimit = 5,
         TokensPerPeriod = 5
     }); // See https://bot.q.qq.com/wiki/develop/api/openapi/message/post_messages.html
+
+    private readonly CommonConfig _commonConfig;
+    private readonly CosApi _cosApi;
 
     private readonly ChannelBot _qqBot;
     private readonly QQBotConfig _qqBotConfig;
@@ -155,7 +155,7 @@ public partial class QQBotApi
 
     public async Task<List<Guild>> GetAllGuildsAsync(CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         return await _qqChannelApi.GetUserApi().GetAllJoinedChannelsAsync();
     }
 
@@ -179,13 +179,13 @@ public partial class QQBotApi
 
     public async Task<List<Channel>> GetAllChannelsAsync(string guildId, CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         return await _qqChannelApi.GetChannelApi().GetChannelsAsync(guildId);
     }
 
     public async Task<Channel> GetChannelAsync(string channelId, CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         return await _qqChannelApi.GetChannelApi().GetInfoAsync(channelId);
     }
 
@@ -231,7 +231,7 @@ public partial class QQBotApi
         if (!_commonConfig.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
 
         if (imgUrl != null)
             imgUrl = await _cosApi.UploadImageAsync(imgUrl, ct);
@@ -311,7 +311,7 @@ public partial class QQBotApi
         if (!_commonConfig.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
 
         try
         {
@@ -353,7 +353,7 @@ public partial class QQBotApi
         if (!_commonConfig.InTestEnvironment && channelId == _sandboxGuildId)
             return null;
 
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         try
         {
             Log.Information("Posting QQ channel thread...\nChannelName: {channelName}\nTitle: {title}\nText: {text}",

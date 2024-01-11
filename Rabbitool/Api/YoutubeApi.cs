@@ -14,7 +14,7 @@ namespace Rabbitool.Api;
 [Component]
 public class YoutubeApi(YoutubeConfig youtubeConfig)
 {
-    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    private static readonly RateLimiter Limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromMinutes(1),
@@ -34,14 +34,14 @@ public class YoutubeApi(YoutubeConfig youtubeConfig)
         ChannelsResource.ListRequest channelsReq = _ytb.Channels
             .List(new Repeatable<string>(["contentDetails"]));
         channelsReq.Id = channelId;
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         Channel channel = (await channelsReq.ExecuteAsync(ct)).Items[0];
 
         // https://developers.google.com/youtube/v3/docs/playlistItems
         PlaylistItemsResource.ListRequest playListReq = _ytb.PlaylistItems
             .List(new Repeatable<string>(["contentDetails"]));
         playListReq.PlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         IList<PlaylistItem> playlistItems = (await playListReq.ExecuteAsync(ct)).Items;
 
         Video video = new();
@@ -51,7 +51,7 @@ public class YoutubeApi(YoutubeConfig youtubeConfig)
             VideosResource.ListRequest videosReq = _ytb.Videos
                 .List(new Repeatable<string>(["snippet", "liveStreamingDetails"]));
             videosReq.Id = playlistItem.ContentDetails.VideoId;
-            await _limiter.AcquireAsync(1, ct);
+            await Limiter.AcquireAsync(1, ct);
             video = (await videosReq.ExecuteAsync(ct)).Items[0];
 
             if (video.LiveStreamingDetails?.ScheduledStartTimeDateTimeOffset != null)
@@ -66,7 +66,7 @@ public class YoutubeApi(YoutubeConfig youtubeConfig)
         VideosResource.ListRequest videosReq = _ytb.Videos
             .List(new Repeatable<string>(["snippet", "liveStreamingDetails"]));
         videosReq.Id = liveRoomId;
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
         IList<Video> videos = (await videosReq.ExecuteAsync(ct)).Items;
         Video video;
         if (videos?.Count is > 0)

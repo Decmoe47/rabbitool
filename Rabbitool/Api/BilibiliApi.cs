@@ -18,7 +18,7 @@ public class BilibiliApi(CommonConfig commonConfig)
 {
     private static readonly CookieJar Jar = new();
 
-    private readonly RateLimiter _limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    private static readonly RateLimiter Limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromSeconds(1),
@@ -37,7 +37,7 @@ public class BilibiliApi(CommonConfig commonConfig)
 
     public async Task<Live?> GetLiveAsync(uint uid, CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
 
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"
@@ -126,7 +126,7 @@ public class BilibiliApi(CommonConfig commonConfig)
         int needTop = 0,
         CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
 
         string resp = await "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history"
             .SetQueryParam("offsetDynamic", offsetDynamic)
@@ -388,7 +388,7 @@ public class BilibiliApi(CommonConfig commonConfig)
 
     private async Task<string> GetUnameAsync(uint uid, CancellationToken ct = default)
     {
-        await _limiter.AcquireAsync(1, ct);
+        await Limiter.AcquireAsync(1, ct);
 
         string query = await BilibiliHelper.GenerateQueryAsync("mid", uid.ToString());
         string resp = await $"https://api.bilibili.com/x/space/wbi/acc/info?{query}"

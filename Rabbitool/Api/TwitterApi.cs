@@ -16,7 +16,7 @@ namespace Rabbitool.Api;
 [Component]
 public class TwitterApi(TwitterConfig twitterConfig)
 {
-    private readonly RateLimiter _tweetApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    private static readonly RateLimiter TweetApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromMinutes(1),
@@ -24,7 +24,7 @@ public class TwitterApi(TwitterConfig twitterConfig)
         TokensPerPeriod = 11
     }); // See https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/migrate
 
-    private readonly RateLimiter _userApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+    private static readonly RateLimiter UserApiLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
         QueueLimit = 1,
         ReplenishmentPeriod = TimeSpan.FromMinutes(1),
@@ -34,7 +34,7 @@ public class TwitterApi(TwitterConfig twitterConfig)
 
     public async Task<Tweet> GetLatestTweetAsync(string screenName, CancellationToken ct = default)
     {
-        await _tweetApiLimiter.AcquireAsync(1, ct);
+        await TweetApiLimiter.AcquireAsync(1, ct);
 
         string resp;
         if (twitterConfig is { XCsrfToken: not null, Cookie: not null })
