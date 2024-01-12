@@ -11,7 +11,7 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    [Migration("20240112151154_Initial")]
+    [Migration("20240112151913_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

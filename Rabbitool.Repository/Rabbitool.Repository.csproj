@@ -29,4 +29,8 @@
         <ProjectReference Include="..\Rabbitool.Model\Rabbitool.Model.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Folder Include="Migrations\"/>
+    </ItemGroup>
+
 </Project>
