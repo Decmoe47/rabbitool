@@ -11,16 +11,16 @@ using Rabbitool.Repository.Subscribe;
 namespace Rabbitool.Repository.Migrations
 {
     [DbContext(typeof(SubscribeDbContext))]
-    [Migration("20230620134006_Init")]
-    partial class Init
+    [Migration("20240112151154_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "7.0.7");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribe", b =>
                 {
                     b.Property<Guid>("BilibiliSubscribesId")
                         .HasColumnType("TEXT");
@@ -32,10 +32,10 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("QQChannelsId");
 
-                    b.ToTable("BilibiliSubscribe_QQChannelSubscribes");
+                    b.ToTable("BilibiliSubscribe_QQChannelSubscribe");
                 });
 
-            modelBuilder.Entity("MailSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("MailSubscribe_QQChannelSubscribe", b =>
                 {
                     b.Property<Guid>("MailSubscribesId")
                         .HasColumnType("TEXT");
@@ -47,7 +47,7 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("QQChannelsId");
 
-                    b.ToTable("MailSubscribe_QQChannelSubscribes");
+                    b.ToTable("MailSubscribe_QQChannelSubscribe");
                 });
 
             modelBuilder.Entity("Rabbitool.Model.Entity.Subscribe.BilibiliSubscribeConfigEntity", b =>
@@ -215,7 +215,7 @@ namespace Rabbitool.Repository.Migrations
                     b.Property<Guid>("QQChannelId")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("QuotePush")
+                    b.Property<bool>("RtPush")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("SubscribeId")
@@ -333,7 +333,7 @@ namespace Rabbitool.Repository.Migrations
                     b.ToTable("YoutubeSubscribe");
                 });
 
-            modelBuilder.Entity("TwitterSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("TwitterSubscribe_QQChannelSubscribe", b =>
                 {
                     b.Property<Guid>("QQChannelsId")
                         .HasColumnType("TEXT");
@@ -345,10 +345,10 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("TwitterSubscribesId");
 
-                    b.ToTable("TwitterSubscribe_QQChannelSubscribes");
+                    b.ToTable("TwitterSubscribe_QQChannelSubscribe");
                 });
 
-            modelBuilder.Entity("YoutubeSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("YoutubeSubscribe_QQChannelSubscribe", b =>
                 {
                     b.Property<Guid>("QQChannelsId")
                         .HasColumnType("TEXT");
@@ -360,10 +360,10 @@ namespace Rabbitool.Repository.Migrations
 
                     b.HasIndex("YoutubeSubscribesId");
 
-                    b.ToTable("YoutubeSubscribe_QQChannelSubscribes");
+                    b.ToTable("YoutubeSubscribe_QQChannelSubscribe");
                 });
 
-            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("BilibiliSubscribe_QQChannelSubscribe", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.BilibiliSubscribeEntity", null)
                         .WithMany()
@@ -378,7 +378,7 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MailSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("MailSubscribe_QQChannelSubscribe", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.MailSubscribeEntity", null)
                         .WithMany()
@@ -469,7 +469,7 @@ namespace Rabbitool.Repository.Migrations
                     b.Navigation("Subscribe");
                 });
 
-            modelBuilder.Entity("TwitterSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("TwitterSubscribe_QQChannelSubscribe", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.QQChannelSubscribeEntity", null)
                         .WithMany()
@@ -484,7 +484,7 @@ namespace Rabbitool.Repository.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("YoutubeSubscribe_QQChannelSubscribes", b =>
+            modelBuilder.Entity("YoutubeSubscribe_QQChannelSubscribe", b =>
                 {
                     b.HasOne("Rabbitool.Model.Entity.Subscribe.QQChannelSubscribeEntity", null)
                         .WithMany()
