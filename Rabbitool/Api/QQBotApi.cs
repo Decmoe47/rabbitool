@@ -19,8 +19,8 @@ using Serilog;
 
 namespace Rabbitool.Api;
 
-[Component]
-public partial class QQBotApi
+[Component(AutofacScope = AutofacScope.SingleInstance)]
+public partial class QQBotApi : IAsyncDisposable
 {
     private static readonly RateLimiter Limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
@@ -58,6 +58,12 @@ public partial class QQBotApi
         if (_commonConfig.InTestEnvironment)
             _qqChannelApi.UseSandBoxMode();
         _qqBot = new ChannelBot(_qqChannelApi);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _qqBot.OfflineAsync();
+        GC.SuppressFinalize(this);
     }
 
     public async Task RunBotAsync()

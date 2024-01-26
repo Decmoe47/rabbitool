@@ -9,7 +9,7 @@ public interface IPlugin
     Task InitAsync();
 }
 
-public interface IScheduledPlugin : IPlugin, IInvocable
+public interface IScheduledPlugin : IPlugin, IInvocable, IAsyncDisposable
 {
 }
 

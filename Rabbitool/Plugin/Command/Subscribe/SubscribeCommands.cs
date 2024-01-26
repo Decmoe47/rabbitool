@@ -16,9 +16,15 @@ namespace Rabbitool.Plugin.Command.Subscribe;
 public class SubscribeCommands(
     QQBotApi qqBotApi,
     IServiceProvider serviceProvider,
-    ICancellationTokenProvider ctp)
+    ICancellationTokenProvider ctp) : IAsyncDisposable
 {
     private static readonly string[] SupportedPlatforms = ["b站", "推特", "油管", "邮箱"];
+
+    public async ValueTask DisposeAsync()
+    {
+        await qqBotApi.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
 
     public List<MyCommandInfo> GetAllCommands()
     {

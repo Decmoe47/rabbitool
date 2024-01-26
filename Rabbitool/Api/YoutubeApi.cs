@@ -12,7 +12,7 @@ namespace Rabbitool.Api;
 
 [ConditionalOnProperty("youtube:enabled", "True")]
 [Component]
-public class YoutubeApi(YoutubeConfig youtubeConfig)
+public class YoutubeApi(YoutubeConfig youtubeConfig) : IDisposable
 {
     private static readonly RateLimiter Limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
     {
@@ -27,6 +27,12 @@ public class YoutubeApi(YoutubeConfig youtubeConfig)
         ApplicationName = "Rabbitool",
         ApiKey = youtubeConfig.ApiKey
     });
+
+    public void Dispose()
+    {
+        _ytb.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     public async Task<YoutubeItem> GetLatestVideoOrLiveAsync(string channelId, CancellationToken ct = default)
     {

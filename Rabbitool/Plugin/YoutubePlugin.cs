@@ -37,6 +37,14 @@ public class YoutubePlugin(
         await CheckAllAsync();
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        youtubeApi.Dispose();
+        await repo.DisposeAsync();
+        await configRepo.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)

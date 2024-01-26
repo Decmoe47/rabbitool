@@ -61,6 +61,13 @@ public partial class MailPlugin : IScheduledPlugin, ICancellableInvocable
         await CheckAllAsync();
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await _configRepo.DisposeAsync();
+        await _repo.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)

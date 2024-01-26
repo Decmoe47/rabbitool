@@ -3,7 +3,7 @@ using Rabbitool.Model.DTO.Command;
 
 namespace Rabbitool.Plugin.Command.Subscribe.Handler;
 
-internal interface ISubscribeCommandHandler
+internal interface ISubscribeCommandHandler : IAsyncDisposable
 {
     Task<string> Add(SubscribeCommand command, CancellationToken ct = default);
 

@@ -158,6 +158,15 @@ public abstract partial class AbstractSubscribeCommandHandler<TSubscribe, TConfi
             : await ListSubscribeInChannelAsync(cmd, subscribes, logInfo, ct);
     }
 
+    public virtual async ValueTask DisposeAsync()
+    {
+        await dbCtx.DisposeAsync();
+        await qsRepo.DisposeAsync();
+        await repo.DisposeAsync();
+        await configRepo.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task<string> ListAllSubscribesInGuildAsync(SubscribeCommand cmd, CancellationToken ct = default)
     {
         List<QQChannelSubscribeEntity> allChannels = await qsRepo.GetAllAsync(

@@ -43,6 +43,13 @@ public class TwitterPlugin(
         await CheckAllAsync();
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await repo.DisposeAsync();
+        await configRepo.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task CheckAllAsync()
     {
         if (CancellationToken.IsCancellationRequested)
